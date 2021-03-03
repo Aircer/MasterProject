@@ -118,6 +118,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 		 */
 		SceneView.duringSceneGui -= OnSceneGUI;
 		SceneView.duringSceneGui += OnSceneGUI;
+		Undo.undoRedoPerformed += MyUndoCallback;
 		if (_grid != null)
 		{
 			//FuncEditor.RefreshGrid(_grid);
@@ -329,16 +330,16 @@ public class MapTileGridCreatorWindow : EditorWindow
 			//Move apply
 			if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
 			{
-				Undo.SetCurrentGroupName("Move selected");
-				int group = Undo.GetCurrentGroup();
+				//Undo.SetCurrentGroupName("Move selected");
+				//int group = Undo.GetCurrentGroup();
 
 				FuncEditor.StampCells(_selection, _grid, destination, _overwrite_cells_modif);
 				foreach (Cell c in _selection)
 				{
-					Undo.DestroyObjectImmediate(c.gameObject);
+					//Undo.DestroyObjectImmediate(c.gameObject);
 				}
 
-				Undo.CollapseUndoOperations(group);
+				//Undo.CollapseUndoOperations(group);
 				_mode_select = SelectMode.Default;
 				Selection.SetActiveObjectWithContext(_grid.gameObject, null);
 			}
@@ -367,10 +368,10 @@ public class MapTileGridCreatorWindow : EditorWindow
 			//Apply stamp
 			if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
 			{
-				Undo.SetCurrentGroupName("Stamp selected");
-				int group = Undo.GetCurrentGroup();
+				//Undo.SetCurrentGroupName("Stamp selected");
+				//int group = Undo.GetCurrentGroup();
 				FuncEditor.StampCells(_selection, _grid, destination, _overwrite_cells_modif);
-				Undo.CollapseUndoOperations(group);
+				//Undo.CollapseUndoOperations(group);
 			}
 			//Reset selection
 			else if (Event.current.type == EventType.MouseDown && Event.current.button == 1)
@@ -431,8 +432,6 @@ public class MapTileGridCreatorWindow : EditorWindow
 	#region Paint/Erase
 	private void PaintInput(Vector3 input, float rotation)
 	{
-		Undo.RecordObject(_grid, "Restore Cell State");
-
 		Vector3Int inputIndex = FuncEditor.GetIndexByPosition(_grid, input);
 		//Painting out of bounds
 		if (InputInGridBoundaries(_grid, inputIndex))
@@ -501,8 +500,6 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 					if (indexNoMorePainted)
 					{
-						SetCellColliderState(index, false);
-						ShowCell(index, true);
 						ActivatePallet(index, false);
 						newIndexToPaint.Remove(index);
 					}
@@ -521,21 +518,22 @@ public class MapTileGridCreatorWindow : EditorWindow
 		if (painting && Event.current.type == EventType.MouseUp && Event.current.button == 0)
 		{
 			painting = false;
-			bool inputAlreadyDrawn = false;
+			indexToPaint.Add(inputIndex);
 
 			foreach (Vector3Int index in indexToPaint)
 			{
+				ActivatePallet(index, false);
+
+				Cell cell = FuncEditor.CellAtThisIndex(_grid, index);
+
+				foreach (Transform child in cell.transform)
+				{
+					Undo.RegisterFullObjectHierarchyUndo(child, "Restore Cell State");
+				}
+
+				ActivatePallet(index, true);
 				SetCellColliderState(index, true);
 				ShowCell(index, true);
-
-				if (index == inputIndex)
-					inputAlreadyDrawn = true;
-			}
-
-			if (InputInGridBoundaries(_grid, inputIndex) && !inputAlreadyDrawn)
-			{
-				ActivatePallet(inputIndex, true);
-				SetCellColliderState(inputIndex, true);
 			}
 		}
 	}
@@ -572,6 +570,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 						for (int k = 0; k <= Mathf.Abs(inputIndex.z - startingPaintIndex.z); k++)
 						{
 							Vector3Int index = new Vector3Int(startingPaintIndex.x + (int)Mathf.Sign(inputIndex.x - startingPaintIndex.x) * i, startingPaintIndex.y + (int)Mathf.Sign(inputIndex.y - startingPaintIndex.y) * j, startingPaintIndex.z + (int)Mathf.Sign(inputIndex.z - startingPaintIndex.z) * k);
+
 							newIndexToPaint.Add(index);
 						}
 					}
@@ -620,8 +619,17 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 			foreach (Vector3Int point in indexToPaint)
 			{
-				ShowCell(point, true);
-				SetCellColliderState(point, false);
+				ActivatePallet(point, true);
+
+				Cell cell = FuncEditor.CellAtThisIndex(_grid, point);
+
+				Undo.RegisterFullObjectHierarchyUndo(cell, "Restore Cell State");
+
+				foreach (Transform child in cell.transform)
+				{
+					Undo.RegisterFullObjectHierarchyUndo(child, "Restore Cell State");
+				}
+
 				ActivatePallet(point, false);
 			}
 		}
@@ -629,13 +637,13 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	private void ActivatePallet(Vector3Int input, bool active)
 	{
-		FuncEditor.ActivatePallet(_pallet_index, _grid, input, active, rotation);
+		Cell cell = FuncEditor.CellAtThisIndex(_grid, input);
+		cell.ActivatePallet(active, _pallet_index, rotation);
 	}
 
 	private void SetCellColliderState(Vector3Int input, bool active)
 	{
 		Cell cell = FuncEditor.CellAtThisIndex(_grid, input);
-		//Undo.RegisterFullObjectHierarchyUndo(cell.transform, "Restore Cell State");
 		if (cell)
 			cell.SetColliderState(active);
 	}
@@ -643,7 +651,6 @@ public class MapTileGridCreatorWindow : EditorWindow
 	private void ShowCell(Vector3Int input, bool show)
 	{
 		Cell cell = FuncEditor.CellAtThisIndex(_grid, input);
-		//Undo.RecordObject(cell, "Restore Cell State");
 		if (cell)
 			cell.SetMeshState(show);
 	}
@@ -873,15 +880,15 @@ public class MapTileGridCreatorWindow : EditorWindow
 			case SelectMode.Default:
 				if (GUILayout.Button("Replace selected") && _pallet_index < _pallet.Count)
 				{
-					Undo.SetCurrentGroupName("Replace selected");
-					int group = Undo.GetCurrentGroup();
+					//Undo.SetCurrentGroupName("Replace selected");
+					//int group = Undo.GetCurrentGroup();
 
 					GameObject prefab = _pallet[_pallet_index];
 					foreach (Cell c in _selection)
 					{
 						FuncEditor.ReplaceCell(prefab, _grid, c);
 					}
-					Undo.CollapseUndoOperations(group);
+					//Undo.CollapseUndoOperations(group);
 
 					Selection.SetActiveObjectWithContext(_grid.gameObject, null);
 				}

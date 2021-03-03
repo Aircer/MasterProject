@@ -223,7 +223,7 @@ namespace MapTileGridCreator.Utilities
 			}
 			grid.AddCell(index, cell);
 			cell.ResetTransform();
-			Undo.RegisterCreatedObjectUndo(cell.gameObject, "Cell created");
+
 			return cell;
 		}
 

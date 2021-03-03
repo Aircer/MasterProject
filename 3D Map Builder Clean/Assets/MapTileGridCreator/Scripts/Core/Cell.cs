@@ -16,9 +16,6 @@ namespace MapTileGridCreator.Core
 
 		[SerializeField]
 		private Vector3Int _grid_index;
-
-		[SerializeField]
-		private bool _colliderState;
 #pragma warning restore 0649
 		#endregion
 
@@ -47,7 +44,7 @@ namespace MapTileGridCreator.Core
 			transform.localPosition = _parent.GetLocalPositionCell(ref _grid_index);
 			transform.localScale = Vector3.one * _parent.SizeCell;
 			transform.rotation = _parent.GetDefaultRotation();
-			_colliderState = false;
+			ActivatePallet(false);
 		}
 
 		/// <summary>
@@ -64,15 +61,48 @@ namespace MapTileGridCreator.Core
 			return _grid_index.GetHashCode();
 		}
 
+		public void ActivatePallet(bool active, int palletIndex=0, float rotation = 0)
+		{
+			if (!active)
+			{
+				SetColliderState(false);
+				SetMeshState(true);
+			}
+
+			for (int i = 0; i < this.transform.childCount; i++)
+			{
+				if (i == palletIndex)
+					this.transform.GetChild(i).gameObject.SetActive(active);
+				else
+					this.transform.GetChild(i).gameObject.SetActive(false);
+			}
+			this.transform.eulerAngles = new Vector3(0, rotation, 0);
+		}
+
 		public bool GetColliderState()
 		{
-			return _colliderState;
+			bool colliderState = false; 
+
+			for (int i = 0; i < gameObject.transform.childCount; i++)
+			{
+				if (gameObject.transform.GetChild(i).gameObject.activeSelf == true)
+				{
+					colliderState = transform.GetChild(i).transform.GetComponent<Collider>().enabled;
+				}
+			}
+
+			return colliderState;
 		}
 
 		public void SetColliderState(bool state)
 		{
-			_colliderState = state;
-			this.transform.GetComponent<Collider>().enabled = _colliderState;
+			for (int i = 0; i < gameObject.transform.childCount; i++)
+			{
+				if (gameObject.transform.GetChild(i).gameObject.activeSelf == true)
+				{
+					transform.GetChild(i).transform.GetComponent<Collider>().enabled = state;
+				}
+			}
 		}
 
 		public void SetMeshState(bool state)
