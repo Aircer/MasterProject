@@ -115,8 +115,8 @@ namespace MapTileGridCreator.Core
 				}
 				catch (Exception e)
 				{
-					Debug.LogError(e.Message);
-					GameObject.DestroyImmediate(c.gameObject);
+					//Debug.LogError(e.Message);
+					//GameObject.DestroyImmediate(c.gameObject);
 				}
 			}
 		}

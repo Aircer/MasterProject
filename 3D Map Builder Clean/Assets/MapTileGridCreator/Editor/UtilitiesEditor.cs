@@ -70,15 +70,15 @@ namespace MapTileGridCreator.Utilities
 		/// <param name="color"> The color of the grid.</param>
 		/// <param name="offset_grid_y"> The offset of y position. </param>
 		/// <param name="size_grid">The size of the grid.</param>
-		public static void DebugGrid(Grid3D grid, Color color, int offset_grid_y = 0, int size_grid = 10, bool planInverted_x = false, bool planInverted_z = false)
+		public static void DebugGrid(Grid3D grid, Color color, Vector3Int size_grid, bool planInverted_x = false, bool planInverted_y = false, bool planInverted_z = false)
 		{
 			if (grid.GetTypeGrid() == TypeGrid3D.Hexagonal)
 			{
-				DebugHexagonGrid(grid, color, offset_grid_y, size_grid);
+				DebugHexagonGrid(grid, color, size_grid);
 			}
 			else
 			{
-				DebugSquareGrid(grid, color, offset_grid_y, size_grid, planInverted_x, planInverted_z);
+				DebugSquareGrid(grid, color, size_grid, planInverted_x, planInverted_y, planInverted_z);
 			}
 		}
 
@@ -89,36 +89,44 @@ namespace MapTileGridCreator.Utilities
 		/// <param name="color"> The color of the grid.</param>
 		/// <param name="offset_grid_y"> The offset of y position. </param>
 		/// <param name="size_grid">The size of the grid.</param>
-		private static void DebugSquareGrid(Grid3D grid, Color color, int offset_grid_y = 0, int size_grid = 10, bool planInverted_x = false, bool planInverted_z = false)
+		private static void DebugSquareGrid(Grid3D grid, Color color, Vector3Int size_grid, bool planInverted_x = false, bool planInverted_y = false, bool planInverted_z = false)
 		{
 			using (new Handles.DrawingScope(color))
 			{
-				float flipX = planInverted_x ? size_grid : 0;
-				float flipZ = planInverted_z ? size_grid : 0;
+				float flipX = planInverted_x ? size_grid.x : 0;
+				float flipY = planInverted_y ? size_grid.y : 0;
+				float flipZ = planInverted_z ? size_grid.z : 0;
+;
 				Handles.zTest = UnityEngine.Rendering.CompareFunction.LessEqual;
 				Vector3 pos = grid.transform.position;
 				float CaseSize = grid.SizeCell * grid.GapRatio;
-				pos.y += offset_grid_y - CaseSize / 2.0f;
+				pos.y += - CaseSize / 2.0f;
 
-				for (float z = -1; z < size_grid; z++)
+				for (float x = -1; x < size_grid.x; x++)
 				{
-					Handles.DrawLine(pos + new Vector3(-0.5f, 0, z + 0.5f) * CaseSize,
-									pos + new Vector3(size_grid - 0.5f, 0, z + 0.5f) * CaseSize);
+					Handles.DrawLine(pos + new Vector3(x + 0.5f, flipY, -0.5f) * CaseSize,
+									pos + new Vector3(x + 0.5f, flipY, size_grid.z - 0.5f) * CaseSize);
 
-					Handles.DrawLine(pos + new Vector3(z + 0.5f, 0, - 0.5f) * CaseSize,
-									pos + new Vector3(z + 0.5f, 0, size_grid-0.5f) * CaseSize);
+					Handles.DrawLine(pos + new Vector3(x + 0.5f, size_grid.y, flipZ - 0.5f) * CaseSize,
+									pos + new Vector3(x + 0.5f, 0, flipZ - 0.5f) * CaseSize);
+				}
 
-					Handles.DrawLine(pos + new Vector3(flipX - 0.5f, z + 1f, -0.5f) * CaseSize,
-									pos + new Vector3(flipX - 0.5f, z + 1f, size_grid - 0.5f) * CaseSize);
+				for (float y = -1; y < size_grid.y; y++)
+				{ 
+					Handles.DrawLine(pos + new Vector3(flipX - 0.5f, y + 1f, -0.5f) * CaseSize,
+									pos + new Vector3(flipX - 0.5f, y + 1f, size_grid.z - 0.5f) * CaseSize);
+
+					Handles.DrawLine(pos + new Vector3(-0.5f, y + 1f, flipZ-0.5f) * CaseSize,
+									pos + new Vector3(size_grid.x-0.5f, y + 1f, flipZ - 0.5f) * CaseSize);
+				}
+
+				for (float z = -1; z < size_grid.z; z++)
+				{
+					Handles.DrawLine(pos + new Vector3(-0.5f, flipY, z + 0.5f) * CaseSize,
+									pos + new Vector3(size_grid.x - 0.5f, flipY, z + 0.5f) * CaseSize);
 
 					Handles.DrawLine(pos + new Vector3(flipX - 0.5f, 0, z + 0.5f) * CaseSize,
-									pos + new Vector3(flipX - 0.5f, size_grid , z + 0.5f) * CaseSize);
-
-					Handles.DrawLine(pos + new Vector3(z + 0.5f, size_grid, flipZ - 0.5f) * CaseSize,
-									pos + new Vector3(z + 0.5f, 0, flipZ - 0.5f) * CaseSize);
-
-					Handles.DrawLine(pos + new Vector3(-0.5f, z + 1f, flipZ-0.5f) * CaseSize,
-									pos + new Vector3(size_grid-0.5f, z + 1f, flipZ - 0.5f) * CaseSize);
+									pos + new Vector3(flipX - 0.5f, size_grid.y, z + 0.5f) * CaseSize);
 				}
 			}
 		}
@@ -130,14 +138,14 @@ namespace MapTileGridCreator.Utilities
 		/// <param name="color"> The color of the grid.</param>
 		/// <param name="offset_grid_y"> The offset of y position. </param>
 		/// <param name="size_grid">The size of the grid.</param>
-		private static void DebugHexagonGrid(Grid3D grid, Color color, int offset_grid_y = 0, int size_grid = 10)
+		private static void DebugHexagonGrid(Grid3D grid, Color color, Vector3Int size_grid)
 		{
 			using (new Handles.DrawingScope(color))
 			{
 				Handles.zTest = UnityEngine.Rendering.CompareFunction.LessEqual;
 				Vector3 pos = grid.transform.position;
 				float CaseSize = grid.SizeCell * grid.GapRatio;
-				pos.y += offset_grid_y - CaseSize / 2.0f;
+				pos.y += - CaseSize / 2.0f;
 
 				List<Vector3> axes = grid.GetAxes();
 				float angle_xz = Vector3.Angle(axes[2], axes[0]) / 2;
@@ -156,9 +164,9 @@ namespace MapTileGridCreator.Utilities
 				form[p] = form[0];
 
 				//Grid
-				for (int z = -size_grid; z <= size_grid; z++)
+				for (int z = -size_grid.z; z <= size_grid.z; z++)
 				{
-					for (int x = -size_grid; x <= size_grid; x++)
+					for (int x = -size_grid.x; x <= size_grid.x; x++)
 					{
 						Vector3 cellpos = (axes[0] * x + axes[2] * z) * CaseSize;
 
@@ -219,17 +227,19 @@ namespace MapTileGridCreator.Utilities
 			return cell;
 		}
 
-		public static Cell ActivatePallet(int palletIndex, Grid3D grid, Vector3Int index, bool active)
+		public static Cell ActivatePallet(int palletIndex, Grid3D grid, Vector3Int index, bool active, float rotation = 0)
 		{
 			Cell cell = CellAtThisIndex(grid, index);
 
 			for (int i = 0; i < cell.transform.childCount; i++)
 			{
-				if (i == palletIndex - 1)
+				if (i == palletIndex)
 					cell.transform.GetChild(i).gameObject.SetActive(active);
 				else
 					cell.transform.GetChild(i).gameObject.SetActive(false);
 			}
+			cell.transform.eulerAngles = new Vector3(0, rotation, 0);
+
 			return cell;
 		}
 

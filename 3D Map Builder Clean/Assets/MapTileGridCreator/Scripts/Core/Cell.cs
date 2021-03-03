@@ -72,14 +72,7 @@ namespace MapTileGridCreator.Core
 		public void SetColliderState(bool state)
 		{
 			_colliderState = state;
-
-			for (int i = 0; i < gameObject.transform.childCount; i++)
-			{
-				if (gameObject.transform.GetChild(i).gameObject.activeSelf == true)
-				{
-					transform.GetChild(i).transform.GetComponent<Collider>().enabled = _colliderState;
-				}
-			}
+			this.transform.GetComponent<Collider>().enabled = _colliderState;
 		}
 
 		public void SetMeshState(bool state)
@@ -88,7 +81,8 @@ namespace MapTileGridCreator.Core
 			{
 				if (gameObject.transform.GetChild(i).gameObject.activeSelf == true)
 				{
-					transform.GetChild(i).transform.GetComponent<MeshRenderer>().enabled = state;
+					if (transform.GetChild(i).transform.GetChild(0))
+						transform.GetChild(i).transform.GetChild(0).gameObject.SetActive(state);
 				}
 			}
 		}

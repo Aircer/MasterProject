@@ -37,18 +37,17 @@ public class MapTileGridCreatorWindow : EditorWindow
 	private EditMode _mode_edit;
 
 	private Grid3D _grid;
-	private Grid3D _poolingGrid;
+	private float rotation = 0; 
 
 	[SerializeField]
 	private bool _debug_grid = true;
 	[SerializeField]
-	private int _size_grid = 20;
-	[SerializeField]
-	private int _offset_grid_y = 0;
+	private Vector3Int _size_grid = new Vector3Int(5, 5, 5);
 
 	private Vector2 _scroll_position;
 
 	private bool _planInverted_x = false;
+	private bool _planInverted_y = false;
 	private bool _planInverted_z = false;
 
 	//Creation empty
@@ -70,6 +69,9 @@ public class MapTileGridCreatorWindow : EditorWindow
 	private Plane _plane_y = new Plane();
 	private Plane _plane_x = new Plane();
 	private Plane _plane_z = new Plane();
+	private GameObject _brush;
+	private Vector3Int oldInputIndex; 
+
 	[SerializeField]
 	[Min(1)]
 	private float _dist_default_interaction = 100.0f;
@@ -104,6 +106,8 @@ public class MapTileGridCreatorWindow : EditorWindow
 			new GUIContent(EditorGUIUtility.IconContent("Grid.Default", "Default, select or or multiple cells in scene view")),
 			new GUIContent(EditorGUIUtility.IconContent("Grid.MoveTool", "Move selected cells to a given destination")),
 			new GUIContent(EditorGUIUtility.IconContent("TreeEditor.Duplicate", "Copy selected and paste to a given destination")) };
+
+		_brush = GameObject.Find("Brush");
 	}
 
 	private void OnFocus()
@@ -135,23 +139,30 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	private void OnSceneGUI(SceneView sceneView)
 	{
+		if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.R)
+		{
+			rotation = rotation == 270 ? 0 : rotation + 90;
+		}
+
 		SelectionGridSceneView();
 		OnSelectionEditChangedCheck();
 		SwapPlanDebug();
+
 		if (_grid != null)
 		{
 			//Update grid debug position
-			_plane_x.SetNormalAndPosition(new Vector3(_planInverted_x?-1.0f:1.0f, 0.0f, 0.0f), new Vector3(_planInverted_x ?_size_grid -1:0, 0, 0));
-			_plane_y.SetNormalAndPosition(new Vector3(0.0f, 1.0f, 0.0f), new Vector3(0, 0, 0));
-			_plane_z.SetNormalAndPosition(new Vector3(0.0f, 0.0f, _planInverted_z ? -1.0f : 1.0f), new Vector3(0, 0, _planInverted_z ? _size_grid - 1 : 0));
+			_plane_x.SetNormalAndPosition(new Vector3(_planInverted_x?-1.0f:1.0f, 0.0f, 0.0f), new Vector3(_planInverted_x ?_size_grid.x -1:0, 0, 0));
+			_plane_y.SetNormalAndPosition(new Vector3(0.0f, _planInverted_y ? -1.0f : 1.0f, 0.0f), new Vector3(0, _planInverted_y ? _size_grid.y - 1 : 0, 0));
+			_plane_z.SetNormalAndPosition(new Vector3(0.0f, 0.0f, _planInverted_z ? -1.0f : 1.0f), new Vector3(0, 0, _planInverted_z ? _size_grid.z - 1 : 0));
 
 			SwitchEditMode();
 
 			if (_debug_grid)
 			{
-				FuncEditor.DebugGrid(_grid, DebugsColor.grid_help, _offset_grid_y, _size_grid, _planInverted_x, _planInverted_z);
+				FuncEditor.DebugGrid(_grid, DebugsColor.grid_help, _size_grid, _planInverted_x, _planInverted_y, _planInverted_z);
 			}
 		}
+
 		HandleUtility.Repaint();
 	}
 
@@ -215,10 +226,12 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	private void SwapPlanDebug()
 	{
-		float rotation = SceneView.lastActiveSceneView.rotation.eulerAngles.y;
+		float rotationY = SceneView.lastActiveSceneView.rotation.eulerAngles.y;
+		_planInverted_x = rotationY > 180 && rotationY < 360 ? false : true;
+		_planInverted_z = rotationY > 90 && rotationY < 270? false : true;
 
-		_planInverted_x = rotation > 180 && rotation < 360 ? false : true;
-		_planInverted_z = rotation > 90 && rotation < 270? false : true;
+		float rotationX = SceneView.lastActiveSceneView.rotation.eulerAngles.x;
+		_planInverted_y = rotationX > 180 && rotationX < 360 ? true : false;
 	}
 
 	/// <summary>
@@ -271,7 +284,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 						if (m != null && !m.Pass)
 						{
 							Vector3 posTrans = _grid.GetPositionCell(m.StartIndex);
-							DebugCellAtPosition(posTrans, DebugsColor.start_modifier, 1.1f);
+							DebugCellAtPosition(posTrans, false);
 							posTrans.y += _grid.SizeCell;
 							Handles.Label(posTrans, "Start modifier " + i);
 						}
@@ -311,7 +324,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			//Preview destination
 			Vector3 input = GetGridPositionInput(0.5f, _collide_with_plane);
 			Vector3Int destination = _grid.GetIndexByPosition(ref input);
-			DebugSelection(destination);
+			DebugSelection(destination, false);
 
 			//Move apply
 			if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
@@ -349,7 +362,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			//Preview destination
 			Vector3 input = GetGridPositionInput(0.5f, _collide_with_plane);
 			Vector3Int destination = _grid.GetIndexByPosition(ref input);
-			DebugSelection(destination);
+			DebugSelection(destination, false);
 
 			//Apply stamp
 			if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
@@ -367,14 +380,14 @@ public class MapTileGridCreatorWindow : EditorWindow
 		}
 	}
 
-	private void DebugSelection(Vector3Int destinationIndex)
+	private void DebugSelection(Vector3Int destinationIndex, bool erase)
 	{
 		Vector3Int displacement = destinationIndex - _selection[0].GetIndex();
 		foreach (Cell c in _selection)
 		{
 			Vector3Int index = c.GetIndex();
 			Vector3 destination = _grid.GetPositionCell(index + displacement);
-			DebugCellAtPosition(destination, DebugsColor.destination_editor);
+			DebugCellAtPosition(destination, erase);
 		}
 	}
 
@@ -388,8 +401,8 @@ public class MapTileGridCreatorWindow : EditorWindow
 			case PaintMode.Single:
 				{
 					Vector3 input = GetGridPositionInput(0.5f, _collide_with_plane);
-					PaintInput(input);
-					DebugCellAtPosition(input, DebugsColor.destination_editor);
+					PaintInput(input, rotation);
+					DebugCellAtPosition(input, false, rotation);
 				}
 				break;
 
@@ -397,7 +410,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 				{
 					Vector3 input = GetGridPositionInput(-0.5f, true);
 					EraseInput(input);
-					DebugCellAtPosition(input, DebugsColor.erase_editor);
+					DebugCellAtPosition(input, true);
 				}
 				break;
 
@@ -408,7 +421,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 					EyedropperInput(selected);
 					if (selected != null)
 					{
-						DebugCellAtPosition(selected.transform.position, DebugsColor.eyedropper_editor, 1.05f);
+						DebugCellAtPosition(selected.transform.position, false);
 					}
 				}
 				break;
@@ -416,8 +429,10 @@ public class MapTileGridCreatorWindow : EditorWindow
 	}
 
 	#region Paint/Erase
-	private void PaintInput(Vector3 input)
+	private void PaintInput(Vector3 input, float rotation)
 	{
+		Undo.RecordObject(_grid, "Restore Cell State");
+
 		Vector3Int inputIndex = FuncEditor.GetIndexByPosition(_grid, input);
 		//Painting out of bounds
 		if (InputInGridBoundaries(_grid, inputIndex))
@@ -470,7 +485,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 					if (!indexExist)
 					{
 						indexToPaint.Add(newIndex);
-						SetPallet(newIndex, true);
+						ActivatePallet(newIndex, true);
 					}
 				}
 
@@ -486,13 +501,21 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 					if (indexNoMorePainted)
 					{
-						SetCellColliderState(inputIndex, false);
-						SetPallet(index, false);
+						SetCellColliderState(index, false);
+						ShowCell(index, true);
+						ActivatePallet(index, false);
 						newIndexToPaint.Remove(index);
 					}
 				}
 
 				indexToPaint = newIndexToPaint;
+
+				ShowCell(inputIndex, false);
+				if (oldInputIndex != inputIndex)
+				{
+					ShowCell(oldInputIndex, true);
+					oldInputIndex = inputIndex;
+				}
 			}
 		}
 		if (painting && Event.current.type == EventType.MouseUp && Event.current.button == 0)
@@ -503,6 +526,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			foreach (Vector3Int index in indexToPaint)
 			{
 				SetCellColliderState(index, true);
+				ShowCell(index, true);
 
 				if (index == inputIndex)
 					inputAlreadyDrawn = true;
@@ -510,7 +534,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 			if (InputInGridBoundaries(_grid, inputIndex) && !inputAlreadyDrawn)
 			{
-				SetPallet(inputIndex, true);
+				ActivatePallet(inputIndex, true);
 				SetCellColliderState(inputIndex, true);
 			}
 		}
@@ -530,7 +554,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			}
 
 			//Set starting index of paint 
-			if (!painting && _pallet_index < _pallet.Count && Event.current.type == EventType.MouseDown && Event.current.button == 0)
+			if (!painting && Event.current.type == EventType.MouseDown && Event.current.button == 0)
 			{
 				startingPaintIndex = inputIndex;
 				indexToPaint.Clear();
@@ -538,7 +562,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			}
 
 			//Get all indexes that will be paint
-			if (painting && _pallet_index < _pallet.Count && Event.current.type == EventType.MouseDrag && Event.current.button == 0)
+			if (painting && Event.current.type == EventType.MouseDrag && Event.current.button == 0)
 			{
 				newIndexToPaint.Clear();
 				for (int i = 0; i <= Mathf.Abs(inputIndex.x - startingPaintIndex.x); i++)
@@ -598,42 +622,20 @@ public class MapTileGridCreatorWindow : EditorWindow
 			{
 				ShowCell(point, true);
 				SetCellColliderState(point, false);
-				SetPallet(point, false);
+				ActivatePallet(point, false);
 			}
 		}
 	}
 
-	private void EraseCell(Vector3 input)
+	private void ActivatePallet(Vector3Int input, bool active)
 	{
-		if (Event.current.type == EventType.Layout)
-		{
-			HandleUtility.AddDefaultControl(0);
-		}
-
-        Vector3Int index = _grid.GetIndexByPosition(ref input);
-        Cell cell = _grid.TryGetCellByIndex(ref index);
-
-        if (cell != null)
-        {
-            _grid.DeleteCell(cell);
-            Selection.SetActiveObjectWithContext(_grid.gameObject, null);
-            Undo.DestroyObjectImmediate(cell.gameObject);
-        }
-    }
-
-	private void SetCellPosition(Vector3Int input)
-	{
-		FuncEditor.InstantiateCell(_pallet[_pallet_index], _grid, input);
-	}
-
-	private void SetPallet(Vector3Int input, bool active)
-	{
-		FuncEditor.ActivatePallet(_pallet_index, _grid, input, active);
+		FuncEditor.ActivatePallet(_pallet_index, _grid, input, active, rotation);
 	}
 
 	private void SetCellColliderState(Vector3Int input, bool active)
 	{
 		Cell cell = FuncEditor.CellAtThisIndex(_grid, input);
+		//Undo.RegisterFullObjectHierarchyUndo(cell.transform, "Restore Cell State");
 		if (cell)
 			cell.SetColliderState(active);
 	}
@@ -641,12 +643,13 @@ public class MapTileGridCreatorWindow : EditorWindow
 	private void ShowCell(Vector3Int input, bool show)
 	{
 		Cell cell = FuncEditor.CellAtThisIndex(_grid, input);
-
+		//Undo.RecordObject(cell, "Restore Cell State");
 		if (cell)
 			cell.SetMeshState(show);
 	}
 
 	#endregion
+
 	private void EyedropperInput(Cell selectedCell)
 	{
 		if (Event.current.type == EventType.Layout)
@@ -722,19 +725,26 @@ public class MapTileGridCreatorWindow : EditorWindow
 		return hitPoint;
 	}
 
-	private void DebugCellAtPosition(Vector3 position, Color color, float size_factor = 1f)
+	private void DebugCellAtPosition(Vector3 position, bool erase = false, float rotation = 0)
 	{
-		using (new Handles.DrawingScope(color))
-		{
-			if (color == DebugsColor.destination_editor)
-				Handles.color = _pallet[_pallet_index].GetComponent<MeshRenderer>().sharedMaterial.color;
-			else
-				Handles.color = color;
+		int pallet = _pallet_index;
 
-			Handles.zTest = UnityEngine.Rendering.CompareFunction.LessEqual;
-			Vector3 pos = _grid.TransformPositionToGridPosition(position);
-			Handles.CubeHandleCap(0, pos, Quaternion.identity, size_factor*1.001f, EventType.Repaint);
+		if (erase)
+			pallet = _brush.transform.childCount-1;
+
+		for (int i = 0; i < _brush.transform.childCount; i++)
+		{
+			if (i == pallet)
+				_brush.transform.GetChild(i).gameObject.SetActive(true);
+			else
+				_brush.transform.GetChild(i).gameObject.SetActive(false);
 		}
+
+		Vector3 pos = _grid.TransformPositionToGridPosition(position);
+		if(InputInGridBoundaries(_grid, pos) || !painting)
+			_brush.transform.position = pos;
+
+		_brush.transform.eulerAngles = new Vector3(0, rotation, 0); 
 	}
 
 	#endregion
@@ -745,6 +755,11 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	private void OnGUI()
 	{
+		if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.R)
+		{
+			rotation = rotation == 270 ? 0 : rotation + 90;
+		}
+
 		DrawMainMenu();
 	}
 
@@ -755,9 +770,9 @@ public class MapTileGridCreatorWindow : EditorWindow
 		DrawNewGridPanel();
 		FuncEditor.DrawUILine(Color.gray);
 
-		EditorGUILayout.LabelField("Map selected :", EditorStyles.boldLabel);
-		Grid3D newgrid = (Grid3D)EditorGUILayout.ObjectField(_grid, typeof(Grid3D), true);
-		UpdateGridSelected(newgrid);
+		//EditorGUILayout.LabelField("Map selected :", EditorStyles.boldLabel);
+		//Grid3D newgrid = (Grid3D)EditorGUILayout.ObjectField(_grid, typeof(Grid3D), true);
+		UpdateGridSelected(_grid);
 
 		if (_grid != null)
 		{
@@ -795,13 +810,13 @@ public class MapTileGridCreatorWindow : EditorWindow
 			_debug_grid = EditorGUILayout.Toggle("Debug grid", _debug_grid);
 			if (_debug_grid)
 			{
-				_size_grid = EditorGUILayout.IntField("Size grid", _size_grid);
-				_offset_grid_y = EditorGUILayout.IntField("Offset Y Ground Plane", _offset_grid_y);
+				_size_grid = EditorGUILayout.Vector3IntField("Size grid", _size_grid);
+				//_offset_grid_y = EditorGUILayout.IntField("Offset Y Ground Plane", _offset_grid_y);
 			}
 
 			FuncEditor.DrawUILine(Color.gray);
 			EditorGUILayout.LabelField("Tools :", EditorStyles.boldLabel);
-			_dist_default_interaction = EditorGUILayout.Slider("Distance default interaction : ", _dist_default_interaction, 0.0f, 500.0f);
+			//_dist_default_interaction = EditorGUILayout.Slider("Distance default interaction : ", _dist_default_interaction, 0.0f, 500.0f);
 			DrawEditor();
 		}
 	}
@@ -809,8 +824,8 @@ public class MapTileGridCreatorWindow : EditorWindow
 	private void DrawNewGridPanel()
 	{
 		FuncEditor.DrawUILine(Color.gray);
-		GUILayout.Label("Create empty", EditorStyles.boldLabel);
-		_empty_creation_choice = (TypeGrid3D)EditorGUILayout.Popup((int)_empty_creation_choice, _empty_creation_choice.GetTypesGrid());
+		//GUILayout.Label("Create empty", EditorStyles.boldLabel);
+		_empty_creation_choice = TypeGrid3D.Cube; //(TypeGrid3D)EditorGUILayout.Popup((int)_empty_creation_choice, _empty_creation_choice.GetTypesGrid());
 		if (GUILayout.Button("New"))
 		{
 			GameObject[] allObjects = GameObject.FindGameObjectsWithTag("Grid");
@@ -820,7 +835,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			}
 
 			_grid = FuncEditor.InstantiateGrid3D(_empty_creation_choice);
-			Selection.SetActiveObjectWithContext(_grid.gameObject, null);
+			//Selection.SetActiveObjectWithContext(_grid.gameObject, null);
 			CreateCells();
 		}
 	}
@@ -880,7 +895,8 @@ public class MapTileGridCreatorWindow : EditorWindow
 					EditorGUILayout.HelpBox("Need cells selected to be effective.", MessageType.Warning);
 				}
 
-				_collide_with_plane = EditorGUILayout.Toggle("Collide with ground plane : ", _collide_with_plane);
+				//_collide_with_plane = EditorGUILayout.Toggle("Collide with ground plane : ", _collide_with_plane);
+				_collide_with_plane = true;
 				_overwrite_cells_modif = EditorGUILayout.Toggle("Overwrite existing cells", _overwrite_cells_modif);
 				break;
 
@@ -890,7 +906,8 @@ public class MapTileGridCreatorWindow : EditorWindow
 					EditorGUILayout.HelpBox("Need cells selected to be effective.", MessageType.Warning);
 				}
 
-				_collide_with_plane = EditorGUILayout.Toggle("Collide with ground plane : ", _collide_with_plane);
+				//_collide_with_plane = EditorGUILayout.Toggle("Collide with ground plane : ", _collide_with_plane);
+				_collide_with_plane = true;
 				_overwrite_cells_modif = EditorGUILayout.Toggle("Overwrite existing cells", _overwrite_cells_modif);
 				GUILayout.BeginHorizontal();
 				if (GUILayout.Button("Load from prefab"))
@@ -939,7 +956,8 @@ public class MapTileGridCreatorWindow : EditorWindow
 		{
 			case PaintMode.Single:
 				{
-					_collide_with_plane = EditorGUILayout.Toggle("Collide with ground plane : ", _collide_with_plane);
+					//_collide_with_plane = EditorGUILayout.Toggle("Collide with ground plane : ", _collide_with_plane);
+					_collide_with_plane = true;
 				}
 				break;
 
@@ -955,9 +973,9 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	private void DrawPanelPallet()
 	{
-		EditorGUILayout.LabelField("Pallet panel :");
+		//EditorGUILayout.LabelField("Pallet panel :");
 		GUILayout.BeginHorizontal();
-		if (GUILayout.Button("Go root folder"))
+		/*if (GUILayout.Button("Go root folder"))
 		{
 			UnityEngine.Object folder = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(_path_pallet);
 			Selection.SetActiveObjectWithContext(folder, null);
@@ -996,9 +1014,10 @@ public class MapTileGridCreatorWindow : EditorWindow
 			RefreshPallet();
 		}
 
-		GUILayout.EndHorizontal();
 		GUILayout.Label("Actual folder : " + _path_pallet);
+		*/
 
+		GUILayout.EndHorizontal();
 		if (_pallet.Count == 0)
 		{
 			EditorGUILayout.HelpBox("No prefab founded for pallet.", MessageType.Warning);
@@ -1065,7 +1084,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 		{
 			case TypeGrid3D.Cube:
 				{
-					if (input.x < 0 || input.y < 0 || input.z < 0 || input.x > _size_grid -1 || input.y > _size_grid -1 || input.z  > _size_grid -1)
+					if (input.x < 0 || input.y < 0 || input.z < 0 || input.x > _size_grid.x -1 || input.y > _size_grid.y -1 || input.z  > _size_grid.z -1)
 						inBoundaries = false; 
 				}
 				break;
@@ -1084,13 +1103,13 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	private void CreateCells()
 	{
-		GameObject pallet = _pallet[0];
+		GameObject pallet = AssetDatabase.LoadAssetAtPath("Assets/MapTileGridCreator/Pallets/Pallet.prefab", typeof(GameObject)) as GameObject;
 
-		for (int x = 0; x < _size_grid; x++)
+		for (int x = 0; x < _size_grid.x; x++)
 		{
-			for (int y = 0; y < _size_grid; y++)
+			for (int y = 0; y < _size_grid.y; y++)
 			{
-				for (int z = 0; z < _size_grid; z++) 
+				for (int z = 0; z < _size_grid.z; z++) 
 				{
 					FuncEditor.InstantiateCell(pallet, _grid, new Vector3Int(x, y, z));
 				}
