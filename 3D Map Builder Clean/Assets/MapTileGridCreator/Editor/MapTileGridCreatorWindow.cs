@@ -37,8 +37,9 @@ public class MapTileGridCreatorWindow : EditorWindow
 	private EditMode _mode_edit;
 
 	private Grid3D _grid;
-	private float rotation = 0; 
-
+	private float rotation = 0;
+	private WaypointCluster cluster; 
+	
 	[SerializeField]
 	private bool _debug_grid = true;
 	[SerializeField]
@@ -108,6 +109,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			new GUIContent(EditorGUIUtility.IconContent("TreeEditor.Duplicate", "Copy selected and paste to a given destination")) };
 
 		_brush = GameObject.Find("Brush");
+		cluster = GameObject.Find("WaypointsCluster").GetComponent<WaypointCluster>();
 	}
 
 	private void OnFocus()
@@ -118,7 +120,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 		 */
 		SceneView.duringSceneGui -= OnSceneGUI;
 		SceneView.duringSceneGui += OnSceneGUI;
-		Undo.undoRedoPerformed += MyUndoCallback;
+
 		if (_grid != null)
 		{
 			//FuncEditor.RefreshGrid(_grid);
@@ -844,6 +846,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			_grid = FuncEditor.InstantiateGrid3D(_empty_creation_choice);
 			//Selection.SetActiveObjectWithContext(_grid.gameObject, null);
 			CreateCells();
+			cluster.CreateWaypoints(_size_grid);
 		}
 	}
 
