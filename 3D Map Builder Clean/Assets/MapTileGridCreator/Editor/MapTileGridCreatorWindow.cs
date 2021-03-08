@@ -42,6 +42,11 @@ public class MapTileGridCreatorWindow : EditorWindow
 	
 	[SerializeField]
 	private bool _debug_grid = true;
+	private GameObject coordinates;
+	private bool _debug_waypoints; 
+	private GameObject waypointsCluster;
+	private Vector3Int[] start_end = new Vector3Int[2];
+
 	[SerializeField]
 	private Vector3Int _size_grid = new Vector3Int(5, 5, 5);
 
@@ -110,6 +115,8 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 		_brush = GameObject.Find("Brush");
 		cluster = GameObject.Find("WaypointsCluster").GetComponent<WaypointCluster>();
+		coordinates = GameObject.Find("Coordinates");
+		waypointsCluster = GameObject.Find("WaypointsCluster");
 	}
 
 	private void OnFocus()
@@ -528,12 +535,13 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 				Cell cell = FuncEditor.CellAtThisIndex(_grid, index);
 
-				foreach (Transform child in cell.transform)
+				/*foreach (Transform child in cell.transform)
 				{
 					Undo.RegisterFullObjectHierarchyUndo(child, "Restore Cell State");
-				}
+				}*/
 
 				ActivatePallet(index, true);
+				SetPathWaypoint(index);
 				SetCellColliderState(index, true);
 				ShowCell(index, true);
 			}
@@ -621,17 +629,18 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 			foreach (Vector3Int point in indexToPaint)
 			{
-				ActivatePallet(point, true);
+				//ActivatePallet(point, true);
 
 				Cell cell = FuncEditor.CellAtThisIndex(_grid, point);
 
 				Undo.RegisterFullObjectHierarchyUndo(cell, "Restore Cell State");
 
-				foreach (Transform child in cell.transform)
+				/*foreach (Transform child in cell.transform)
 				{
 					Undo.RegisterFullObjectHierarchyUndo(child, "Restore Cell State");
-				}
+				}*/
 
+				RemovePathWaypoint(point);
 				ActivatePallet(point, false);
 			}
 		}
@@ -657,6 +666,54 @@ public class MapTileGridCreatorWindow : EditorWindow
 			cell.SetMeshState(show);
 	}
 
+	private void SetPathWaypoint(Vector3Int index)
+	{
+		Cell cell = FuncEditor.CellAtThisIndex(_grid, index);
+		if (cell.GetTypeCell() == "Start_End")
+		{  
+			if (start_end[0] == new Vector3Int(-1, -1, -1))
+				start_end[0] = index;
+			else
+			{
+				if (start_end[1] != index && start_end[1] != new Vector3Int(-1, -1, -1))
+				{
+					ActivatePallet(start_end[1], false);
+				}
+
+				start_end[1] = index; 
+				cluster.FindPath(start_end[0], start_end[1]);
+			}
+		}
+
+		if (cell.GetTypeCell() == "Default" || cell.GetTypeCell() == "Grass" || cell.GetTypeCell() == "Water")
+		{
+			cluster.PathBlocked(index, true);
+			if(start_end[1] != new Vector3Int(-1, -1, -1))
+				cluster.FindPath(start_end[0], start_end[1]);
+		}
+	}
+	private void RemovePathWaypoint(Vector3Int index)
+	{
+		Cell cell = FuncEditor.CellAtThisIndex(_grid, index);
+		if (cell.GetTypeCell() == "Start_End")
+		{
+			if (start_end[0] == index)
+			{
+				start_end[0] = start_end[1];
+				start_end[1] = new Vector3Int(-1, -1, -1);
+			}
+			else
+			{
+				start_end[1] = new Vector3Int(-1, -1, -1);
+			}
+		}
+		if (cell.GetTypeCell() == "Default" || cell.GetTypeCell() == "Grass" || cell.GetTypeCell() == "Water")
+		{
+			cluster.PathBlocked(index, false);
+			if (start_end[1] != new Vector3Int(-1, -1, -1))
+				cluster.FindPath(start_end[0], start_end[1]);
+		}
+	}
 	#endregion
 
 	private void EyedropperInput(Cell selectedCell)
@@ -816,12 +873,17 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 		if (_grid != null)
 		{
+			_debug_waypoints = EditorGUILayout.Toggle("Debug Waypoints", _debug_waypoints);
+			waypointsCluster.SetActive(_debug_waypoints);
+
 			_debug_grid = EditorGUILayout.Toggle("Debug grid", _debug_grid);
 			if (_debug_grid)
 			{
 				_size_grid = EditorGUILayout.Vector3IntField("Size grid", _size_grid);
 				//_offset_grid_y = EditorGUILayout.IntField("Offset Y Ground Plane", _offset_grid_y);
 			}
+
+			coordinates.SetActive(_debug_grid);
 
 			FuncEditor.DrawUILine(Color.gray);
 			EditorGUILayout.LabelField("Tools :", EditorStyles.boldLabel);
@@ -847,6 +909,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			//Selection.SetActiveObjectWithContext(_grid.gameObject, null);
 			CreateCells();
 			cluster.CreateWaypoints(_size_grid);
+			start_end[0] = start_end[1] = new Vector3Int(-1, -1, -1);
 		}
 	}
 

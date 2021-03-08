@@ -12,16 +12,32 @@ namespace MapTileGridCreator.Core
 		/// Parent graph of the waypoint
 		protected WaypointCluster parent;
 
+		protected Vector3Int key;
+		protected bool show = false;
+		public float fCost;
+		public float hCost;
+		public float gCost;
+		public bool walkable;
+		public Waypoint from; 
+
 		/// The outgoing list of edges
 		public List<Waypoint> outs = new List<Waypoint>();
 
-		[HideInInspector]
 		/// Incoming list of edges, hidden in the inspector
 		public List<Waypoint> ins = new List<Waypoint>();
 
-		public void setParent(WaypointCluster wc) { parent = wc; }
+		public void SetParent(WaypointCluster wc) { parent = wc; }
 
-		public WaypointCluster getParent() { return parent; }
+		public WaypointCluster GetParent() { return parent; }
+
+		public void SetKey(Vector3Int wc) { key = wc; }
+
+		public Vector3Int GetKey() { return key;  }
+
+		public void SetShow(bool sh) { show = sh; }
+
+		public bool GetShow() { return show; }
+
 
 		/// Links this waypoint (directionally) with the passed waypoint and sets the probabilities of all edges to the same
 		/// <param name="node"> Node to be linked to</param>
@@ -33,9 +49,11 @@ namespace MapTileGridCreator.Core
 				return;
 			}
 			for (int i = 0; i < outs.Count; ++i) if (waypoint == outs[i]) return;
-			if (waypoint.ins.Contains(this)) return;
+			for (int i = 0; i < ins.Count; ++i) if (ins[i] == this) return;
+
 			outs.Add(waypoint);
 			waypoint.ins.Add(this);
+			waypoint.linkTo(this);
 		}
 
 		/// Removes a link (directionally) between this waypoiny and the passed waypoint and sets the probabilities of all edges to the same
@@ -43,7 +61,7 @@ namespace MapTileGridCreator.Core
 		public void unlinkFrom(Waypoint waypoint)
 		{
 			for (int i = 0; i < outs.Count; ++i) if (outs[i] == waypoint) outs.RemoveAt(i);
-			waypoint.ins.Remove(this);
+			for (int i = 0; i < ins.Count; ++i) if (ins[i] == this) ins.RemoveAt(i);
 		}
 
 		/// Draws the arrow from position "pos" in the direction "dir"
@@ -65,14 +83,10 @@ namespace MapTileGridCreator.Core
 		/// Draws the white square representing the nodes and an arrow for each outgoing edge
 		public virtual void OnDrawGizmos()
 		{
-
-			// Draw a yellow sphere at the transform's position
-			Gizmos.color = Color.white;
-			Gizmos.DrawCube(transform.position, new Vector3(0.5f, 0.5f, 0.5f));
-			for (int i = 0; i < outs.Count; ++i)
+			if (show)
 			{
-				Vector3 direction = outs[i].transform.position - transform.position;
-				ForGizmo(transform.position + direction.normalized, direction - direction.normalized * 2f, Color.red, 2f);
+				Gizmos.color = Color.yellow;
+				Gizmos.DrawSphere(transform.position, 0.2f);
 			}
 		}
 
@@ -81,26 +95,42 @@ namespace MapTileGridCreator.Core
 		{
 			Gizmos.color = Color.yellow;
 			Gizmos.DrawCube(transform.position, new Vector3(0.5f, 0.5f, 0.5f));
+
 			for (int i = 0; i < outs.Count; ++i)
 			{
-				Vector3 direction = outs[i].transform.position - transform.position;
-				ForGizmo(transform.position + direction.normalized, direction - direction.normalized * 2f, Color.magenta, 2f);
+				Vector3 direction = outs[i].key - key;
+				Gizmos.color = Color.red;
+				Gizmos.DrawRay(this.transform.position, direction);
+				//ForGizmo(transform.position + direction.normalized, direction - direction.normalized * 2f, Color.red, 2f);
+			}
+
+			for (int i = 0; i < outs.Count; ++i)
+			{
+				Vector3 direction = outs[i].key - key;
+				Gizmos.color = Color.red;
+				Gizmos.DrawRay(this.transform.position, direction);
+				//ForGizmo(transform.position + direction.normalized, direction - direction.normalized * 2f, Color.red, 2f);
 			}
 		}
 
 
 		[ExecuteInEditMode]
 		/// Handles the destruction of the waypoint in editor and play modes
-		private void OnDestroy()
+		public void Remove()
 		{
 			if (parent == null) return;
-			for (int i = 0; i < outs.Count; ++i) Undo.RegisterCompleteObjectUndo(outs[i], "destroyed");
-			for (int i = 0; i < ins.Count; ++i) Undo.RegisterCompleteObjectUndo(ins[i], "destroyed");
-			Undo.RegisterCompleteObjectUndo(this.getParent(), "destroyed");
+			Undo.RegisterCompleteObjectUndo(this.GetParent(), "destroyed");
 			for (int i = outs.Count - 1; i >= 0; --i) this.unlinkFrom(outs[i]);
 			for (int i = ins.Count - 1; i >= 0; --i) ins[i].unlinkFrom(this);
 			Undo.RegisterCompleteObjectUndo(this, "destroyed");
-			this.getParent().waypoints.Remove(this);
+			this.GetParent().waypoints.Remove(key);
+			DestroyImmediate(this.gameObject);
+		}
+
+		public void IsBlocking()
+		{
+			for (int i = outs.Count - 1; i >= 0; --i) this.unlinkFrom(outs[i]);
+			for (int i = ins.Count - 1; i >= 0; --i) ins[i].unlinkFrom(this);
 		}
 
 	}

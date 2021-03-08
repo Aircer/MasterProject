@@ -15,6 +15,9 @@ namespace MapTileGridCreator.Core
 #pragma warning disable 0649
 
 		[SerializeField]
+		private string _type;
+
+		[SerializeField]
 		private Vector3Int _grid_index;
 #pragma warning restore 0649
 		#endregion
@@ -45,12 +48,20 @@ namespace MapTileGridCreator.Core
 			transform.localScale = Vector3.one * _parent.SizeCell;
 			transform.rotation = _parent.GetDefaultRotation();
 			ActivatePallet(false);
+			_type = "null";
 		}
 
 		/// <summary>
 		/// Get the index of the cell.
 		/// </summary>
 		/// <returns>The cell's index.</returns>
+		/// 
+
+		public string GetTypeCell()
+		{
+			return _type;
+		}
+
 		public Vector3Int GetIndex()
 		{
 			return _grid_index;
@@ -71,8 +82,11 @@ namespace MapTileGridCreator.Core
 
 			for (int i = 0; i < this.transform.childCount; i++)
 			{
-				if (i == palletIndex)
+				if (i == palletIndex && active)
+				{
 					this.transform.GetChild(i).gameObject.SetActive(active);
+					_type = active ? this.transform.GetChild(i).name: "null";
+				}
 				else
 					this.transform.GetChild(i).gameObject.SetActive(false);
 			}
