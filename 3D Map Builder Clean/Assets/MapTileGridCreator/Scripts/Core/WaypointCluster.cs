@@ -87,41 +87,70 @@ namespace MapTileGridCreator.Core
 			++currentID;
 			waypoints.Add(key, waypointInstance.GetComponent<Waypoint>());
 			waypointInstance.GetComponent<Waypoint>().SetParent(this);
-			waypointInstance.GetComponent<Waypoint>().SetKey(key); 
+			waypointInstance.GetComponent<Waypoint>().SetKey(key);
+			waypointInstance.GetComponent<Waypoint>().walkable = true;
+			waypointInstance.GetComponent<Waypoint>().inAir = true;
 			return waypointInstance.GetComponent<Waypoint>();
 		}
 
-		public void FindPath(Vector3Int start, Vector3Int end)
+		public void FindPath(Vector3Int start, Vector3Int end, Vector2 maxJump)
 		{
 			List<Waypoint> points = new List<Waypoint>();
 			points.AddRange(waypoints.Values);
-			List<Waypoint> way;
 
 			foreach (Waypoint point in points)
 			{
 				point.SetShow(false);
+				point.SetShowFlood(false);
+				point.gCost = 0;
+				point.hCost = 0;
+				point.from = null; 
 			}
+			if(waypoints.ContainsKey(start) && waypoints.ContainsKey(end))
+				Pathfinding.FindRouteTo2(waypoints[start], waypoints[end], maxJump);
+		}
 
-			way = Pathfinding.FindRouteTo2(waypoints[start], waypoints[end]);
+		public void FindPath(Vector3Int start, Vector2 maxJump)
+		{
+			List<Waypoint> points = new List<Waypoint>();
+			points.AddRange(waypoints.Values);
 
-			if (way == null)
-				Debug.Log("Path blocked");
-			else 
+			foreach (Waypoint point in points)
 			{
-				foreach (Waypoint point in way)
-				{
-					point.SetShow(true);
-				}
+				point.SetShow(false);
+				point.SetShowFlood(false);
+				point.gCost = 0;
+				point.hCost = 0;
 			}
+
+			Pathfinding.FloodFill(waypoints[start], maxJump);
 		}
 
 		public void PathBlocked(Vector3Int index, bool removeWaypoint)
 		{
 			if (removeWaypoint)
-				waypoints[index].IsBlocking();
+			{
+				if (waypoints.ContainsKey(new Vector3Int(index.x, index.y, index.z)))
+					waypoints[index].IsBlocking(true);
+			}
 			else
 			{
-				ConnectWaypoint(index.x, index.y, index.z);
+				if (waypoints.ContainsKey(new Vector3Int(index.x, index.y, index.z)))
+					waypoints[index].IsBlocking(false);
+			}
+		}
+
+		public void Ground(Vector3Int index, bool removeWaypoint)
+		{
+			if (removeWaypoint)
+			{
+				if (waypoints.ContainsKey(new Vector3Int(index.x, index.y + 1, index.z)))
+					waypoints[new Vector3Int(index.x, index.y + 1, index.z)].inAir = false;
+			}
+			else
+			{
+				if (waypoints.ContainsKey(new Vector3Int(index.x, index.y + 1, index.z)))
+					waypoints[new Vector3Int(index.x, index.y + 1, index.z)].inAir = true;
 			}
 		}
 

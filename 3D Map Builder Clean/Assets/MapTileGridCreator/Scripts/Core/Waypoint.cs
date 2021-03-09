@@ -7,14 +7,20 @@ namespace MapTileGridCreator.Core
 {
 	public class Waypoint : MonoBehaviour
 	{
-		[SerializeField]
+
+        [SerializeField]
 		[HideInInspector]
 		/// Parent graph of the waypoint
 		protected WaypointCluster parent;
 
 		protected Vector3Int key;
 		protected bool show = false;
-		public float fCost;
+		protected bool showFlood = false;
+		public Color colorDot = Color.white;
+
+		public bool inAir = true; 
+
+		public float jCost; 
 		public float hCost;
 		public float gCost;
 		public bool walkable;
@@ -34,8 +40,9 @@ namespace MapTileGridCreator.Core
 
 		public Vector3Int GetKey() { return key;  }
 
-		public void SetShow(bool sh) { show = sh; }
+		public void SetShow(bool sh) { show = sh;}
 
+		public void SetShowFlood(bool sh) { showFlood = sh; }
 		public bool GetShow() { return show; }
 
 
@@ -73,11 +80,11 @@ namespace MapTileGridCreator.Core
 		private static void ForGizmo(Vector3 pos, Vector3 direction, Color c, float arrowHeadLength = 0.25f, float arrowHeadAngle = 20.0f)
 		{
 			Gizmos.color = c;
-			Gizmos.DrawRay(pos, direction);
-			Vector3 right = Quaternion.LookRotation(direction) * Quaternion.Euler(0, 180 + arrowHeadAngle, 0) * new Vector3(0, 0, 1);
-			Vector3 left = Quaternion.LookRotation(direction) * Quaternion.Euler(0, 180 - arrowHeadAngle, 0) * new Vector3(0, 0, 1);
-			Gizmos.DrawRay(pos + direction, right * arrowHeadLength);
-			Gizmos.DrawRay(pos + direction, left * arrowHeadLength);
+			Gizmos.DrawRay(pos, direction-pos);
+			Vector3 right = Quaternion.LookRotation(pos-direction) * Quaternion.Euler(0, 180 + arrowHeadAngle, 0) * new Vector3(0, 0, 1);
+			Vector3 left = Quaternion.LookRotation(pos - direction) * Quaternion.Euler(0, 180 - arrowHeadAngle, 0) * new Vector3(0, 0, 1);
+			Gizmos.DrawRay(pos, right * arrowHeadLength);
+			Gizmos.DrawRay(pos, left * arrowHeadLength);
 		}
 
 		/// Draws the white square representing the nodes and an arrow for each outgoing edge
@@ -85,7 +92,13 @@ namespace MapTileGridCreator.Core
 		{
 			if (show)
 			{
-				Gizmos.color = Color.yellow;
+				Gizmos.color = colorDot;
+				ForGizmo(key, from.key, colorDot);
+			}
+
+			if (showFlood)
+			{
+				Gizmos.color = colorDot;
 				Gizmos.DrawSphere(transform.position, 0.2f);
 			}
 		}
@@ -127,10 +140,9 @@ namespace MapTileGridCreator.Core
 			DestroyImmediate(this.gameObject);
 		}
 
-		public void IsBlocking()
+		public void IsBlocking(bool set)
 		{
-			for (int i = outs.Count - 1; i >= 0; --i) this.unlinkFrom(outs[i]);
-			for (int i = ins.Count - 1; i >= 0; --i) ins[i].unlinkFrom(this);
+			walkable = !set; 
 		}
 
 	}

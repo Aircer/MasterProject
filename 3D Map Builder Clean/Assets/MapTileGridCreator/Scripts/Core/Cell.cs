@@ -23,6 +23,8 @@ namespace MapTileGridCreator.Core
 		#endregion
 
 		private Grid3D _parent;
+		private Material startMaterial;
+		private Material endMaterial;
 
 		/// <summary>
 		/// Init the cell position, rotation and the index of the cell.
@@ -34,6 +36,8 @@ namespace MapTileGridCreator.Core
 		{
 			_parent = parent;
 			_grid_index = gridIndex;
+			startMaterial = Resources.Load("Material/Start") as Material;
+			endMaterial = Resources.Load("Material/End") as Material;
 		}
 
 		/// <summary>
@@ -149,6 +153,22 @@ namespace MapTileGridCreator.Core
 				_parent = parent.GetComponent<Grid3D>();
 			}
 			return _parent;
+		}
+
+		public void SetColor(string type)
+		{
+			switch (type)
+			{
+				case "start": 
+					this.transform.Find("Start_End").GetChild(0).GetComponent<Renderer>().material = startMaterial;
+					break;
+				case "end":
+					this.transform.Find("Start_End").GetChild(0).GetComponent<Renderer>().material = endMaterial;
+					break;
+				default:
+					break;
+			}
+
 		}
 
 		/// <summary>
