@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Grid
   - PoolingGrid
+  - Cluster
   layers:
   - Default
   - TransparentFX

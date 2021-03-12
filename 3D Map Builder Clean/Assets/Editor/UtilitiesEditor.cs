@@ -1,14 +1,10 @@
 using System;
 using System.Collections.Generic;
-
 using MapTileGridCreator.Core;
 using MapTileGridCreator.CubeImplementation;
 using MapTileGridCreator.HexagonalImplementation;
-
 using UnityEditor;
-
 using UnityEngine;
-
 
 namespace MapTileGridCreator.Utilities
 {
@@ -33,9 +29,9 @@ namespace MapTileGridCreator.Utilities
 					{
 						obj = new GameObject("CubeGrid");
 						grid = obj.AddComponent<CubeGrid>();
-						GameObject voxels = new GameObject();
-						voxels.name = "Voxels";
-						voxels.transform.parent = obj.transform;
+						GameObject cells = new GameObject();
+						cells.name = "Cells";
+						cells.transform.parent = obj.transform;
 					}
 					break;
 				case TypeGrid3D.Hexagonal:
@@ -72,7 +68,7 @@ namespace MapTileGridCreator.Utilities
 		/// <param name="color"> The color of the grid.</param>
 		/// <param name="offset_grid_y"> The offset of y position. </param>
 		/// <param name="size_grid">The size of the grid.</param>
-		public static void DebugGrid(Grid3D grid, Color color, Vector3Int size_grid, bool planInverted_x = false, bool planInverted_y = false, bool planInverted_z = false)
+		public static void DebugGrid(Grid3D grid, Color color, Vector3Int size_grid, Plane[] planesGrid)
 		{
 			if (grid.GetTypeGrid() == TypeGrid3D.Hexagonal)
 			{
@@ -80,7 +76,7 @@ namespace MapTileGridCreator.Utilities
 			}
 			else
 			{
-				DebugSquareGrid(grid, color, size_grid, planInverted_x, planInverted_y, planInverted_z);
+				DebugSquareGrid(grid, color, size_grid, planesGrid);
 			}
 		}
 
@@ -91,13 +87,13 @@ namespace MapTileGridCreator.Utilities
 		/// <param name="color"> The color of the grid.</param>
 		/// <param name="offset_grid_y"> The offset of y position. </param>
 		/// <param name="size_grid">The size of the grid.</param>
-		private static void DebugSquareGrid(Grid3D grid, Color color, Vector3Int size_grid, bool planInverted_x = false, bool planInverted_y = false, bool planInverted_z = false)
+		private static void DebugSquareGrid(Grid3D grid, Color color, Vector3Int size_grid, Plane[] planesGrid)
 		{
 			using (new Handles.DrawingScope(color))
 			{
-				float flipX = planInverted_x ? size_grid.x : 0;
-				float flipY = planInverted_y ? size_grid.y : 0;
-				float flipZ = planInverted_z ? size_grid.z : 0;
+				float flipX = planesGrid[0].normal.x == -1 ? size_grid.x : 0;
+				float flipY = planesGrid[1].normal.y == -1 ? size_grid.y : 0;
+				float flipZ = planesGrid[2].normal.z == -1 ? size_grid.z : 0;
 ;
 				Handles.zTest = UnityEngine.Rendering.CompareFunction.LessEqual;
 				Vector3 pos = grid.transform.position;
@@ -213,16 +209,26 @@ namespace MapTileGridCreator.Utilities
 		/// <param name="grid">The grid the cell will belongs.</param>
 		/// <param name="index"> The index of the cell.</param>
 		/// <returns>The cell component associated to the gameobject.</returns>
-		public static Cell InstantiateCell(GameObject prefab, Grid3D grid, Transform voxels, Vector3Int index)
+		public static Cell InstantiateCell(List<GameObject> pallet, Grid3D grid, Transform cells, Vector3Int index)
 		{
-			GameObject gameObject = PrefabUtility.InstantiatePrefab(prefab, voxels.transform) as GameObject;
-			gameObject.name = index.x + "_" + index.y + "_" + index.z + "_" + gameObject.name;
-			PrefabUtility.UnpackPrefabInstance(gameObject, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+			//GameObject gameObject = PrefabUtility.InstantiatePrefab(prefab, cells.transform) as GameObject;
+			GameObject cellGameObject = new GameObject();
+			cellGameObject.name = "cell_" + index.x + "_" + index.y + "_" + index.z;
+			cellGameObject.transform.parent = cells; 
+			Cell cell= cellGameObject.AddComponent<Cell>();
+
+			foreach (GameObject child in pallet)
+			{
+				GameObject newChild = PrefabUtility.InstantiatePrefab(child, cells.transform) as GameObject;
+				newChild.transform.parent = cellGameObject.transform;
+				newChild.SetActive(false);
+			}
+			/*PrefabUtility.UnpackPrefabInstance(gameObject, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
 			Cell cell = gameObject.GetComponent<Cell>();
 			if (cell == null)
 			{
 				cell = gameObject.AddComponent<Cell>();
-			}
+			}*/
 			grid.AddCell(index, cell);
 			cell.ResetTransform();
 
@@ -384,7 +390,102 @@ namespace MapTileGridCreator.Utilities
 			}
 			return null;
 		}
-	}
 
+		public static void CreateEmptyCells(List<GameObject> pallet, Grid3D grid, Vector3Int size_grid)
+		{
+			//GameObject pallet = AssetDatabase.LoadAssetAtPath("Assets/Cells/Cell.prefab", typeof(GameObject)) as GameObject;
+			Transform cells = grid.transform.Find("Cells");
+
+			for (int x = 0; x < size_grid.x; x++)
+			{
+				for (int y = 0; y < size_grid.y; y++)
+				{
+					for (int z = 0; z < size_grid.z; z++)
+					{
+						InstantiateCell(pallet, grid, cells, new Vector3Int(x, y, z));
+					}
+				}
+			}
+		}
+
+		public static bool InputInGridBoundaries(Grid3D grid, Vector3 input, Vector3Int size_grid)
+		{
+			TypeGrid3D typegrid = grid.GetTypeGrid();
+			bool inBoundaries = true;
+
+			switch (typegrid)
+			{
+				case TypeGrid3D.Cube:
+					{
+						if (input.x < 0 || input.y < 0 || input.z < 0 || input.x > size_grid.x - 1 || input.y > size_grid.y - 1 || input.z > size_grid.z - 1)
+							inBoundaries = false;
+					}
+					break;
+				case TypeGrid3D.Hexagonal:
+					{
+
+					}
+
+					break;
+				default:
+					throw new ArgumentException("No type implemented " + typegrid.ToString() + " inherit Grid3D");
+			}
+
+			return inBoundaries;
+		}
+
+		public static Plane[] SetGridDebugPlanesNormalAndPosition(Plane[] planesGrid, Vector3Int size_grid, Vector3 rot)
+		{
+			bool[] planesGridInverted = new bool[3];
+
+			//Invert planes if the camera is rotated
+			planesGridInverted[0] = rot.y > 180 && rot.y < 360 ? false : true;
+			planesGridInverted[1] = rot.x > 180 && rot.x < 360 ? true : false;
+			planesGridInverted[2] = rot.y > 90 && rot.y < 270 ? false : true;
+
+			//Update grid debug position
+			planesGrid[0].SetNormalAndPosition(new Vector3(planesGridInverted[0] ? -1.0f : 1.0f, 0.0f, 0.0f), new Vector3(planesGridInverted[0] ? size_grid.x - 1 : 0, 0, 0));
+			planesGrid[1].SetNormalAndPosition(new Vector3(0.0f, planesGridInverted[1] ? -1.0f : 1.0f, 0.0f), new Vector3(0, planesGridInverted[1] ? size_grid.y - 1 : 0, 0));
+			planesGrid[2].SetNormalAndPosition(new Vector3(0.0f, 0.0f, planesGridInverted[2] ? -1.0f : 1.0f), new Vector3(0, 0, planesGridInverted[2] ? size_grid.z - 1 : 0));
+
+			return planesGrid;
+		}
+
+		public static WaypointCluster CreateClusterAndWaypoints(Vector3Int size_grid)
+		{
+			GameObject clusterGameObject = new GameObject();
+			WaypointCluster cluster;
+			GameObject[] allObjects = GameObject.FindGameObjectsWithTag("Cluster");
+			foreach (GameObject obj in allObjects)
+			{
+				Editor.DestroyImmediate(obj);
+			}
+
+			//Editor.Instantiate(clusterGameObject);
+			clusterGameObject.tag = "Cluster";
+			clusterGameObject.name = "WaypointsCluster";
+			cluster= clusterGameObject.AddComponent<WaypointCluster>();
+			cluster.CreateWaypoints(size_grid);
+
+			return cluster;
+		}
+
+		public static Grid3D CreateGridAndCells(List<GameObject> pallet, Vector3Int size_grid)
+		{
+			Grid3D grid;
+			//Destroy all existing grids 
+			GameObject[] allObjects = GameObject.FindGameObjectsWithTag("Grid");
+			foreach (GameObject obj in allObjects)
+			{
+				Editor.DestroyImmediate(obj);
+			}
+
+			//Create Grid and all Cells 
+			grid = FuncEditor.InstantiateGrid3D(TypeGrid3D.Cube);
+			CreateEmptyCells(pallet, grid, size_grid);
+
+			return grid;
+		}
+	}
 }
 
