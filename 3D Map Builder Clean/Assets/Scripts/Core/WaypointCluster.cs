@@ -107,7 +107,7 @@ namespace MapTileGridCreator.Core
 				point.from = null; 
 			}
 			if(waypoints.ContainsKey(start) && waypoints.ContainsKey(end))
-				Pathfinding.FindRouteTo2(waypoints[start], waypoints[end], maxJump);
+				Pathfinding.FindRouteTo3(waypoints[start], waypoints[end], maxJump);
 		}
 
 		public void FindPath(Vector3Int start, Vector2 maxJump)

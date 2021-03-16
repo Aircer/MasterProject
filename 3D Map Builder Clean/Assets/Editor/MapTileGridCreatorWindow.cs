@@ -273,44 +273,24 @@ public class MapTileGridCreatorWindow : EditorWindow
 				}
 
 				_indexToPaint = newIndexToPaint;
-
-				ShowCell(inputIndex, false);
-				if (_oldInputIndex != inputIndex)
-				{
-					ShowCell(_oldInputIndex, true);
-					_oldInputIndex = inputIndex;
-				}
 			}
 		}
+
 		if (_painting && Event.current.type == EventType.MouseUp && Event.current.button == 0)
 		{
-
 			_painting = false;
+
 			if(!_indexToPaint.Contains(inputIndex))
 				_indexToPaint.Add(inputIndex);
 
 			foreach (Vector3Int index in _indexToPaint)
 			{
 				ActivatePallet(index, false);
-			}
-
-			foreach (Vector3Int index in _indexToPaint)
-			{
-
-				Cell cell = FuncEditor.CellAtThisIndex(_grid, index);
-
-				/*foreach (Transform child in cell.transform)
-				{
-					Undo.RegisterFullObjectHierarchyUndo(child, "Restore Cell State");
-				}*/
-
 				ActivatePallet(index, true);
 				SetPathWaypoint(index);
 				SetCellColliderState(index, true);
 				ShowCell(index, true);
 			}
-
-			//Undo.CollapseUndoOperations(_undoIndex++);
 
 			if (_start_end[1] != Constants.UNDEFINED_POSITION)
 				_cluster.FindPath(_start_end[0], _start_end[1], _maxJump);
@@ -408,19 +388,9 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 			foreach (Vector3Int point in _indexToPaint)
 			{
-
-				Cell cell = FuncEditor.CellAtThisIndex(_grid, point);
-
-				/*foreach (Transform child in cell.transform)
-				{
-					Undo.RegisterFullObjectHierarchyUndo(child, "Restore Cell State");
-				}*/
-
 				RemovePathWaypoint(point);
 				ActivatePallet(point, false);
 			}
-
-			//Undo.CollapseUndoOperations(_undoIndex++);
 
 			if (_start_end[1] != Constants.UNDEFINED_POSITION)
 				_cluster.FindPath(_start_end[0], _start_end[1], _maxJump);
@@ -493,6 +463,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			}
 		}
 	}
+
 	private void RemovePathWaypoint(Vector3Int index)
 	{
 		Cell cell = FuncEditor.CellAtThisIndex(_grid, index);

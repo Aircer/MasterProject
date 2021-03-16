@@ -55,7 +55,6 @@ namespace MapTileGridCreator.Core
         {
             List<Waypoint> openSet = new List<Waypoint>();
             HashSet<Waypoint> closedSet = new HashSet<Waypoint>();
-            Waypoint last = start; 
             openSet.Add(start);
 
             while (openSet.Count > 0)
@@ -69,7 +68,7 @@ namespace MapTileGridCreator.Core
                         currentNode = openSet[i];
                     }
                 }
-                last = currentNode; 
+
                 openSet.Remove(currentNode);
                 closedSet.Add(currentNode);
 
@@ -83,27 +82,106 @@ namespace MapTileGridCreator.Core
                         path[i].colorDot = Color.HSVToRGB(0.67f, ((float)i / path.Count), 0.76f);
                         path[i].SetShow(true);
                     }
+
                     return;
                 }
 
                 foreach (Waypoint neighbour in currentNode.outs)
                 {
-                    if (!neighbour.walkable || closedSet.Contains(neighbour) || !neighbourReachable(neighbour, currentNode, maxJump)) continue;
-
+                    if (!neighbour.walkable || closedSet.Contains(neighbour) || !NeighbourReachable(neighbour, currentNode, maxJump)) continue;
                     float newMovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode, neighbour);
+                    //Debug.Log(currentNode.name + " --> " + neighbour.name + " =" + GetDistance(currentNode, neighbour));
                     if (newMovementCostToNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
                     {
                         neighbour.gCost = newMovementCostToNeighbour;
                         neighbour.hCost = GetDistance(neighbour, end);
-                        neighbour.from = currentNode;
+
+
+                        float gCostFrom = Mathf.Infinity;
+                        foreach (Waypoint from in neighbour.ins)
+                        {
+                            if (openSet.Contains(from) && from.gCost < currentNode.gCost && from.gCost < gCostFrom && NeighbourReachable(neighbour, from, maxJump))
+                            {
+                                gCostFrom = from.gCost;
+                                neighbour.from = from;
+                            }
+                        }
+
+                        if (neighbour.from == null)
+                            neighbour.from = currentNode;
 
                         if (!openSet.Contains(neighbour))
                             openSet.Add(neighbour);
+
+                        //Debug.Log(neighbour.from.name + " --> " + neighbour.name);
                     }
                 }
             }
 
             Debug.Log("Path blocked");
+            return;
+        }
+
+        public static void FindRouteTo3(Waypoint start, Waypoint end, Vector2 maxJump)
+        {
+            List<Waypoint> openSet = new List<Waypoint>();
+            List<Waypoint> closedSet = new List<Waypoint>();
+            float maxGCost = 0;
+            openSet.Add(start);
+
+            while (openSet.Count > 0)
+            {
+                Waypoint currentNode = openSet[0];
+
+                openSet.Remove(currentNode);
+                closedSet.Add(currentNode);
+
+                foreach (Waypoint neighbour in currentNode.outs)
+                {
+                    if (!neighbour.walkable || closedSet.Contains(neighbour) || !NeighbourReachable(neighbour, currentNode, maxJump)) continue;
+
+                    float newMovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode, neighbour);
+                    if (newMovementCostToNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
+                    {
+                        neighbour.gCost = newMovementCostToNeighbour;
+                        if (newMovementCostToNeighbour > maxGCost)
+                            maxGCost = newMovementCostToNeighbour;
+                        neighbour.from = currentNode;
+
+                        if (!openSet.Contains(neighbour))
+                            openSet.Add(neighbour);
+
+                        //Debug.Log(neighbour.from.name + " --> " + neighbour.name);
+                    }
+                }
+            }
+
+            List<Waypoint> path = RetracePath(start, end);
+
+            if (path == null)
+            {
+                Debug.Log("Path blocked");
+            }
+            else
+            {
+                for (int i = 0; i < path.Count; i++)
+                {
+                    //path[i].colorDot = new Color(1.0f-((float)i / path.Count), 0, ((float)i /path.Count), 1f);
+                    path[i].colorDot = Color.HSVToRGB(0.67f, ((float)i / path.Count), 0.76f);
+                    path[i].SetShow(true);
+                }
+            }
+
+            for (int i = 0; i < closedSet.Count; i++)
+            {
+                //closedSet[i].colorDot = new Color(1.0f-(float)closedSet[i].gCost / maxGCost, 0.0f, (float)closedSet[i].gCost/ maxGCost, 1f);
+                if (closedSet[i].inAir == false)
+                {
+                    closedSet[i].colorDot = Color.HSVToRGB(0.67f, (float)closedSet[i].gCost / maxGCost, 0.76f);
+                    closedSet[i].SetShowFlood(true);
+                }
+            }
+
             return;
         }
 
@@ -123,7 +201,7 @@ namespace MapTileGridCreator.Core
 
                 foreach (Waypoint neighbour in currentNode.outs)
                 {
-                    if (!neighbour.walkable || closedSet.Contains(neighbour) || !neighbourReachable(neighbour, currentNode, maxJump)) continue;
+                    if (!neighbour.walkable || closedSet.Contains(neighbour) || !NeighbourReachable(neighbour, currentNode, maxJump)) continue;
 
                     float newMovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode, neighbour);
                     if (newMovementCostToNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
@@ -152,36 +230,43 @@ namespace MapTileGridCreator.Core
         }
 
 
-        private static bool neighbourReachable(Waypoint tryJump, Waypoint current, Vector2 max)
+        private static bool NeighbourReachable(Waypoint tryJump, Waypoint current, Vector2 max)
         {
-            float d;
+            Vector2 dist = new Vector2(0.0f,0.0f);
             Waypoint startJump = current;
+            List<Waypoint> waypointsJump = new List<Waypoint>
+            {
+                startJump,
+                tryJump
+            };
 
-            if (!tryJump.inAir)
+            if (!tryJump.inAir && !startJump.inAir)
                 return true;
 
             while (startJump.inAir)
             {
                 if (startJump.from)
+                {
                     startJump = startJump.from;
+                    waypointsJump.Insert(0, startJump);
+                }
 
                 if (startJump.from == null)
                     continue;
             }
-            //Debug.Log(startJump.name + "--> " + tryJump.name);
-            if(startJump.transform.position.y - tryJump.transform.position.y < 0)
-                d = (Mathf.Pow(startJump.transform.position.x - tryJump.transform.position.x, 2) / (Mathf.Pow(max.x + 1, 2) + 0.001f)) + (Mathf.Pow(Mathf.Abs(startJump.transform.position.y - tryJump.transform.position.y), 2) / (Mathf.Pow(max.y, 2) + 0.001f)) + (Mathf.Pow(Mathf.Abs(startJump.transform.position.z - tryJump.transform.position.z), 2) / (Mathf.Pow(max.x + 1, 2) + 0.001f));
-            else
-                d = (Mathf.Pow(Mathf.Abs(startJump.transform.position.x - tryJump.transform.position.x), 2)/ (Mathf.Pow(max.x + 1, 2) + 0.001f)) + (Mathf.Pow(Mathf.Abs(startJump.transform.position.z - tryJump.transform.position.z), 2) / (Mathf.Pow(max.x + 1, 2) + 0.001f));
+       
+            for (int i = 0; i < waypointsJump.Count-1; i++)
+            {
+                dist.x += Mathf.Sqrt(Mathf.Pow(Mathf.Abs(waypointsJump[i].transform.position.x - waypointsJump[i+1].transform.position.x),2) + Mathf.Pow(Mathf.Abs(waypointsJump[i].transform.position.z - waypointsJump[i+1].transform.position.z), 2));
+                dist.y += Mathf.Abs(waypointsJump[i].transform.position.y - waypointsJump[i + 1].transform.position.y);
+            }
 
-            if (d > 1)
-            {
-                return false;
-            }
+            //Debug.Log(startJump.name + " --> " + tryJump.name + " : " + dist + " check: " + Mathf.Pow(dist.x, 2) / Mathf.Pow(max.x + 1, 2));
+
+            if (startJump.transform.position.y - tryJump.transform.position.y < 0)
+                return Mathf.Pow(dist.x, 2) / Mathf.Pow(max.x + 1,2) + Mathf.Pow(dist.y,2) / Mathf.Pow(max.y+1,2) < 1;
             else
-            {
-                return true;
-            }
+                return Mathf.Pow(dist.x,2) / Mathf.Pow(max.x + 1,2) < 1;
         }
 
         private static List<Waypoint> RetracePath(Waypoint startNode, Waypoint targetNode)
@@ -192,20 +277,57 @@ namespace MapTileGridCreator.Core
             while (currentNode != startNode)
             {
                 path.Add(currentNode);
-                currentNode = currentNode.from;
+                if (currentNode.from == null)
+                    return null;
+                else
+                    currentNode = currentNode.from;
             }
 
             path.Reverse();
             return path;
         }
 
+        private static List<Waypoint> RetracePath2(Waypoint startNode, Waypoint targetNode, Vector2 maxJump)
+        {
+            List<Waypoint> path = new List<Waypoint>();
+            Waypoint currentNode = targetNode;
+            Waypoint oldNode = currentNode;
+            path.Add(currentNode);
+
+            int i = 0;
+            while (currentNode != startNode && i < 10000)
+            {
+                float currentGCost = Mathf.Infinity;
+                foreach (Waypoint neighbour in currentNode.ins) 
+                {
+                    if ((neighbour.gCost != 0 && neighbour.gCost < currentGCost) || neighbour == startNode)
+                    {
+                        currentGCost = neighbour.gCost;
+                        currentNode = neighbour;
+                    }
+                }
+
+                if (oldNode == currentNode)
+                    return null;
+                else
+                    oldNode.from = currentNode;
+
+                path.Add(currentNode);
+                oldNode = currentNode;
+                i++;
+            }
+
+            //path.Reverse();
+            return path;
+        }
+
         private static float GetDistance(Waypoint nodeA, Waypoint nodeB)
         {
-            float dstX = Mathf.Abs(nodeA.transform.position.x - nodeB.transform.position.x);
-            float dstY = Mathf.Abs(nodeA.transform.position.y - nodeB.transform.position.y);
-            float dstZ = Mathf.Abs(nodeA.transform.position.z - nodeB.transform.position.z);
+            float dstX = Mathf.Pow(Mathf.Abs(nodeA.transform.position.x - nodeB.transform.position.x),2);
+            float dstY = Mathf.Pow(Mathf.Abs(nodeA.transform.position.y - nodeB.transform.position.y),2);
+            float dstZ = Mathf.Pow(Mathf.Abs(nodeA.transform.position.z - nodeB.transform.position.z),2);
 
-            return dstX + dstY + dstZ;
+            return Mathf.Sqrt(dstX + dstY + dstZ);
         }
 
        

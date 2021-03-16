@@ -98,8 +98,9 @@ namespace MapTileGridCreator.Core
 
 			if (showFlood)
 			{
-				Gizmos.color = colorDot;
-				Gizmos.DrawSphere(transform.position, 0.2f);
+				//Gizmos.color = colorDot;
+				//Gizmos.DrawSphere(transform.position, 0.2f);
+				Handles.Label(transform.position, gCost.ToString("F1"));
 			}
 		}
 
