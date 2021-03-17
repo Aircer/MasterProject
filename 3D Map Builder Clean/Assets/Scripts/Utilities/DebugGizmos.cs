@@ -27,7 +27,7 @@ namespace MapTileGridCreator.Utilities
 		{
 			if (LayerMask.NameToLayer("EmptyCell") == cell.gameObject.layer)
 			{
-				DebugCell(cell.GetIndex(), cell.GetGridParent(), DebugsColor.empty_cell, -0.01f);
+				DebugCell(cell.index, cell.GetGridParent(), DebugsColor.empty_cell, -0.01f);
 			}
 		}
 		#endregion
@@ -42,7 +42,7 @@ namespace MapTileGridCreator.Utilities
 		/// <param name="offsetSize"> The scale amount add to the grid size cell.</param>
 		public static void DebugCell(Cell cell, Color color, float offsetSize = 0.01f)
 		{
-			DebugCell(cell.GetIndex(), cell.GetGridParent(), color, offsetSize);
+			DebugCell(cell.index, cell.GetGridParent(), color, offsetSize);
 		}
 
 
@@ -86,7 +86,7 @@ namespace MapTileGridCreator.Utilities
 		/// <param name="offsetSize"> The scale amount add to the grid size cell.</param>
 		public static void DebugNeigbours(Cell cell, Color color, float offsetSize = 0.01f)
 		{
-			DebugNeigbours(cell.GetIndex(), cell.GetGridParent(), color, offsetSize);
+			DebugNeigbours(cell.index, cell.GetGridParent(), color, offsetSize);
 		}
 
 		/// <summary>

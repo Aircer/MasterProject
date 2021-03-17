@@ -13,6 +13,11 @@ namespace MapTileGridCreator.Utilities
 	/// </summary>
 	public static class FuncEditor
 	{
+		public enum PaintMode
+		{
+			Single, Erase, Eyedropper
+		};
+
 		/// <summary>
 		/// IUnstantiate an empty Grid3D.
 		/// </summary>
@@ -214,7 +219,9 @@ namespace MapTileGridCreator.Utilities
 			//GameObject gameObject = PrefabUtility.InstantiatePrefab(prefab, cells.transform) as GameObject;
 			GameObject cellGameObject = new GameObject();
 			cellGameObject.name = "cell_" + index.x + "_" + index.y + "_" + index.z;
-			cellGameObject.transform.parent = cells; 
+			cellGameObject.transform.parent = cells;
+			BoxCollider coll = cellGameObject.AddComponent<BoxCollider>();
+			coll.enabled = false;
 			Cell cell= cellGameObject.AddComponent<Cell>();
 
 			foreach (GameObject child in pallet)
@@ -287,7 +294,7 @@ namespace MapTileGridCreator.Utilities
 
 			GameObject gameObject = PrefabUtility.InstantiatePrefab(prefab, grid.transform) as GameObject;
 
-			Vector3Int index = old.GetIndex();
+			Vector3Int index = old.index;
 			gameObject.transform.position = old.transform.position;
 			gameObject.name = gameObject.name + "_" + index.x + "_" + index.y + "_" + index.z;
 
@@ -324,10 +331,10 @@ namespace MapTileGridCreator.Utilities
 		/// <param name="overwrite"> Option if we overwrite an existing cell at destination of copy</param>
 		public static void StampCells(List<Cell> listCell, Grid3D grid, Vector3Int destinationIndex, bool overwrite = true)
 		{
-			Vector3Int displacement = destinationIndex - listCell[0].GetIndex();
+			Vector3Int displacement = destinationIndex - listCell[0].index;
 			foreach (Cell c in listCell)
 			{
-				Vector3Int index = displacement + c.GetIndex();
+				Vector3Int index = displacement + c.index;
 				Cell cdest = grid.TryGetCellByIndex(ref index);
 
 				GameObject prefabInstance = c.gameObject;
@@ -391,10 +398,11 @@ namespace MapTileGridCreator.Utilities
 			return null;
 		}
 
-		public static void CreateEmptyCells(List<GameObject> pallet, Grid3D grid, Vector3Int size_grid)
+		public static Dictionary<Vector3Int, Cell> CreateEmptyCells(List<GameObject> pallet, Grid3D grid, Vector3Int size_grid)
 		{
 			//GameObject pallet = AssetDatabase.LoadAssetAtPath("Assets/Cells/Cell.prefab", typeof(GameObject)) as GameObject;
-			Transform cells = grid.transform.Find("Cells");
+			Transform cellsParent = grid.transform.Find("Cells");
+			Dictionary<Vector3Int, Cell> cells = new Dictionary<Vector3Int, Cell>();
 
 			for (int x = 0; x < size_grid.x; x++)
 			{
@@ -402,10 +410,12 @@ namespace MapTileGridCreator.Utilities
 				{
 					for (int z = 0; z < size_grid.z; z++)
 					{
-						InstantiateCell(pallet, grid, cells, new Vector3Int(x, y, z));
+						cells.Add(new Vector3Int(x, y, z), InstantiateCell(pallet, grid, cellsParent, new Vector3Int(x, y, z)));
 					}
 				}
 			}
+
+			return cells;
 		}
 
 		public static bool InputInGridBoundaries(Grid3D grid, Vector3 input, Vector3Int size_grid)
@@ -470,21 +480,18 @@ namespace MapTileGridCreator.Utilities
 			return cluster;
 		}
 
-		public static Grid3D CreateGridAndCells(List<GameObject> pallet, Vector3Int size_grid)
+		public static void CreateGridAndCells(out Grid3D grid,  out Dictionary<Vector3Int, Cell> cells, List<GameObject> pallet, Vector3Int size_grid)
 		{
-			Grid3D grid;
 			//Destroy all existing grids 
 			GameObject[] allObjects = GameObject.FindGameObjectsWithTag("Grid");
 			foreach (GameObject obj in allObjects)
 			{
-				Editor.DestroyImmediate(obj);
+                UnityEngine.Object.DestroyImmediate(obj);
 			}
 
 			//Create Grid and all Cells 
-			grid = FuncEditor.InstantiateGrid3D(TypeGrid3D.Cube);
-			CreateEmptyCells(pallet, grid, size_grid);
-
-			return grid;
+			grid = InstantiateGrid3D(TypeGrid3D.Cube);
+			cells = CreateEmptyCells(pallet, grid, size_grid);
 		}
 	}
 }

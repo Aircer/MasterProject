@@ -60,9 +60,9 @@ namespace MapTileGridCreator.TransformationsBank
 			List<Cell> neighb = grid.GetNeighboursCell(ref index);
 			foreach (Cell cell in neighb)
 			{
-				if (cell.GetIndex().y == index.y)
+				if (cell.index.y == index.y)
 				{
-					newIndexes.Enqueue(cell.GetIndex());
+					newIndexes.Enqueue(cell.index);
 				}
 			}
 

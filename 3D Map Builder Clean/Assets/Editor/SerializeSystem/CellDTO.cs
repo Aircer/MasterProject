@@ -34,7 +34,7 @@ namespace MapTileGridCreator.SerializeSystem
 		{
 			GameObject prefab = FuncEditor.GetPrefabFromInstance(cell.gameObject);
 			_pathPrefab = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(prefab);
-			_index = cell.GetIndex();
+			_index = cell.index;
 			_localposition = cell.transform.localPosition;
 			_localrotation = cell.transform.localRotation.eulerAngles;
 			_localscale = cell.transform.localScale;

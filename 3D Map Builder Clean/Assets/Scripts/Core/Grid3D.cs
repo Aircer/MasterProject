@@ -111,7 +111,7 @@ namespace MapTileGridCreator.Core
 			{
 				try
 				{
-					AddCell(c.GetIndex(), c);
+					AddCell(c.index, c);
 				}
 				catch (Exception e)
 				{
@@ -221,7 +221,7 @@ namespace MapTileGridCreator.Core
 		/// <returns>A list of cells that exist in the neighbours of the cell.</returns>
 		public List<Cell> GetNeighboursCell(ref Cell cell)
 		{
-			Vector3Int index = cell.GetIndex();
+			Vector3Int index = cell.index;
 			return GetNeighboursCell(ref index);
 		}
 
@@ -269,7 +269,7 @@ namespace MapTileGridCreator.Core
 		/// Get the local position of the cell.
 		/// </summary>
 		/// <param name="index">The index supposed of the cell.</param>
-		public Vector3 GetLocalPositionCell(ref Vector3Int index)
+		public Vector3 GetLocalPositionCell(Vector3Int index)
 		{
 			Vector3 localPosition = GetMatrixGridToLocalPosition().MultiplyPoint3x4(index);
 			return localPosition * (_size_cell * _gap_ratio);
@@ -281,7 +281,7 @@ namespace MapTileGridCreator.Core
 		/// <param name="index">The index cell</param>
 		public Vector3 GetPositionCell(Vector3Int index)
 		{
-			return Origin + GetLocalPositionCell(ref index);
+			return Origin + GetLocalPositionCell(index);
 		}
 
 		/// <summary>
@@ -348,7 +348,7 @@ namespace MapTileGridCreator.Core
 		{
 			if (_map != null)
 			{
-				_map.Remove(cell.GetIndex());
+				_map.Remove(cell.index);
 			}
 		}
 

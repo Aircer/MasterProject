@@ -13,10 +13,6 @@ using UnityEngine;
 public class MapTileGridCreatorWindow : EditorWindow
 {
 	#region Variables
-	private enum PaintMode
-	{
-		Single, Erase, Eyedropper
-	};
 
 	//Global
 	private Vector2 _scroll_position;
@@ -24,6 +20,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 	private Grid3D _grid;
 	[SerializeField]
 	private Vector3Int _size_grid = new Vector3Int(5, 5, 5);
+	private Dictionary<Vector3Int, Cell> cells;
 
 	//Debug Grid
 	[SerializeField]
@@ -43,10 +40,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	//Undo
 	private GUIContent _undoIcon;
-	private bool _noUndo = true;
-	private PaintMode _last_mode_paint;
-	private List<Vector3Int> _lastIndexToPaint = new List<Vector3Int>();
-	private int _last_pallet_index;
+	private MyUndo _undo = new MyUndo();
 
 	//Paint
 	private GUIContent[] _modes_paint;
@@ -64,12 +58,12 @@ public class MapTileGridCreatorWindow : EditorWindow
 	private float _dist_default_interaction = 100.0f;
 	[SerializeField]
 	private string _path_pallet = "Assets/Cells/Cubes";
-	private int _pallet_index;
-	private List<GameObject> _pallet = new List<GameObject>();
+	private int _cellTypes_index;
+	private List<GameObject> _cellTypes = new List<GameObject>();
 
-    #endregion
+	#endregion
 
-    [MenuItem("MapTileGridCreator/Open")]
+	[MenuItem("MapTileGridCreator/Open")]
 	public static void OpenWindows()
 	{
 		MapTileGridCreatorWindow window = (MapTileGridCreatorWindow)GetWindow(typeof(MapTileGridCreatorWindow));
@@ -97,11 +91,12 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	private void RefreshPallet()
 	{
-		_pallet.Clear();
+		_cellTypes.Clear();
 		string[] prefabFiles = Directory.GetFiles(_path_pallet, "*.prefab");
 		foreach (string prefabFile in prefabFiles)
 		{
-			_pallet.Add(AssetDatabase.LoadAssetAtPath(prefabFile, typeof(GameObject)) as GameObject);
+			_cellTypes.Add(AssetDatabase.LoadAssetAtPath(prefabFile, typeof(GameObject)) as GameObject);
+
 		}
 	}
 
@@ -175,7 +170,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			case PaintMode.Erase:
 				{
 					Vector3 input = GetGridPositionInput(-0.5f);
-					EraseInput(input);
+					PaintInput(input, _rotationCell);
 					SetBrushPosition(input, true);
 				}
 				break;
@@ -199,7 +194,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 	{
 		Vector3Int inputIndex = FuncEditor.GetIndexByPosition(_grid, input);
 
-		//If input is outside the Grid do not paint
+		//If input is outside the Grid do not paint/erase
 		if (FuncEditor.InputInGridBoundaries(_grid, inputIndex, _size_grid))
 		{
 			List<Vector3Int> newIndexToPaint = new List<Vector3Int>();
@@ -209,16 +204,16 @@ public class MapTileGridCreatorWindow : EditorWindow
 				HandleUtility.AddDefaultControl(0);
 			}
 
-			//Set starting index of paint 
-			if (!_painting && _pallet_index < _pallet.Count && Event.current.type == EventType.MouseDown && Event.current.button == 0)
+			//Set starting index of paint/erase
+			if (!_painting && _cellTypes_index < _cellTypes.Count && Event.current.type == EventType.MouseDown && Event.current.button == 0)
 			{
 				_startingPaintIndex = inputIndex;
 				_indexToPaint.Clear();
 				_painting = true;
 			}
 
-			//Get all indexes that will be paint
-			if (_painting && _pallet_index < _pallet.Count && Event.current.type == EventType.MouseDrag && Event.current.button == 0)
+			//Get all indexes that will be paint/erase
+			if (_painting && _cellTypes_index < _cellTypes.Count && Event.current.type == EventType.MouseDrag && Event.current.button == 0)
 			{
 				newIndexToPaint.Clear();
 				for (int i = 0; i <= Mathf.Abs(inputIndex.x - _startingPaintIndex.x); i++)
@@ -229,16 +224,14 @@ public class MapTileGridCreatorWindow : EditorWindow
 						{
 							Vector3Int index = new Vector3Int(_startingPaintIndex.x + (int)Mathf.Sign(inputIndex.x - _startingPaintIndex.x) * i, _startingPaintIndex.y + (int)Mathf.Sign(inputIndex.y - _startingPaintIndex.y) * j, _startingPaintIndex.z + (int)Mathf.Sign(inputIndex.z - _startingPaintIndex.z) * k);
 
-							Cell cell = FuncEditor.CellAtThisIndex(_grid, index);
-							
-							//Add the index to the list of indexes to paint only if the cell Collider is not active
-							if (!cell.GetColliderState())
+							//Add the index to the list of indexes to paint/erase
+							if (cells.ContainsKey(index) && (_mode_paint == PaintMode.Single && (cells[index].state == CellState.Inactive || cells[index].state == CellState.Painted)) || (_mode_paint == PaintMode.Erase && (cells[index].state == CellState.Active || cells[index].state == CellState.Erased)))
 								newIndexToPaint.Add(index);
 						}
 					}
 				}
 
-				//Paint all indexes that have not be already painted
+				//Paint/erase all indexes that have not be already painted/erased
 				foreach (Vector3Int newIndex in newIndexToPaint)
 				{
 					bool indexExist = false;
@@ -251,11 +244,14 @@ public class MapTileGridCreatorWindow : EditorWindow
 					if (!indexExist)
 					{
 						_indexToPaint.Add(newIndex);
-						ActivatePallet(newIndex, true);
+						if (_mode_paint == PaintMode.Single)
+							cells[newIndex].Painted(_cellTypes[_cellTypes_index].name, rotation);
+						if (_mode_paint == PaintMode.Erase)
+							cells[newIndex].Erased();
 					}
 				}
 
-				//Erase indexes no more painted
+				//Remove indexes no more painted/erased
 				foreach (Vector3Int index in _indexToPaint)
 				{
 					bool indexNoMorePainted = true;
@@ -267,7 +263,10 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 					if (indexNoMorePainted)
 					{
-						ActivatePallet(index, false);
+						if (_mode_paint == PaintMode.Single)
+							cells[index].Inactive();
+						if (_mode_paint == PaintMode.Erase)
+							cells[index].Active();
 						newIndexToPaint.Remove(index);
 					}
 				}
@@ -280,16 +279,26 @@ public class MapTileGridCreatorWindow : EditorWindow
 		{
 			_painting = false;
 
-			if(!_indexToPaint.Contains(inputIndex))
+			if (cells.ContainsKey(inputIndex) && !_indexToPaint.Contains(inputIndex))
+			{
 				_indexToPaint.Add(inputIndex);
+				if (_mode_paint == PaintMode.Single)
+					cells[inputIndex].Painted(_cellTypes[_cellTypes_index].name, rotation);
+			}
 
 			foreach (Vector3Int index in _indexToPaint)
 			{
-				ActivatePallet(index, false);
-				ActivatePallet(index, true);
-				SetPathWaypoint(index);
-				SetCellColliderState(index, true);
-				ShowCell(index, true);
+				if (_mode_paint == PaintMode.Single)
+				{
+					cells[index].Active();
+					SetPathWaypoint(index);
+				}
+
+				if (_mode_paint == PaintMode.Erase) 
+				{
+					cells[index].Inactive();
+					RemovePathWaypoint(index);
+				}
 			}
 
 			if (_start_end[1] != Constants.UNDEFINED_POSITION)
@@ -297,131 +306,8 @@ public class MapTileGridCreatorWindow : EditorWindow
 			if (_start_end[0] != Constants.UNDEFINED_POSITION && _pathfindingCurrentType == 0)
 				_cluster.FindPath(_start_end[0], _maxJump);
 
-			_lastIndexToPaint = _indexToPaint;
-			_last_mode_paint = _mode_paint;
-			_last_pallet_index = _pallet_index;
-			_noUndo = false;
+			_undo = MyUndo.UpdateUndo(_undo, _indexToPaint, _mode_paint, _cellTypes_index);
 		}
-	}
-
-	private void EraseInput(Vector3 input)
-	{
-		Vector3Int inputIndex = FuncEditor.GetIndexByPosition(_grid, input);
-		//Painting out of bounds
-		if (FuncEditor.InputInGridBoundaries(_grid, inputIndex, _size_grid))
-		{
-			List<Vector3Int> newIndexToPaint = new List<Vector3Int>();
-
-			if (Event.current.type == EventType.Layout)
-			{
-				HandleUtility.AddDefaultControl(0);
-			}
-
-			//Set starting index of paint 
-			if (!_painting && Event.current.type == EventType.MouseDown && Event.current.button == 0)
-			{
-				_startingPaintIndex = inputIndex;
-				_indexToPaint.Clear();
-				_painting = true;
-			}
-
-			//Get all indexes that will be paint
-			if (_painting && Event.current.type == EventType.MouseDrag && Event.current.button == 0)
-			{
-				newIndexToPaint.Clear();
-				for (int i = 0; i <= Mathf.Abs(inputIndex.x - _startingPaintIndex.x); i++)
-				{
-					for (int j = 0; j <= Mathf.Abs(inputIndex.y - _startingPaintIndex.y); j++)
-					{
-						for (int k = 0; k <= Mathf.Abs(inputIndex.z - _startingPaintIndex.z); k++)
-						{
-							Vector3Int index = new Vector3Int(_startingPaintIndex.x + (int)Mathf.Sign(inputIndex.x - _startingPaintIndex.x) * i, _startingPaintIndex.y + (int)Mathf.Sign(inputIndex.y - _startingPaintIndex.y) * j, _startingPaintIndex.z + (int)Mathf.Sign(inputIndex.z - _startingPaintIndex.z) * k);
-
-							Cell cell = FuncEditor.CellAtThisIndex(_grid, index);
-
-							if (cell.GetColliderState())
-								newIndexToPaint.Add(index);
-						}
-					}
-				}
-
-				//Paint all indexes that have not be already painted
-				foreach (Vector3Int newIndex in newIndexToPaint)
-				{
-					bool indexExist = false;
-					foreach (Vector3Int index in _indexToPaint)
-					{
-						if (newIndex == index)
-							indexExist = true;
-					}
-
-					if (!indexExist)
-					{
-						_indexToPaint.Add(newIndex);
-						ShowCell(newIndex, false);
-					}
-				}
-
-				//Erase indexes no more painted
-				foreach (Vector3Int index in _indexToPaint)
-				{
-					bool indexNoMorePainted = true;
-					foreach (Vector3Int newIndex in newIndexToPaint)
-					{
-						if (newIndex == index)
-							indexNoMorePainted = false;
-					}
-
-					if (indexNoMorePainted)
-					{
-						newIndexToPaint.Remove(index);
-						ShowCell(index, true);
-					}
-				}
-				_indexToPaint = newIndexToPaint;
-			}
-		}
-		if (_painting && Event.current.type == EventType.MouseUp && Event.current.button == 0)
-		{
-			_painting = false;
-			_indexToPaint.Add(inputIndex);
-
-			foreach (Vector3Int point in _indexToPaint)
-			{
-				RemovePathWaypoint(point);
-				ActivatePallet(point, false);
-			}
-
-			if (_start_end[1] != Constants.UNDEFINED_POSITION)
-				_cluster.FindPath(_start_end[0], _start_end[1], _maxJump);
-			if (_start_end[0] != Constants.UNDEFINED_POSITION && _pathfindingCurrentType == 0)
-				_cluster.FindPath(_start_end[0], _maxJump);
-
-			_lastIndexToPaint = _indexToPaint;
-			_last_mode_paint = _mode_paint;
-			_noUndo = false;
-		}
-	}
-
-	private void ActivatePallet(Vector3Int input, bool active)
-	{
-		Cell cell = FuncEditor.CellAtThisIndex(_grid, input);
-		if(cell)
-			cell.ActivatePallet(active, _pallet_index, _rotationCell);
-	}
-
-	private void SetCellColliderState(Vector3Int input, bool active)
-	{
-		Cell cell = FuncEditor.CellAtThisIndex(_grid, input);
-		if (cell)
-			cell.SetColliderState(active);
-	}
-
-	private void ShowCell(Vector3Int input, bool show)
-	{
-		Cell cell = FuncEditor.CellAtThisIndex(_grid, input);
-		if (cell)
-			cell.SetMeshState(show);
 	}
 
 	private void SetPathWaypoint(Vector3Int index)
@@ -429,35 +315,35 @@ public class MapTileGridCreatorWindow : EditorWindow
 		Cell cell = FuncEditor.CellAtThisIndex(_grid, index);
 		if (cell)
 		{
-			if (cell.GetTypeCell() == "Start_End")
+			if (cell.type == "Start_End")
 			{
 				if (_start_end[0] == Constants.UNDEFINED_POSITION || _pathfindingCurrentType == 0)
                 {
-					ActivatePallet(_start_end[0], false);
-					ActivatePallet(_start_end[1], false);
+					if (cells.ContainsKey(_start_end[0]))
+						cells[_start_end[0]].Inactive();
 					_start_end[0] = index;
-					ActivatePallet(_start_end[0], true);
-					cell.SetColor("start");
+					cells[_start_end[0]].Active();
+					cells[_start_end[0]].SetColor("start");
 				}
 				else
 				{
 					if (_start_end[1] != index && _start_end[1] != Constants.UNDEFINED_POSITION)
 					{
-						ActivatePallet(_start_end[1], false);
+						cells[_start_end[1]].Inactive();
 					}
 
 					_start_end[1] = index;
-					cell.SetColor("end");
+					cells[_start_end[1]].SetColor("end");
 				}
 			}
 
-			if (cell.GetTypeCell() == "Default" || cell.GetTypeCell() == "Grass" || cell.GetTypeCell() == "Water")
+			if (cell.type == "Default" || cell.type == "Grass" || cell.type == "Water")
 			{
 				_cluster.PathBlocked(index, true);
 				_cluster.Ground(index, true);
 			}
 
-			if (cell.GetTypeCell() == "Ladders" || cell.GetTypeCell() == "Stairs")
+			if (cell.type == "Ladders" || cell.type == "Stairs")
 			{
 				_cluster.Ground(index, true);
 			}
@@ -466,28 +352,27 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	private void RemovePathWaypoint(Vector3Int index)
 	{
-		Cell cell = FuncEditor.CellAtThisIndex(_grid, index);
-		if (cell.GetTypeCell() == "Start_End")
+		if (cells[index].type == "Start_End")
 		{
 			if (_start_end[0] == index)
 			{
 				_start_end[0] = _start_end[1];
 				_start_end[1] = Constants.UNDEFINED_POSITION;
-				Cell cell2 = FuncEditor.CellAtThisIndex(_grid, _start_end[0]);
-				cell2.SetColor("start");
+				if(cells.ContainsKey(_start_end[0]))
+					cells[_start_end[0]].SetColor("start");
 			}
 			else
 			{
 				_start_end[1] = Constants.UNDEFINED_POSITION;
 			}
 		}
-		if (cell.GetTypeCell() == "Default" || cell.GetTypeCell() == "Grass" || cell.GetTypeCell() == "Water")
+		if (cells[index].type == "Default" || cells[index].type == "Grass" || cells[index].type == "Water")
 		{
 			_cluster.PathBlocked(index, false);
 			_cluster.Ground(index, false);
 		}
 
-		if (cell.GetTypeCell() == "Ladders" || cell.GetTypeCell() == "Stairs")
+		if (cells[index].type == "Ladders" || cells[index].type == "Stairs")
 		{
 			_cluster.Ground(index, false);
 		}
@@ -507,11 +392,11 @@ public class MapTileGridCreatorWindow : EditorWindow
 			GameObject prefabInstance = selectedCell.gameObject;
 			GameObject prefab = FuncEditor.GetPrefabFromInstance(prefabInstance);
 
-			int newIndex = _pallet.FindIndex(x => x.Equals(prefab));
+			int newIndex = _cellTypes.FindIndex(x => x.Equals(prefab));
 			if (newIndex >= 0)
 			{
 				_mode_paint = (int)PaintMode.Single;
-				_pallet_index = newIndex;
+				_cellTypes_index = newIndex;
 				Debug.Log("Prefab " + prefab.name + " selected.");
 			}
 			else
@@ -573,7 +458,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	private void SetBrushPosition(Vector3 position, bool erase = false, float rotation = 0)
 	{
-		int pallet = _pallet_index;
+		int pallet = _cellTypes_index;
 
 		if (erase)
 			pallet = _brush.transform.childCount-1;
@@ -699,12 +584,14 @@ public class MapTileGridCreatorWindow : EditorWindow
 			//Destroy then create Cluster and Waypoints (contain waypoints) 
 			_cluster = FuncEditor.CreateClusterAndWaypoints(_size_grid);
 
-			//Destroy then create Grid and Cells (contain waypoints) 
-			_grid = FuncEditor.CreateGridAndCells(_pallet, _size_grid);
+			//Destroy then create Grid and Cells
+			FuncEditor.CreateGridAndCells(out _grid, out cells, _cellTypes, _size_grid);
 
 			//Reset position for pathfinding
 			_start_end[0] = Constants.UNDEFINED_POSITION;
 			_start_end[1] = Constants.UNDEFINED_POSITION;
+
+			_undo.noUndo = true;
 		}
 	}
 
@@ -718,32 +605,29 @@ public class MapTileGridCreatorWindow : EditorWindow
 	private void DrawBrushPanel()
 	{
 		GUILayout.BeginHorizontal();
-		GUI.enabled = !_noUndo;
+		GUI.enabled = !_undo.noUndo;
 		if (GUILayout.Button(_undoIcon))
 		{
-			switch (_last_mode_paint)
+			switch (_undo.last_mode_paint)
 			{
 				case PaintMode.Single:
 					{
-						foreach (Vector3Int index in _lastIndexToPaint)
+						foreach (Vector3Int index in _undo.lastIndexToPaint)
 						{
-							FuncEditor.ActivatePallet(_last_pallet_index, _grid, index, false);
+							cells[index].Inactive();
 						}
-						_noUndo = true;
+						_undo.noUndo = true;
 					}
 					break;
 
 				case PaintMode.Erase:
 					{
-						foreach (Vector3Int index in _lastIndexToPaint)
+						foreach (Vector3Int index in _undo.lastIndexToPaint)
 						{
-							Cell cell = FuncEditor.CellAtThisIndex(_grid, index);
-							FuncEditor.ActivatePallet(cell.lastPalletIndex, _grid, index, true);
+							cells[index].Active();
 							SetPathWaypoint(index);
-							SetCellColliderState(index, true);
-							ShowCell(index, true);
 						}
-						_noUndo = true;
+						_undo.noUndo = true;
 					}
 					break;
 
@@ -774,21 +658,21 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	private void DrawPanelPallet()
 	{
-		if (_pallet.Count == 0)
+		if (_cellTypes.Count == 0)
 		{
 			EditorGUILayout.HelpBox("No prefab founded for pallet.", MessageType.Warning);
 		}
 		else
 		{
 			List<GUIContent> palletIcons = new List<GUIContent>();
-			foreach (GameObject prefab in _pallet)
+			foreach (GameObject prefab in _cellTypes)
 			{
 				Texture2D texture = AssetPreview.GetAssetPreview(prefab);
 				GUIContent preview = new GUIContent(texture, prefab.name);
 				palletIcons.Add(preview);
 			}
 			_scroll_position = GUILayout.BeginScrollView(_scroll_position);
-			_pallet_index = GUILayout.SelectionGrid(_pallet_index, palletIcons.ToArray(), 2);
+			_cellTypes_index = GUILayout.SelectionGrid(_cellTypes_index, palletIcons.ToArray(), 2);
 			GUILayout.EndScrollView();
 		}
 	}

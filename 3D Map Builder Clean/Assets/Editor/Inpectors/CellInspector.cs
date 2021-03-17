@@ -23,7 +23,7 @@ namespace MapTileGridCreator.CustomInpectors
 			if (_cell.transform.hasChanged && _cell.GetGridParent() != null)
 			{
 				Grid3D grid = _cell.GetGridParent();
-				_cell.Initialize(_cell.GetIndex(), grid);
+				_cell.Initialize(_cell.index, grid);
 			}
 			if (GUILayout.Button("Reset transform"))
 			{

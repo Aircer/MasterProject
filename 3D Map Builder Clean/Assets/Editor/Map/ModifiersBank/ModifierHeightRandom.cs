@@ -40,11 +40,11 @@ namespace MapTileGridCreator.TransformationsBank
 			List<Cell> neighb = grid.GetNeighboursCell(ref index);
 			foreach (Cell cell in neighb)
 			{
-				newIndexes.Enqueue(cell.GetIndex());
+				newIndexes.Enqueue(cell.index);
 			}
 
 			//Modif
-			Vector3Int upIndex = root.GetIndex() + grid.GetConnexAxes()[1];
+			Vector3Int upIndex = root.index + grid.GetConnexAxes()[1];
 			if (!grid.HaveCell(ref upIndex))
 			{
 				int height = Random.Range(Min_Random, Max_Random);
