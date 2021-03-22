@@ -7,44 +7,23 @@ namespace MapTileGridCreator.Core
 {
 	public class Waypoint : MonoBehaviour
 	{
-
-        [SerializeField]
-		[HideInInspector]
 		/// Parent graph of the waypoint
-		protected WaypointCluster parent;
-
-		protected Vector3Int key;
-		protected bool show = false;
-		protected bool showFlood = false;
+		public WaypointCluster parent { get; set; }
+		public Vector3Int key { get; set; }
+		public CellInformation type { get; set; }
+		public Cell cell { get; set; }
+		public bool show { get; set; }
+		public bool showFlood { get; set; }
 		public Color colorDot = Color.white;
 
-		public bool inAir = true; 
-
-		public float jCost; 
-		public float hCost;
-		public float gCost;
-		public bool walkable;
-		public Waypoint from; 
+		public float hCost { get; set; }
+		public float gCost { get; set; }
+		public Waypoint from { get; set; }
 
 		/// The outgoing list of edges
-		public List<Waypoint> outs = new List<Waypoint>();
-
-		/// Incoming list of edges, hidden in the inspector
-		public List<Waypoint> ins = new List<Waypoint>();
-
-		public void SetParent(WaypointCluster wc) { parent = wc; }
-
-		public WaypointCluster GetParent() { return parent; }
-
-		public void SetKey(Vector3Int wc) { key = wc; }
-
-		public Vector3Int GetKey() { return key;  }
-
-		public void SetShow(bool sh) { show = sh;}
-
-		public void SetShowFlood(bool sh) { showFlood = sh; }
-		public bool GetShow() { return show; }
-
+		public List<Waypoint> neighbors = new List<Waypoint>();
+		public Waypoint UpNeighbor;
+		public Waypoint DownNeighbor;
 
 		/// Links this waypoint (directionally) with the passed waypoint and sets the probabilities of all edges to the same
 		/// <param name="node"> Node to be linked to</param>
@@ -55,20 +34,45 @@ namespace MapTileGridCreator.Core
 				Debug.LogError("A waypoint cannot be linked to itself");
 				return;
 			}
-			for (int i = 0; i < outs.Count; ++i) if (waypoint == outs[i]) return;
-			for (int i = 0; i < ins.Count; ++i) if (ins[i] == this) return;
+			for (int i = 0; i < neighbors.Count; ++i) if (waypoint == neighbors[i]) return;
 
-			outs.Add(waypoint);
-			waypoint.ins.Add(this);
-			waypoint.linkTo(this);
+			neighbors.Add(waypoint);
+			waypoint.neighbors.Add(this);
+
+			if (waypoint.key.y > this.key.y)
+			{
+				UpNeighbor = waypoint;
+				waypoint.DownNeighbor = this;
+			}
+
+			if (waypoint.key.y < this.key.y)
+			{
+				DownNeighbor = waypoint;
+				waypoint.UpNeighbor = this;
+			}
 		}
 
 		/// Removes a link (directionally) between this waypoiny and the passed waypoint and sets the probabilities of all edges to the same
 		/// <param name="node"> Node to remove the link from</param>
 		public void unlinkFrom(Waypoint waypoint)
 		{
-			for (int i = 0; i < outs.Count; ++i) if (outs[i] == waypoint) outs.RemoveAt(i);
-			for (int i = 0; i < ins.Count; ++i) if (ins[i] == this) ins.RemoveAt(i);
+			for (int i = 0; i < neighbors.Count; ++i) if (neighbors[i] == waypoint) neighbors.RemoveAt(i);
+		}
+
+		public void SetType(CellInformation newType)
+		{
+			if (type != newType)
+			{ 
+				type = newType;
+			}
+		}
+
+		public void ResetType()
+		{
+			if (type != null)
+			{
+				type = null;
+			}
 		}
 
 		/// Draws the arrow from position "pos" in the direction "dir"
@@ -98,9 +102,11 @@ namespace MapTileGridCreator.Core
 
 			if (showFlood)
 			{
-				//Gizmos.color = colorDot;
-				//Gizmos.DrawSphere(transform.position, 0.2f);
-				Handles.Label(transform.position, gCost.ToString("F1"));
+				Gizmos.color = colorDot;
+				Gizmos.DrawSphere(transform.position, 0.2f);
+				//GUIStyle style = new GUIStyle();
+				//style.normal.textColor = colorDot;
+				//Handles.Label(transform.position, gCost.ToString("F1"), style);
 			}
 		}
 
@@ -110,41 +116,21 @@ namespace MapTileGridCreator.Core
 			Gizmos.color = Color.yellow;
 			Gizmos.DrawCube(transform.position, new Vector3(0.5f, 0.5f, 0.5f));
 
-			for (int i = 0; i < outs.Count; ++i)
+			for (int i = 0; i < neighbors.Count; ++i)
 			{
-				Vector3 direction = outs[i].key - key;
+				Vector3 direction = neighbors[i].key - key;
 				Gizmos.color = Color.red;
 				Gizmos.DrawRay(this.transform.position, direction);
 				//ForGizmo(transform.position + direction.normalized, direction - direction.normalized * 2f, Color.red, 2f);
 			}
 
-			for (int i = 0; i < outs.Count; ++i)
+			for (int i = 0; i < neighbors.Count; ++i)
 			{
-				Vector3 direction = outs[i].key - key;
+				Vector3 direction = neighbors[i].key - key;
 				Gizmos.color = Color.red;
 				Gizmos.DrawRay(this.transform.position, direction);
 				//ForGizmo(transform.position + direction.normalized, direction - direction.normalized * 2f, Color.red, 2f);
 			}
 		}
-
-
-		[ExecuteInEditMode]
-		/// Handles the destruction of the waypoint in editor and play modes
-		public void Remove()
-		{
-			if (parent == null) return;
-			Undo.RegisterCompleteObjectUndo(this.GetParent(), "destroyed");
-			for (int i = outs.Count - 1; i >= 0; --i) this.unlinkFrom(outs[i]);
-			for (int i = ins.Count - 1; i >= 0; --i) ins[i].unlinkFrom(this);
-			Undo.RegisterCompleteObjectUndo(this, "destroyed");
-			this.GetParent().waypoints.Remove(key);
-			DestroyImmediate(this.gameObject);
-		}
-
-		public void IsBlocking(bool set)
-		{
-			walkable = !set; 
-		}
-
 	}
 }

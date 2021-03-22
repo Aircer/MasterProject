@@ -22,7 +22,7 @@ namespace MapTileGridCreator.Core
                 Waypoint current = q.Dequeue();
                 if (current == null)
                     continue;
-                foreach (Waypoint e in current.outs)
+                foreach (Waypoint e in current.neighbors)
                 {
                     if (!d.ContainsKey(e))
                     {
@@ -80,15 +80,15 @@ namespace MapTileGridCreator.Core
                     {
                         //path[i].colorDot = new Color(1.0f-((float)i / path.Count), 0, ((float)i /path.Count), 1f);
                         path[i].colorDot = Color.HSVToRGB(0.67f, ((float)i / path.Count), 0.76f);
-                        path[i].SetShow(true);
+                        path[i].show = true;
                     }
 
                     return;
                 }
 
-                foreach (Waypoint neighbour in currentNode.outs)
+                foreach (Waypoint neighbour in currentNode.neighbors)
                 {
-                    if (!neighbour.walkable || closedSet.Contains(neighbour) || !NeighbourReachable(neighbour, currentNode, maxJump)) continue;
+                    if (!neighbour.type.blockPath || closedSet.Contains(neighbour) || !NeighbourReachable(neighbour, currentNode, maxJump)) continue;
                     float newMovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode, neighbour);
                     //Debug.Log(currentNode.name + " --> " + neighbour.name + " =" + GetDistance(currentNode, neighbour));
                     if (newMovementCostToNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
@@ -98,7 +98,7 @@ namespace MapTileGridCreator.Core
 
 
                         float gCostFrom = Mathf.Infinity;
-                        foreach (Waypoint from in neighbour.ins)
+                        foreach (Waypoint from in neighbour.neighbors)
                         {
                             if (openSet.Contains(from) && from.gCost < currentNode.gCost && from.gCost < gCostFrom && NeighbourReachable(neighbour, from, maxJump))
                             {
@@ -136,9 +136,9 @@ namespace MapTileGridCreator.Core
                 openSet.Remove(currentNode);
                 closedSet.Add(currentNode);
 
-                foreach (Waypoint neighbour in currentNode.outs)
+                foreach (Waypoint neighbour in currentNode.neighbors)
                 {
-                    if (!neighbour.walkable || closedSet.Contains(neighbour) || !NeighbourReachable(neighbour, currentNode, maxJump)) continue;
+                    if ((neighbour.type != null && neighbour.type.blockPath) || closedSet.Contains(neighbour) || !NeighbourReachable(neighbour, currentNode, maxJump)) continue;
 
                     float newMovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode, neighbour);
                     if (newMovementCostToNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
@@ -168,19 +168,19 @@ namespace MapTileGridCreator.Core
                 {
                     //path[i].colorDot = new Color(1.0f-((float)i / path.Count), 0, ((float)i /path.Count), 1f);
                     path[i].colorDot = Color.HSVToRGB(0.67f, ((float)i / path.Count), 0.76f);
-                    path[i].SetShow(true);
+                    path[i].show = true;
                 }
             }
 
-            for (int i = 0; i < closedSet.Count; i++)
+            /*for (int i = 0; i < closedSet.Count; i++)
             {
                 //closedSet[i].colorDot = new Color(1.0f-(float)closedSet[i].gCost / maxGCost, 0.0f, (float)closedSet[i].gCost/ maxGCost, 1f);
-                if (closedSet[i].inAir == false)
+                if (!InAir(closedSet[i]))
                 {
                     closedSet[i].colorDot = Color.HSVToRGB(0.67f, (float)closedSet[i].gCost / maxGCost, 0.76f);
-                    closedSet[i].SetShowFlood(true);
+                    closedSet[i].showFlood = true;
                 }
-            }
+            }*/
 
             return;
         }
@@ -199,9 +199,9 @@ namespace MapTileGridCreator.Core
                 openSet.Remove(currentNode);
                 closedSet.Add(currentNode);
 
-                foreach (Waypoint neighbour in currentNode.outs)
+                foreach (Waypoint neighbour in currentNode.neighbors)
                 {
-                    if (!neighbour.walkable || closedSet.Contains(neighbour) || !NeighbourReachable(neighbour, currentNode, maxJump)) continue;
+                    if ((neighbour.type != null && neighbour.type.blockPath) || closedSet.Contains(neighbour) || !NeighbourReachable(neighbour, currentNode, maxJump)) continue;
 
                     float newMovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode, neighbour);
                     if (newMovementCostToNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
@@ -217,18 +217,17 @@ namespace MapTileGridCreator.Core
                 }
             }
 
-            for (int i = 0; i < closedSet.Count; i++)
+            for (int i = 1; i < closedSet.Count; i++)
             {
                 //closedSet[i].colorDot = new Color(1.0f-(float)closedSet[i].gCost / maxGCost, 0.0f, (float)closedSet[i].gCost/ maxGCost, 1f);
-                if (closedSet[i].inAir == false)
+                if (!InAir(closedSet[i]))
                 {
                     closedSet[i].colorDot = Color.HSVToRGB(0.67f, (float)closedSet[i].gCost / maxGCost, 0.76f);
-                    closedSet[i].SetShowFlood(true);
+                    closedSet[i].showFlood = true;
                 }
             }
             return;
         }
-
 
         private static bool NeighbourReachable(Waypoint tryJump, Waypoint current, Vector2 max)
         {
@@ -240,10 +239,10 @@ namespace MapTileGridCreator.Core
                 tryJump
             };
 
-            if (!tryJump.inAir && !startJump.inAir)
+            if (!InAir(tryJump) && !InAir(startJump))
                 return true;
 
-            while (startJump.inAir)
+            while (InAir(startJump))
             {
                 if (startJump.from)
                 {
@@ -287,6 +286,14 @@ namespace MapTileGridCreator.Core
             return path;
         }
 
+        private static bool InAir(Waypoint w)
+        {
+            if (w.DownNeighbor && w.DownNeighbor.type && w.DownNeighbor.type.ground)
+                return false;
+            else
+                return true;
+        }
+
         private static List<Waypoint> RetracePath2(Waypoint startNode, Waypoint targetNode, Vector2 maxJump)
         {
             List<Waypoint> path = new List<Waypoint>();
@@ -298,7 +305,7 @@ namespace MapTileGridCreator.Core
             while (currentNode != startNode && i < 10000)
             {
                 float currentGCost = Mathf.Infinity;
-                foreach (Waypoint neighbour in currentNode.ins) 
+                foreach (Waypoint neighbour in currentNode.neighbors) 
                 {
                     if ((neighbour.gCost != 0 && neighbour.gCost < currentGCost) || neighbour == startNode)
                     {

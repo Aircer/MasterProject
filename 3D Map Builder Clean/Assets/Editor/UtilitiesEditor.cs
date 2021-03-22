@@ -5,6 +5,7 @@ using MapTileGridCreator.CubeImplementation;
 using MapTileGridCreator.HexagonalImplementation;
 using UnityEditor;
 using UnityEngine;
+using System.IO;
 
 namespace MapTileGridCreator.Utilities
 {
@@ -13,17 +14,12 @@ namespace MapTileGridCreator.Utilities
 	/// </summary>
 	public static class FuncEditor
 	{
-		public enum PaintMode
-		{
-			Single, Erase, Eyedropper
-		};
-
-		/// <summary>
-		/// IUnstantiate an empty Grid3D.
-		/// </summary>
-		/// <param name="typegrid">The type of the grid.</param>
-		/// <returns>The grid component associated to the gameobject.</returns>
-		public static Grid3D InstantiateGrid3D(TypeGrid3D typegrid)
+        /// <summary>
+        /// IUnstantiate an empty Grid3D.
+        /// </summary>
+        /// <param name="typegrid">The type of the grid.</param>
+        /// <returns>The grid component associated to the gameobject.</returns>
+        public static Grid3D InstantiateGrid3D(TypeGrid3D typegrid, Vector3Int size_grid = new Vector3Int(), int i = 0)
 		{
 			GameObject obj;
 			Grid3D grid;
@@ -34,9 +30,16 @@ namespace MapTileGridCreator.Utilities
 					{
 						obj = new GameObject("CubeGrid");
 						grid = obj.AddComponent<CubeGrid>();
-						GameObject cells = new GameObject();
-						cells.name = "Cells";
-						cells.transform.parent = obj.transform;
+						obj.AddComponent<MeshCombiner>();
+						/*
+						GameObject newChild = new GameObject();
+						newChild.transform.parent = grid.transform;
+						string[] prefabPalletFile = Directory.GetFiles("Assets/Materials/Pins", "*.prefab");
+						newChild = AssetDatabase.LoadAssetAtPath(prefabPalletFile[0], typeof(GameObject)) as GameObject;
+						newChild.transform.position = new Vector3(size_grid.x, size_grid.y, size_grid.z);
+						*/
+						if (i != 0)
+							obj.transform.position = new Vector3(1000, 1000, 1000);
 					}
 					break;
 				case TypeGrid3D.Hexagonal:
@@ -191,10 +194,10 @@ namespace MapTileGridCreator.Utilities
 		/// <param name="grid">The grid the cell will belongs.</param>
 		/// <param name="position"> The position of the cell.</param>
 		/// <returns>The cell component associated to the gameobject.</returns>
-		public static Cell InstantiateCell(GameObject prefab, Grid3D grid, Vector3 position)
+		public static Cell InstantiateCell(GameObject pallet, Grid3D grid, Vector3 position)
 		{
 			Vector3Int index = grid.GetIndexByPosition(ref position);
-			return InstantiateCell(prefab, grid, index);
+			return InstantiateCell(pallet, grid, index);
 		}
 
 		public static Vector3Int GetIndexByPosition(Grid3D grid, Vector3 position)
@@ -214,19 +217,20 @@ namespace MapTileGridCreator.Utilities
 		/// <param name="grid">The grid the cell will belongs.</param>
 		/// <param name="index"> The index of the cell.</param>
 		/// <returns>The cell component associated to the gameobject.</returns>
-		public static Cell InstantiateCell(List<GameObject> pallet, Grid3D grid, Transform cells, Vector3Int index)
+		public static Cell InstantiateCell(List<GameObject> pallet, Grid3D grid, Vector3Int index)
 		{
-			//GameObject gameObject = PrefabUtility.InstantiatePrefab(prefab, cells.transform) as GameObject;
+			//GameObject cellGameObject = PrefabUtility.InstantiatePrefab(pallet, grid.transform) as GameObject;
 			GameObject cellGameObject = new GameObject();
 			cellGameObject.name = "cell_" + index.x + "_" + index.y + "_" + index.z;
-			cellGameObject.transform.parent = cells;
+			cellGameObject.transform.parent = grid.transform;
 			BoxCollider coll = cellGameObject.AddComponent<BoxCollider>();
 			coll.enabled = false;
-			Cell cell= cellGameObject.AddComponent<Cell>();
+			Cell cell = cellGameObject.AddComponent<Cell>();
 
 			foreach (GameObject child in pallet)
 			{
-				GameObject newChild = PrefabUtility.InstantiatePrefab(child, cells.transform) as GameObject;
+				GameObject newChild = PrefabUtility.InstantiatePrefab(child, grid.transform) as GameObject;
+				PrefabUtility.UnpackPrefabInstance(newChild, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
 				newChild.transform.parent = cellGameObject.transform;
 				newChild.SetActive(false);
 			}
@@ -242,46 +246,14 @@ namespace MapTileGridCreator.Utilities
 			return cell;
 		}
 
-		public static Cell ActivatePallet(int palletIndex, Grid3D grid, Vector3Int index, bool active, float rotation = 0)
-		{
-			Cell cell = CellAtThisIndex(grid, index);
-
-			for (int i = 0; i < cell.transform.childCount; i++)
-			{
-				if (i == palletIndex)
-					cell.transform.GetChild(i).gameObject.SetActive(active);
-				else
-					cell.transform.GetChild(i).gameObject.SetActive(false);
-			}
-			cell.transform.eulerAngles = new Vector3(0, rotation, 0);
-
-			return cell;
-		}
-
-		public static Cell SwapCell(Grid3D oldGrid, Grid3D newGrid, Vector3Int index)
-		{
-			Cell cell = CellAtThisIndex(oldGrid, index);
-			
-			if (cell != null)
-			{
-				newGrid.AddCell(index, cell);
-				cell.transform.SetParent(newGrid.transform);
-				oldGrid.DeleteCell(cell);
-				cell.ResetTransform();
-			}
-
-			//Undo.SetTransformParent(cell.gameObject.transform, newGrid.transform, "Cell swap");
-			return cell;
-		}
-
-		/// <summary>
-		/// Replace a cell with an other cell, and delete the old, component and gameobject.
-		/// </summary>
-		/// <param name="source">The source gameobject, can be a prefab or an existing gameObject.</param>
-		/// <param name="grid">The grid of the old cell.</param>
-		/// <param name="old">The old cell to replace.</param>
-		/// <returns>The cell component of the new gameobject.</returns>
-		public static Cell ReplaceCell(GameObject source, Grid3D grid, Cell old)
+        /// <summary>
+        /// Replace a cell with an other cell, and delete the old, component and gameobject.
+        /// </summary>
+        /// <param name="source">The source gameobject, can be a prefab or an existing gameObject.</param>
+        /// <param name="grid">The grid of the old cell.</param>
+        /// <param name="old">The old cell to replace.</param>
+        /// <returns>The cell component of the new gameobject.</returns>
+        public static Cell ReplaceCell(GameObject source, Grid3D grid, Cell old)
 		{
 			Undo.SetCurrentGroupName("Replace Cell");
 			int group = Undo.GetCurrentGroup();
@@ -401,8 +373,7 @@ namespace MapTileGridCreator.Utilities
 		public static Dictionary<Vector3Int, Cell> CreateEmptyCells(List<GameObject> pallet, Grid3D grid, Vector3Int size_grid)
 		{
 			//GameObject pallet = AssetDatabase.LoadAssetAtPath("Assets/Cells/Cell.prefab", typeof(GameObject)) as GameObject;
-			Transform cellsParent = grid.transform.Find("Cells");
-			Dictionary<Vector3Int, Cell> cells = new Dictionary<Vector3Int, Cell>();
+			Dictionary<Vector3Int, Cell> newCells = new Dictionary<Vector3Int, Cell>();
 
 			for (int x = 0; x < size_grid.x; x++)
 			{
@@ -410,12 +381,11 @@ namespace MapTileGridCreator.Utilities
 				{
 					for (int z = 0; z < size_grid.z; z++)
 					{
-						cells.Add(new Vector3Int(x, y, z), InstantiateCell(pallet, grid, cellsParent, new Vector3Int(x, y, z)));
+						newCells.Add(new Vector3Int(x, y, z), InstantiateCell(pallet, grid, new Vector3Int(x, y, z)));
 					}
 				}
 			}
-
-			return cells;
+			return newCells;
 		}
 
 		public static bool InputInGridBoundaries(Grid3D grid, Vector3 input, Vector3Int size_grid)
@@ -461,37 +431,45 @@ namespace MapTileGridCreator.Utilities
 			return planesGrid;
 		}
 
-		public static WaypointCluster CreateClusterAndWaypoints(Vector3Int size_grid)
+		public static void CreateCells(out Grid3D grid, out Dictionary<Vector3Int, Cell> cells, out WaypointCluster cluster, List<GameObject> pallet, Vector3Int size_grid)
 		{
-			GameObject clusterGameObject = new GameObject();
-			WaypointCluster cluster;
-			GameObject[] allObjects = GameObject.FindGameObjectsWithTag("Cluster");
-			foreach (GameObject obj in allObjects)
-			{
-				Editor.DestroyImmediate(obj);
-			}
+			//Create Grid and all Cells 
+			grid = InstantiateGrid3D(TypeGrid3D.Cube, size_grid);
+			cells = CreateEmptyCells(pallet, grid, size_grid);
+			//Create Cluster and Waypoints
+			WaypointCluster newCluster = new WaypointCluster();
+			newCluster.CreateWaypoints(cells, size_grid);
 
-			//Editor.Instantiate(clusterGameObject);
-			clusterGameObject.tag = "Cluster";
-			clusterGameObject.name = "WaypointsCluster";
-			cluster= clusterGameObject.AddComponent<WaypointCluster>();
-			cluster.CreateWaypoints(size_grid);
-
-			return cluster;
+			cluster = newCluster;
 		}
 
-		public static void CreateGridAndCells(out Grid3D grid,  out Dictionary<Vector3Int, Cell> cells, List<GameObject> pallet, Vector3Int size_grid)
+		public static void DestroyGrids()
 		{
 			//Destroy all existing grids 
 			GameObject[] allObjects = GameObject.FindGameObjectsWithTag("Grid");
 			foreach (GameObject obj in allObjects)
 			{
-                UnityEngine.Object.DestroyImmediate(obj);
+				UnityEngine.Object.DestroyImmediate(obj);
+			}
+		}
+
+		public static Dictionary<Vector3Int, Cell> TransformCellsFromCluster(Dictionary<Vector3Int, Cell> cells, WaypointCluster newCluster)
+		{
+			foreach (KeyValuePair<Vector3Int, Waypoint> point in newCluster.waypoints)
+			{
+				if (cells[point.Key].state == CellState.Inactive || point.Value.type != cells[point.Key].type)
+				{
+					if (point.Value.type == null)
+						cells[point.Key].Inactive();
+					else
+					{
+						cells[point.Key].SetTypeAndRotation(point.Value.type);
+						cells[point.Key].Active(point.Value.type);
+					}
+				}
 			}
 
-			//Create Grid and all Cells 
-			grid = InstantiateGrid3D(TypeGrid3D.Cube);
-			cells = CreateEmptyCells(pallet, grid, size_grid);
+			return cells;
 		}
 	}
 }

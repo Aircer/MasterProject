@@ -4,30 +4,19 @@ using UnityEditor;
 
 namespace MapTileGridCreator.Core
 {
-	public class WaypointCluster: MonoBehaviour
+	public class WaypointCluster
 	{
 		/// <summary>
 		/// List of ALL waypoints inside the cluster
 		/// </summary>
 		public Dictionary<Vector3Int, Waypoint> waypoints = new Dictionary<Vector3Int, Waypoint>();
-		/// <summary>
-		/// Numeric id assigned to the waypoint
-		/// </summary>
-		private uint currentID = 0;
 
 		private Vector3 size_grid;
 
-		public void CreateWaypoints(Vector3 sg)
+		public void CreateWaypoints(Dictionary<Vector3Int, Cell> cells, Vector3 sg)
 		{
-			currentID = 0;
 			waypoints.Clear();
 			size_grid = sg; 
-
-			int childs = transform.childCount;
-			for (int i = childs - 1; i > -1; i--)
-			{
-				GameObject.DestroyImmediate(transform.GetChild(i).gameObject);
-			}
 
 			//Create all the vertices
 			for (int x = 0; x < size_grid.x; x++)
@@ -36,7 +25,7 @@ namespace MapTileGridCreator.Core
 				{
 					for (int z = 0; z < size_grid.z; z++)
 					{
-						CreateWaypoint(new Vector3Int(x, y, z));
+						cells[new Vector3Int(x, y, z)].waypoint = CreateWaypoint(cells[new Vector3Int(x, y, z)]);
 					}
 				}
 			}
@@ -77,82 +66,43 @@ namespace MapTileGridCreator.Core
 				waypoints[new Vector3Int(x, y, z)].linkTo(waypoints[new Vector3Int(x, y, z + 1)]);
 		}
 
-		public Waypoint CreateWaypoint(Vector3Int key)
+		public Waypoint CreateWaypoint(Cell currentCell)
 		{
-			GameObject waypointAux = Resources.Load("Waypoint") as GameObject;
-			GameObject waypointInstance = PrefabUtility.InstantiatePrefab(waypointAux) as GameObject;
-			waypointInstance.transform.position = key;
-			waypointInstance.transform.parent = this.transform;
-			waypointInstance.name = currentID.ToString();
-			++currentID;
-			waypoints.Add(key, waypointInstance.GetComponent<Waypoint>());
-			waypointInstance.GetComponent<Waypoint>().SetParent(this);
-			waypointInstance.GetComponent<Waypoint>().SetKey(key);
-			waypointInstance.GetComponent<Waypoint>().walkable = true;
-			waypointInstance.GetComponent<Waypoint>().inAir = true;
-			return waypointInstance.GetComponent<Waypoint>();
+			currentCell.gameObject.AddComponent<Waypoint>();
+
+			Waypoint newWaypoint = currentCell.GetComponent<Waypoint>();
+
+			waypoints.Add(currentCell.index, newWaypoint);
+			newWaypoint.parent = this;
+			newWaypoint.key = currentCell.index;
+			newWaypoint.cell = currentCell;
+			return newWaypoint;
 		}
 
 		public void FindPath(Vector3Int start, Vector3Int end, Vector2 maxJump)
 		{
-			List<Waypoint> points = new List<Waypoint>();
-			points.AddRange(waypoints.Values);
+			CleanWaypoints();
 
-			foreach (Waypoint point in points)
-			{
-				point.SetShow(false);
-				point.SetShowFlood(false);
-				point.gCost = 0;
-				point.hCost = 0;
-				point.from = null; 
-			}
-			if(waypoints.ContainsKey(start) && waypoints.ContainsKey(end))
+			if (waypoints.ContainsKey(start) && waypoints.ContainsKey(end))
 				Pathfinding.FindRouteTo3(waypoints[start], waypoints[end], maxJump);
 		}
 
 		public void FindPath(Vector3Int start, Vector2 maxJump)
 		{
-			List<Waypoint> points = new List<Waypoint>();
-			points.AddRange(waypoints.Values);
-
-			foreach (Waypoint point in points)
-			{
-				point.SetShow(false);
-				point.SetShowFlood(false);
-				point.gCost = 0;
-				point.hCost = 0;
-			}
+			CleanWaypoints();
 
 			Pathfinding.FloodFill(waypoints[start], maxJump);
 		}
 
-		public void PathBlocked(Vector3Int index, bool removeWaypoint)
+		public void CleanWaypoints()
 		{
-			if (removeWaypoint)
+			foreach (var item in waypoints)
 			{
-				if (waypoints.ContainsKey(new Vector3Int(index.x, index.y, index.z)))
-					waypoints[index].IsBlocking(true);
-			}
-			else
-			{
-				if (waypoints.ContainsKey(new Vector3Int(index.x, index.y, index.z)))
-					waypoints[index].IsBlocking(false);
+				item.Value.show = false;
+				item.Value.showFlood = false;
+				item.Value.gCost = 0;
+				item.Value.hCost = 0;
 			}
 		}
-
-		public void Ground(Vector3Int index, bool removeWaypoint)
-		{
-			if (removeWaypoint)
-			{
-				if (waypoints.ContainsKey(new Vector3Int(index.x, index.y + 1, index.z)))
-					waypoints[new Vector3Int(index.x, index.y + 1, index.z)].inAir = false;
-			}
-			else
-			{
-				if (waypoints.ContainsKey(new Vector3Int(index.x, index.y + 1, index.z)))
-					waypoints[new Vector3Int(index.x, index.y + 1, index.z)].inAir = true;
-			}
-		}
-
 	}
 }

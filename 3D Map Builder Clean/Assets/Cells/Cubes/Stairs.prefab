@@ -40,6 +40,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1402235401516394092}
+  - component: {fileID: -8709798940166045474}
   m_Layer: 8
   m_Name: Stairs
   m_TagString: Untagged
@@ -62,6 +63,21 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &-8709798940166045474
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4731688968304643295}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 315e6ca8b97649c4d875962900b543f6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ID: Stairs
+  ground: 1
+  blockPath: 0
 --- !u!1 &9003066290028970035
 GameObject:
   m_ObjectHideFlags: 0

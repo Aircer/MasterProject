@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Collections.Generic;
 
 namespace MapTileGridCreator.Core
 {
@@ -8,16 +9,18 @@ namespace MapTileGridCreator.Core
 	/// </summary>
 	[ExecuteInEditMode]
 	[DisallowMultipleComponent]
-	public class Cell : MonoBehaviour
-	{
+#pragma warning disable CS0659 // Le type se substitue à Object.Equals(object o) mais pas à Object.GetHashCode()
+    public class Cell : MonoBehaviour
+#pragma warning restore CS0659 // Le type se substitue à Object.Equals(object o) mais pas à Object.GetHashCode()
+    {
 		public Grid3D parent { get; set; }
 		public Vector3Int index { get; set; }
+		public CellInformation type { get; set; }
+		public Waypoint waypoint { get; set; }
+		public CellState state { get; set; }
 
-		public string type { get; set; }
+		private BoxCollider colliderBox;
 
-        public CellState state { get; set; }
-		public int lastPalletIndex { get; set; }
-		private BoxCollider colliderBox;  
 		private Material startMaterial;
 		private Material endMaterial;
 
@@ -38,7 +41,6 @@ namespace MapTileGridCreator.Core
 			parent = grid;
 			index = gridIndex;
 			colliderBox = this.transform.gameObject.GetComponent<BoxCollider>();
-			SetState(CellState.Inactive);
 		}
 
 		/// <summary>
@@ -52,100 +54,48 @@ namespace MapTileGridCreator.Core
 			transform.localPosition = parent.GetLocalPositionCell(index);
 			transform.localScale = Vector3.one * parent.SizeCell;
 			transform.rotation = parent.GetDefaultRotation();
-			SetState(CellState.Inactive);
-			type = "null";
 		}
 
-		public void SetState(CellState newState, string cellType = "null", float rotation = 0)
+		public void SetTypeAndRotation(CellInformation cellType = null, float rotation = -1)
 		{
-			state = newState;
-
-			switch (newState)
-			{
-				case CellState.Painted:
-					type = cellType;
-					this.transform.eulerAngles = new Vector3(0, rotation, 0);
-					SetColliderState(false);
-					SetMeshState(true);
-					break;
-				case CellState.Erased:
-					SetColliderState(true);
-					SetMeshState(false);
-					break;
-				case CellState.Active:
-					type = cellType != "null"?cellType:type;
-					this.transform.eulerAngles = rotation != 0? new Vector3(0, rotation, 0): this.transform.eulerAngles;
-					SetColliderState(true);
-					SetMeshState(true);
-					break;
-				case CellState.Inactive:
-					SetColliderState(false);
-					SetMeshState(false);
-					break;
-			}
+			//Change Type and Rotation only if we give Active new values, if not keep the old ones 
+			type = cellType != null ? cellType : type;
+			this.transform.eulerAngles = rotation != -1 ? new Vector3(0, rotation, 0) : this.transform.eulerAngles;
 		}
 
-		public void Painted(string cellType = "null", float rotation = 0)
-		{ 
-			type = cellType;
-			this.transform.eulerAngles = new Vector3(0, rotation, 0);
-
+		public void Painted(CellInformation cellType, float rotation = 0)
+		{
+			SetTypeAndRotation(cellType, rotation);
 			SetColliderState(false);
 			SetMeshState(true);
+
+			state = CellState.Painted;
 		}
 
 		public void Erased()
 		{
 			SetColliderState(true);
 			SetMeshState(false);
+			state = CellState.Erased;
 		}
 
-		public void Active(string cellType = "null", float rotation = -1)
+		public void Active(CellInformation cellType = null, float rotation = -1)
 		{
-			//Change Type and Rotation only if we give Active new values, if not keep the old ones 
-			type = cellType != "null" ? cellType : type;
-			this.transform.eulerAngles = rotation != -1 ? new Vector3(0, rotation, 0) : this.transform.eulerAngles;
-
+			SetTypeAndRotation(cellType, rotation);
 			SetColliderState(true);
 			SetMeshState(true);
+			waypoint.SetType(type);
+
+			state = CellState.Active;
 		}
 
 		public void Inactive()
 		{
 			SetColliderState(false);
 			SetMeshState(false);
-		}
+			waypoint.ResetType();
 
-		public void ActivatePallet(bool active, int palletIndex=-1, float rotation = 0)
-		{
-			for (int i = 0; i < this.transform.childCount; i++)
-			{
-				if (i == palletIndex && active)
-				{
-					this.transform.GetChild(i).gameObject.SetActive(active);
-					type = active ? this.transform.GetChild(i).name: "null";
-					lastPalletIndex = palletIndex;
-				}
-				else
-					this.transform.GetChild(i).gameObject.SetActive(false);
-			}
-			
-			this.transform.eulerAngles = new Vector3(0, rotation, 0);
-		}
-
-		public bool GetColliderState()
-		{
-			bool colliderState = false; 
-
-			for (int i = 0; i < gameObject.transform.childCount; i++)
-			{
-				if (gameObject.transform.GetChild(i).name == type)
-				{
-					colliderState = transform.GetChild(i).transform.GetComponent<Collider>().enabled;
-				}
-			}
-
-			return colliderState;
+			state = CellState.Inactive;
 		}
 
 		public void SetColliderState(bool state)
@@ -157,7 +107,7 @@ namespace MapTileGridCreator.Core
 		{
 			for (int i = 0; i < gameObject.transform.childCount; i++)
 			{
-				if (gameObject.transform.GetChild(i).name == type)
+				if (state == false || gameObject.transform.GetChild(i).name == type.name)
 				{
 					gameObject.transform.GetChild(i).transform.gameObject.SetActive(state);
 				}
