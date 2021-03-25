@@ -17,3 +17,8 @@ public enum CellState
 {
 	Painted, Erased, Active, Inactive
 };
+
+public enum PathfindingState
+{
+	A_Star, Floodfill
+};

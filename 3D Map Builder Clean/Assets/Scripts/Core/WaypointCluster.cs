@@ -4,8 +4,16 @@ using UnityEditor;
 
 namespace MapTileGridCreator.Core
 {
-	public class WaypointCluster
+	public class WaypointCluster 
 	{
+		public WaypointCluster(Vector3Int size, Dictionary<Vector3Int, Cell> cells)
+        {
+			CreateWaypoints(cells, size);
+		}
+
+		public WaypointCluster()
+		{ 
+		}
 		/// <summary>
 		/// List of ALL waypoints inside the cluster
 		/// </summary>
@@ -68,14 +76,12 @@ namespace MapTileGridCreator.Core
 
 		public Waypoint CreateWaypoint(Cell currentCell)
 		{
-			currentCell.gameObject.AddComponent<Waypoint>();
-
-			Waypoint newWaypoint = currentCell.GetComponent<Waypoint>();
-
-			waypoints.Add(currentCell.index, newWaypoint);
-			newWaypoint.parent = this;
+			Waypoint newWaypoint = new Waypoint();
 			newWaypoint.key = currentCell.index;
 			newWaypoint.cell = currentCell;
+			if (currentCell.type)
+				newWaypoint.type = currentCell.type;
+			waypoints.Add(currentCell.index, newWaypoint);
 			return newWaypoint;
 		}
 
@@ -98,8 +104,8 @@ namespace MapTileGridCreator.Core
 		{
 			foreach (var item in waypoints)
 			{
-				item.Value.show = false;
-				item.Value.showFlood = false;
+				item.Value.inPath = false;
+				item.Value.from = null;
 				item.Value.gCost = 0;
 				item.Value.hCost = 0;
 			}

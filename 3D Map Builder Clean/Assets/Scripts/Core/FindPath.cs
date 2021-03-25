@@ -80,7 +80,7 @@ namespace MapTileGridCreator.Core
                     {
                         //path[i].colorDot = new Color(1.0f-((float)i / path.Count), 0, ((float)i /path.Count), 1f);
                         path[i].colorDot = Color.HSVToRGB(0.67f, ((float)i / path.Count), 0.76f);
-                        path[i].show = true;
+                        path[i].inPath = true;
                     }
 
                     return;
@@ -151,7 +151,7 @@ namespace MapTileGridCreator.Core
                         if (!openSet.Contains(neighbour))
                             openSet.Add(neighbour);
 
-                        //Debug.Log(neighbour.from.name + " --> " + neighbour.name);
+                        //Debug.Log(neighbour.from.key + " --> " + neighbour.key);
                     }
                 }
             }
@@ -168,7 +168,7 @@ namespace MapTileGridCreator.Core
                 {
                     //path[i].colorDot = new Color(1.0f-((float)i / path.Count), 0, ((float)i /path.Count), 1f);
                     path[i].colorDot = Color.HSVToRGB(0.67f, ((float)i / path.Count), 0.76f);
-                    path[i].show = true;
+                    path[i].inPath = true;
                 }
             }
 
@@ -223,9 +223,10 @@ namespace MapTileGridCreator.Core
                 if (!InAir(closedSet[i]))
                 {
                     closedSet[i].colorDot = Color.HSVToRGB(0.67f, (float)closedSet[i].gCost / maxGCost, 0.76f);
-                    closedSet[i].showFlood = true;
+                    closedSet[i].inPath = true;
                 }
             }
+
             return;
         }
 
@@ -244,7 +245,7 @@ namespace MapTileGridCreator.Core
 
             while (InAir(startJump))
             {
-                if (startJump.from)
+                if (startJump.from != null)
                 {
                     startJump = startJump.from;
                     waypointsJump.Insert(0, startJump);
@@ -256,13 +257,13 @@ namespace MapTileGridCreator.Core
        
             for (int i = 0; i < waypointsJump.Count-1; i++)
             {
-                dist.x += Mathf.Sqrt(Mathf.Pow(Mathf.Abs(waypointsJump[i].transform.position.x - waypointsJump[i+1].transform.position.x),2) + Mathf.Pow(Mathf.Abs(waypointsJump[i].transform.position.z - waypointsJump[i+1].transform.position.z), 2));
-                dist.y += Mathf.Abs(waypointsJump[i].transform.position.y - waypointsJump[i + 1].transform.position.y);
+                dist.x += Mathf.Sqrt(Mathf.Pow(Mathf.Abs(waypointsJump[i].key.x - waypointsJump[i+1].key.x),2) + Mathf.Pow(Mathf.Abs(waypointsJump[i].key.z - waypointsJump[i+1].key.z), 2));
+                dist.y += Mathf.Abs(waypointsJump[i].key.y - waypointsJump[i + 1].key.y);
             }
 
             //Debug.Log(startJump.name + " --> " + tryJump.name + " : " + dist + " check: " + Mathf.Pow(dist.x, 2) / Mathf.Pow(max.x + 1, 2));
 
-            if (startJump.transform.position.y - tryJump.transform.position.y < 0)
+            if (startJump.key.y - tryJump.key.y < 0)
                 return Mathf.Pow(dist.x, 2) / Mathf.Pow(max.x + 1,2) + Mathf.Pow(dist.y,2) / Mathf.Pow(max.y+1,2) < 1;
             else
                 return Mathf.Pow(dist.x,2) / Mathf.Pow(max.x + 1,2) < 1;
@@ -288,7 +289,7 @@ namespace MapTileGridCreator.Core
 
         private static bool InAir(Waypoint w)
         {
-            if (w.DownNeighbor && w.DownNeighbor.type && w.DownNeighbor.type.ground)
+            if (w.DownNeighbor != null && w.DownNeighbor.type && w.DownNeighbor.type.ground)
                 return false;
             else
                 return true;
@@ -330,9 +331,9 @@ namespace MapTileGridCreator.Core
 
         private static float GetDistance(Waypoint nodeA, Waypoint nodeB)
         {
-            float dstX = Mathf.Pow(Mathf.Abs(nodeA.transform.position.x - nodeB.transform.position.x),2);
-            float dstY = Mathf.Pow(Mathf.Abs(nodeA.transform.position.y - nodeB.transform.position.y),2);
-            float dstZ = Mathf.Pow(Mathf.Abs(nodeA.transform.position.z - nodeB.transform.position.z),2);
+            float dstX = Mathf.Pow(Mathf.Abs(nodeA.key.x - nodeB.key.x),2);
+            float dstY = Mathf.Pow(Mathf.Abs(nodeA.key.y - nodeB.key.y),2);
+            float dstZ = Mathf.Pow(Mathf.Abs(nodeA.key.z - nodeB.key.z),2);
 
             return Mathf.Sqrt(dstX + dstY + dstZ);
         }

@@ -17,13 +17,15 @@ public class MapTileGridCreatorWindow : EditorWindow
 	//Global
 	private Vector2 _scroll_position;
 
-	private Grid3D _grid;
+	public Grid3D _grid { get; set; }
 	public Grid3D _suggestionsGrid { get; set; }
 	public Dictionary<Vector3Int, Cell> _suggestionCell { get; set; }
 	public WaypointCluster _suggestionCluster { get; set; }
-	[SerializeField]
-	private Vector3Int _size_grid = new Vector3Int(5, 5, 5);
-	public Dictionary<Vector3Int, Cell> _cells { get; set; }
+
+	public Vector3Int _size_grid = new Vector3Int(5, 5, 5);
+	public Vector3Int _old_size_grid = new Vector3Int(-1, -1, -1);
+	public Dictionary<Vector3Int, Cell> _cells;
+	public float progressBarTime = 5f;
 
 	//Debug Grid
 	[SerializeField]
@@ -33,11 +35,9 @@ public class MapTileGridCreatorWindow : EditorWindow
 	private Plane[] _planesGrid = new Plane[3];
 
 	//Waypoints
-	public WaypointCluster _cluster { get; set; }
-
+	public WaypointCluster _cluster;
 	//Pathfinding
-	private string[] _pathfindingTypes = new string[] { "Flood", "A*" };
-	private int _pathfindingCurrentType;
+	private PathfindingState _pathfindingState;
 	private Vector3Int[] _start_end = new Vector3Int[2];
 	private Vector2 _maxJump;
 
@@ -298,42 +298,51 @@ public class MapTileGridCreatorWindow : EditorWindow
 			{
 				if (_mode_paint == PaintMode.Single)
 				{
-					_cells[index].Active();
+					_cells[index].Active(_cellTypes[_cellTypes_index]);
+					_cluster.waypoints[index].SetType(_cellTypes[_cellTypes_index]);
 					SetPathWaypoint(index);
                 }
 
 				if (_mode_paint == PaintMode.Erase) 
 				{
 					_cells[index].Inactive();
+					_cluster.waypoints[index].SetType(null);
 					RemovePathWaypoint(index);
 				}
 			}
 
 			if (_start_end[1] != Constants.UNDEFINED_POSITION)
 				_cluster.FindPath(_start_end[0], _start_end[1], _maxJump);
-			if (_start_end[0] != Constants.UNDEFINED_POSITION && _pathfindingCurrentType == 0)
+			if (_start_end[0] != Constants.UNDEFINED_POSITION && _pathfindingState == PathfindingState.Floodfill)
 				_cluster.FindPath(_start_end[0], _maxJump);
 
+			FuncEditor.ShowPathfinding(_cells, _cluster, _pathfindingState);
 			_undo = MyUndo.UpdateUndo(_undo, _indexToPaint, _mode_paint, _cellTypes_index);
 		}
 	}
 
 	private void SetPathWaypoint(Vector3Int index)
 	{
-		Cell cell = FuncEditor.CellAtThisIndex(_grid, index);
-		if (cell && cell.type)
+		if (_cells[index] && _cells[index].type)
 		{
-			if (cell.type.ID == "Start_End")
+			if (_cells[index].type.name == "Start_End")
 			{
-				if (_start_end[0] == Constants.UNDEFINED_POSITION || _pathfindingCurrentType == 0)
+				if (_start_end[0] == Constants.UNDEFINED_POSITION || _pathfindingState == PathfindingState.Floodfill)
                 {
 					if (_cells.ContainsKey(_start_end[0]))
+                    {
 						_cells[_start_end[0]].Inactive();
+						_cluster.waypoints[_start_end[0]].SetType(null);
+					}
 					if (_cells.ContainsKey(_start_end[1]))
+                    {
 						_cells[_start_end[1]].Inactive();
+						_cluster.waypoints[_start_end[1]].SetType(null);
+					}
 
 					_start_end[0] = index;
-					_cells[_start_end[0]].Active();
+					_cells[_start_end[0]].Active(_cells[index].type);
+					_cluster.waypoints[_start_end[0]].SetType(_cells[index].type);
 					_cells[_start_end[0]].SetColor("start");
 				}
 				else
@@ -341,9 +350,12 @@ public class MapTileGridCreatorWindow : EditorWindow
 					if (_start_end[1] != index && _start_end[1] != Constants.UNDEFINED_POSITION)
 					{
 						_cells[_start_end[1]].Inactive();
+						_cluster.waypoints[_start_end[1]].SetType(null);
 					}
 
 					_start_end[1] = index;
+					_cells[_start_end[1]].Active(_cells[index].type);
+					_cluster.waypoints[_start_end[1]].SetType(_cells[index].type);
 					_cells[_start_end[1]].SetColor("end");
 				}
 			}
@@ -352,7 +364,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	private void RemovePathWaypoint(Vector3Int index)
 	{
-		if (_cells[index].type.ID == "Start_End")
+		if (_cells[index].type && _cells[index].type.name == "Start_End")
 		{
 			if (_start_end[0] == index)
 			{
@@ -527,14 +539,15 @@ public class MapTileGridCreatorWindow : EditorWindow
 			var origFontStyle = EditorStyles.label.fontStyle;
 			EditorStyles.label.fontStyle = FontStyle.Bold;
 
-			int oldPathfindingType = _pathfindingCurrentType;
-			_pathfindingCurrentType = EditorGUILayout.Popup("Pathfinding", _pathfindingCurrentType, _pathfindingTypes);
+			PathfindingState oldPathfindingType = _pathfindingState;
+			string[] stringPath = System.Enum.GetNames(typeof(PathfindingState));
+			_pathfindingState = (PathfindingState)EditorGUILayout.Popup("Pathfinding", (int)_pathfindingState, stringPath);
 
-			if (oldPathfindingType != _pathfindingCurrentType)
+			if (oldPathfindingType != _pathfindingState)
 			{
-                if (_pathfindingCurrentType == 0 && _start_end[0] != Constants.UNDEFINED_POSITION)
+                if (_pathfindingState == PathfindingState.A_Star && _start_end[0] != Constants.UNDEFINED_POSITION)
 					_cluster.FindPath(_start_end[0], _maxJump);
-				if (_pathfindingCurrentType == 1 && _start_end[1] != Constants.UNDEFINED_POSITION)
+				if (_pathfindingState == PathfindingState.Floodfill && _start_end[1] != Constants.UNDEFINED_POSITION)
 					_cluster.FindPath(_start_end[0], _start_end[1], _maxJump);
 			}
 
@@ -562,41 +575,49 @@ public class MapTileGridCreatorWindow : EditorWindow
 	{
 		FuncEditor.DrawUILine(Color.gray);
 
-
 		if (GUILayout.Button("New"))
 		{
-			//Create Visualization object (Coordinates, Brush and ToolManager) if it doesn't exist
-			if (!GameObject.Find("Visualization"))
-				PrefabUtility.InstantiatePrefab(Resources.Load("Visualization"));
+			if (_old_size_grid != _size_grid || _cells.Count == 0)
+			{
+				progressBarTime = 0f;
+				//Create Visualization object (Coordinates, Brush and ToolManager) if it doesn't exist
+				if (!GameObject.Find("Visualization"))
+					PrefabUtility.InstantiatePrefab(Resources.Load("Visualization"));
 
-			_brush = GameObject.Find("Brush");
-			_coordinates = GameObject.Find("Coordinates");
+				_brush = GameObject.Find("Brush");
+				_coordinates = GameObject.Find("Coordinates");
 
-			//Destroy then create Grid and Cells with waypoints
-			FuncEditor.DestroyGrids();
+				//Destroy then create Grid and Cells with waypoints
+				FuncEditor.DestroyGrids();
 
-			Grid3D newGrid;
-			Dictionary<Vector3Int, Cell> newCells;
-			WaypointCluster newCluster;
+				Grid3D newGrid;
+				Dictionary<Vector3Int, Cell> newCells;
+				WaypointCluster newCluster;
 
-			FuncEditor.CreateCells(out newGrid, out newCells, out newCluster, _cellPrefabs, _size_grid);
+				FuncEditor.CreateCellsAndWaypoints(out newGrid, out newCells, out newCluster, ref progressBarTime, _cellPrefabs, _size_grid);
 
-			_grid = newGrid;
-			_cells = newCells;
-			_cluster = newCluster;
+				_grid = newGrid;
+				_cells = newCells;
+				_cluster = newCluster;
 
-			FuncEditor.CreateCells(out newGrid, out newCells, out newCluster, _cellPrefabs, _size_grid);
-			newGrid.transform.position = new Vector3(1000, 1000, 1000);
+				FuncEditor.CreateCellsAndWaypoints(out newGrid, out newCells, out newCluster, ref progressBarTime, _cellPrefabs, _size_grid);
+				newGrid.transform.position = new Vector3(1000, 1000, 1000);
 
-			_suggestionsGrid = newGrid;
-			_suggestionCell = newCells;
-			_suggestionCluster = newCluster;
-
+				_suggestionsGrid = newGrid;
+				_suggestionCell = newCells;
+				_suggestionCluster = newCluster;
+			}
+			else 
+			{
+				FuncEditor.ResetWaypointsAndCells(ref _cells, ref _cluster);
+			}
 			//Reset position for pathfinding
 			_start_end[0] = Constants.UNDEFINED_POSITION;
 			_start_end[1] = Constants.UNDEFINED_POSITION;
 
 			_undo.noUndo = true;
+			_old_size_grid = _size_grid;
+			EditorUtility.ClearProgressBar();
 		}
 	}
 
@@ -620,6 +641,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 						foreach (Vector3Int index in _undo.lastIndexToPaint)
 						{
 							_cells[index].Inactive();
+							_cluster.waypoints[index].SetType(null);
 						}
 						_undo.noUndo = true;
 					}
@@ -629,7 +651,8 @@ public class MapTileGridCreatorWindow : EditorWindow
 					{
 						foreach (Vector3Int index in _undo.lastIndexToPaint)
 						{
-							_cells[index].Active();
+							_cells[index].Active(_cells[index].lastType);
+							_cluster.waypoints[index].SetType(_cells[index].lastType);
 							//SetPathWaypoint(index);
 						}
 						_undo.noUndo = true;

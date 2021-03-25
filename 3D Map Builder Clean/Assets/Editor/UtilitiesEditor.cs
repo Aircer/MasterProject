@@ -370,10 +370,11 @@ namespace MapTileGridCreator.Utilities
 			return null;
 		}
 
-		public static Dictionary<Vector3Int, Cell> CreateEmptyCells(List<GameObject> pallet, Grid3D grid, Vector3Int size_grid)
+		public static void CreateEmptyCells(ref float progressBarTime, out Dictionary<Vector3Int, Cell>  cells, List<GameObject> pallet, Grid3D grid, Vector3Int size_grid)
 		{
 			//GameObject pallet = AssetDatabase.LoadAssetAtPath("Assets/Cells/Cell.prefab", typeof(GameObject)) as GameObject;
 			Dictionary<Vector3Int, Cell> newCells = new Dictionary<Vector3Int, Cell>();
+			int numberCells = size_grid.x * size_grid.y * size_grid.z;
 
 			for (int x = 0; x < size_grid.x; x++)
 			{
@@ -381,11 +382,14 @@ namespace MapTileGridCreator.Utilities
 				{
 					for (int z = 0; z < size_grid.z; z++)
 					{
+						progressBarTime += 1;
 						newCells.Add(new Vector3Int(x, y, z), InstantiateCell(pallet, grid, new Vector3Int(x, y, z)));
+						EditorUtility.DisplayProgressBar("Creatings empty cells", "You can go take a coffee...", progressBarTime / (2*numberCells));
 					}
 				}
 			}
-			return newCells;
+
+			cells = newCells;
 		}
 
 		public static bool InputInGridBoundaries(Grid3D grid, Vector3 input, Vector3Int size_grid)
@@ -431,14 +435,13 @@ namespace MapTileGridCreator.Utilities
 			return planesGrid;
 		}
 
-		public static void CreateCells(out Grid3D grid, out Dictionary<Vector3Int, Cell> cells, out WaypointCluster cluster, List<GameObject> pallet, Vector3Int size_grid)
+		public static void CreateCellsAndWaypoints(out Grid3D grid, out Dictionary<Vector3Int, Cell> cells, out WaypointCluster cluster, ref float progressBarTime, List<GameObject> pallet, Vector3Int size_grid)
 		{
 			//Create Grid and all Cells 
 			grid = InstantiateGrid3D(TypeGrid3D.Cube, size_grid);
-			cells = CreateEmptyCells(pallet, grid, size_grid);
+			CreateEmptyCells(ref progressBarTime, out cells, pallet, grid, size_grid);
 			//Create Cluster and Waypoints
-			WaypointCluster newCluster = new WaypointCluster();
-			newCluster.CreateWaypoints(cells, size_grid);
+			WaypointCluster newCluster = new WaypointCluster(size_grid, cells);
 
 			cluster = newCluster;
 		}
@@ -457,19 +460,51 @@ namespace MapTileGridCreator.Utilities
 		{
 			foreach (KeyValuePair<Vector3Int, Waypoint> point in newCluster.waypoints)
 			{
+
+				cells[point.Key].Inactive();
+				if (point.Value != null && point.Value.type != null && point.Value.type.name != null)
+				{
+					cells[point.Key].SetTypeAndRotation(point.Value.type);
+					cells[point.Key].Active(point.Value.type);
+				}
+				/*
 				if (cells[point.Key].state == CellState.Inactive || point.Value.type != cells[point.Key].type)
 				{
 					if (point.Value.type == null)
 						cells[point.Key].Inactive();
 					else
 					{
+						cells[point.Key].Inactive();
 						cells[point.Key].SetTypeAndRotation(point.Value.type);
 						cells[point.Key].Active(point.Value.type);
 					}
-				}
+				}*/
 			}
-
+				
 			return cells;
+		}
+
+		public static void ShowPathfinding(Dictionary<Vector3Int, Cell> cells, WaypointCluster cluster, PathfindingState pathfindingState)
+		{
+			foreach (KeyValuePair<Vector3Int, Waypoint> point in cluster.waypoints)
+			{
+				cells[point.Key].pathFindingType = pathfindingState;
+				cells[point.Key].DebugPath.inPath = point.Value.inPath;
+				cells[point.Key].DebugPath.colorDot = point.Value.colorDot;
+				if(point.Value.from != null)
+					cells[point.Key].DebugPath.fromKey = point.Value.from.key;
+			}
+		}
+
+		public static void ResetWaypointsAndCells(ref Dictionary<Vector3Int, Cell> cells, ref WaypointCluster cluster)
+		{
+			foreach (KeyValuePair<Vector3Int, Waypoint> point in cluster.waypoints)
+			{
+				cells[point.Key].Inactive();
+				cells[point.Key].DebugPath.inPath = false;
+				point.Value.type = null;
+				point.Value.inPath = false;
+			}
 		}
 	}
 }

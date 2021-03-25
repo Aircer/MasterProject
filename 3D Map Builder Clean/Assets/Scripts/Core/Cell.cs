@@ -10,19 +10,31 @@ namespace MapTileGridCreator.Core
 	[ExecuteInEditMode]
 	[DisallowMultipleComponent]
 #pragma warning disable CS0659 // Le type se substitue à Object.Equals(object o) mais pas à Object.GetHashCode()
-    public class Cell : MonoBehaviour
+	public class Cell : MonoBehaviour
 #pragma warning restore CS0659 // Le type se substitue à Object.Equals(object o) mais pas à Object.GetHashCode()
-    {
+	{
 		public Grid3D parent { get; set; }
 		public Vector3Int index { get; set; }
 		public CellInformation type { get; set; }
+
+		public CellInformation lastType { get; set; }
 		public Waypoint waypoint { get; set; }
 		public CellState state { get; set; }
 
+		public PathfindingState pathFindingType { get; set; }
 		private BoxCollider colliderBox;
 
 		private Material startMaterial;
 		private Material endMaterial;
+
+		public class DebugPathinding
+		{
+			public bool inPath;
+			public Color colorDot;
+			public Vector3Int fromKey;
+		}
+
+		public DebugPathinding DebugPath = new DebugPathinding();
 
 		public void OnEnable()
         {
@@ -58,8 +70,8 @@ namespace MapTileGridCreator.Core
 
 		public void SetTypeAndRotation(CellInformation cellType = null, float rotation = -1)
 		{
-			//Change Type and Rotation only if we give Active new values, if not keep the old ones 
-			type = cellType != null ? cellType : type;
+			//Change Type and Rotation 
+			type = cellType;
 			this.transform.eulerAngles = rotation != -1 ? new Vector3(0, rotation, 0) : this.transform.eulerAngles;
 		}
 
@@ -84,7 +96,6 @@ namespace MapTileGridCreator.Core
 			SetTypeAndRotation(cellType, rotation);
 			SetColliderState(true);
 			SetMeshState(true);
-			waypoint.SetType(type);
 
 			state = CellState.Active;
 		}
@@ -93,8 +104,9 @@ namespace MapTileGridCreator.Core
 		{
 			SetColliderState(false);
 			SetMeshState(false);
-			waypoint.ResetType();
 
+			lastType = type;
+			type = null;
 			state = CellState.Inactive;
 		}
 
@@ -107,7 +119,7 @@ namespace MapTileGridCreator.Core
 		{
 			for (int i = 0; i < gameObject.transform.childCount; i++)
 			{
-				if (state == false || gameObject.transform.GetChild(i).name == type.name)
+				if (type && gameObject.transform.GetChild(i).name == type.name)
 				{
 					gameObject.transform.GetChild(i).transform.gameObject.SetActive(state);
 				}
@@ -148,6 +160,29 @@ namespace MapTileGridCreator.Core
 					break;
 			}
 
+		}
+
+		/// Draws the white square representing the nodes and an arrow for each outgoing edge
+		public virtual void OnDrawGizmos()
+		{
+			if (DebugPath.inPath)
+			{
+				if (pathFindingType == PathfindingState.A_Star)
+				{
+					Gizmos.color = DebugPath.colorDot;
+					Gizmos.DrawRay(index, DebugPath.fromKey - index);
+					Vector3 right = Quaternion.LookRotation(index - DebugPath.fromKey) * Quaternion.Euler(0, 160f, 0) * new Vector3(0, 0, 1);
+					Vector3 left = Quaternion.LookRotation(index - DebugPath.fromKey) * Quaternion.Euler(0, 160f, 0) * new Vector3(0, 0, 1);
+					Gizmos.DrawRay(index, right * 0.25f);
+					Gizmos.DrawRay(index, left * 0.25f);
+				}
+
+				if (pathFindingType == PathfindingState.Floodfill)
+				{
+					Gizmos.color = DebugPath.colorDot;
+					Gizmos.DrawSphere(index, 0.2f);
+				}
+			}
 		}
 
 		/// <summary>
