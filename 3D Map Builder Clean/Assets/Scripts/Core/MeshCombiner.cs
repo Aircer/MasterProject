@@ -328,9 +328,9 @@ public class MeshCombiner : MonoBehaviour
 			}
 			else
 			{
-				Debug.Log("<color=#ff3300><b>Mesh \""+name+"\" was created from "+(meshFilters.Length-1)+" children meshes and has "
+				/*Debug.Log("<color=#ff3300><b>Mesh \""+name+"\" was created from "+(meshFilters.Length-1)+" children meshes and has "
 					+finalMeshCombineInstancesList.Count+" submeshes, and "+verticesLength
-					+" vertices. Some old devices, like Android with Mali-400 GPU, do not support over 65535 vertices.</b></color>");
+					+" vertices. Some old devices, like Android with Mali-400 GPU, do not support over 65535 vertices.</b></color>");*/
 			}
 		}
 		#else

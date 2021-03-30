@@ -48,12 +48,11 @@ namespace MapTileGridCreator.TransformationsBank
 			if (!grid.HaveCell(ref upIndex))
 			{
 				int height = Random.Range(Min_Random, Max_Random);
-				GameObject prefab = FuncEditor.GetPrefabFromInstance(root.gameObject);
 				for (int i = 0; i < height; i++)
 				{
 					if (!grid.HaveCell(ref upIndex))
 					{
-						FuncEditor.InstantiateCell(prefab, grid, upIndex);
+						FuncEditor.InstantiateCell(grid, upIndex);
 					}
 					upIndex += grid.GetConnexAxes()[1];
 				}

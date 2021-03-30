@@ -17,41 +17,15 @@ namespace MapTileGridCreator.Utilities
         /// <summary>
         /// IUnstantiate an empty Grid3D.
         /// </summary>
-        /// <param name="typegrid">The type of the grid.</param>
         /// <returns>The grid component associated to the gameobject.</returns>
-        public static Grid3D InstantiateGrid3D(TypeGrid3D typegrid, Vector3Int size_grid = new Vector3Int(), int i = 0)
+        public static Grid3D InstantiateGrid3D()
 		{
 			GameObject obj;
 			Grid3D grid;
 
-			switch (typegrid)
-			{
-				case TypeGrid3D.Cube:
-					{
-						obj = new GameObject("CubeGrid");
-						grid = obj.AddComponent<CubeGrid>();
-						obj.AddComponent<MeshCombiner>();
-						/*
-						GameObject newChild = new GameObject();
-						newChild.transform.parent = grid.transform;
-						string[] prefabPalletFile = Directory.GetFiles("Assets/Materials/Pins", "*.prefab");
-						newChild = AssetDatabase.LoadAssetAtPath(prefabPalletFile[0], typeof(GameObject)) as GameObject;
-						newChild.transform.position = new Vector3(size_grid.x, size_grid.y, size_grid.z);
-						*/
-						if (i != 0)
-							obj.transform.position = new Vector3(1000, 1000, 1000);
-					}
-					break;
-				case TypeGrid3D.Hexagonal:
-					{
-						obj = new GameObject("HexagonalGrid");
-						grid = obj.AddComponent<HexagonalGrid>();
-					}
-
-					break;
-				default:
-					throw new ArgumentException("No type implemented " + typegrid.ToString() + " inherit Grid3D");
-			}
+			obj = new GameObject("CubeGrid");
+			grid = obj.AddComponent<CubeGrid>();
+			obj.AddComponent<MeshCombiner>();
 
 			grid.Initialize();
 			return grid;
@@ -70,32 +44,13 @@ namespace MapTileGridCreator.Utilities
 		}
 
 		/// <summary>
-		/// Debug a plane grid for helping to visualize the cells.
-		/// </summary>
-		/// <param name="grid">The grid to debug.</param>
-		/// <param name="color"> The color of the grid.</param>
-		/// <param name="offset_grid_y"> The offset of y position. </param>
-		/// <param name="size_grid">The size of the grid.</param>
-		public static void DebugGrid(Grid3D grid, Color color, Vector3Int size_grid, Plane[] planesGrid)
-		{
-			if (grid.GetTypeGrid() == TypeGrid3D.Hexagonal)
-			{
-				DebugHexagonGrid(grid, color, size_grid);
-			}
-			else
-			{
-				DebugSquareGrid(grid, color, size_grid, planesGrid);
-			}
-		}
-
-		/// <summary>
 		/// Debug a square grid. Use this one if the editor performance is limited rather than other grid debug implementation.
 		/// </summary>
 		/// <param name="grid">The grid to debug.</param>
 		/// <param name="color"> The color of the grid.</param>
-		/// <param name="offset_grid_y"> The offset of y position. </param>
 		/// <param name="size_grid">The size of the grid.</param>
-		private static void DebugSquareGrid(Grid3D grid, Color color, Vector3Int size_grid, Plane[] planesGrid)
+		/// /// <param name="planesGrid">Plans orientation, depends of the camera rotation</param>
+		public static void DebugSquareGrid(Grid3D grid, Color color, Vector3Int size_grid, Plane[] planesGrid)
 		{
 			using (new Handles.DrawingScope(color))
 			{
@@ -137,67 +92,17 @@ namespace MapTileGridCreator.Utilities
 			}
 		}
 
-		/// <summary>
-		/// Debug a hexagon grid.
-		/// </summary>
-		/// <param name="grid">The grid to debug.</param>
-		/// <param name="color"> The color of the grid.</param>
-		/// <param name="offset_grid_y"> The offset of y position. </param>
-		/// <param name="size_grid">The size of the grid.</param>
-		private static void DebugHexagonGrid(Grid3D grid, Color color, Vector3Int size_grid)
-		{
-			using (new Handles.DrawingScope(color))
-			{
-				Handles.zTest = UnityEngine.Rendering.CompareFunction.LessEqual;
-				Vector3 pos = grid.transform.position;
-				float CaseSize = grid.SizeCell * grid.GapRatio;
-				pos.y += - CaseSize / 2.0f;
-
-				List<Vector3> axes = grid.GetAxes();
-				float angle_xz = Vector3.Angle(axes[2], axes[0]) / 2;
-
-				//Form 
-				Vector3[] form = new Vector3[7];
-				int p = 0;
-				for (int i = 0; i < axes.Count * 3; i += 3)
-				{
-					if (axes[i % axes.Count].y == 0)
-					{
-						form[p] = pos + Quaternion.AngleAxis(angle_xz, axes[1]) * (axes[i % axes.Count] * CaseSize / 2.0f);
-						p++;
-					}
-				}
-				form[p] = form[0];
-
-				//Grid
-				for (int z = -size_grid.z; z <= size_grid.z; z++)
-				{
-					for (int x = -size_grid.x; x <= size_grid.x; x++)
-					{
-						Vector3 cellpos = (axes[0] * x + axes[2] * z) * CaseSize;
-
-						Vector3[] points = new Vector3[7];
-						for (int i = 0; i < 7; i++)
-						{
-							points[i] = cellpos + form[i];
-						}
-						Handles.DrawPolyLine(points);
-					}
-				}
-			}
-		}
-
-		/// <summary>
-		/// Instantiate a cell with a prefab as model.
-		/// </summary>
-		/// <param name="prefab">The prefab to instantiate as a cell.</param>
-		/// <param name="grid">The grid the cell will belongs.</param>
-		/// <param name="position"> The position of the cell.</param>
-		/// <returns>The cell component associated to the gameobject.</returns>
-		public static Cell InstantiateCell(GameObject pallet, Grid3D grid, Vector3 position)
+        /// <summary>
+        /// Instantiate a cell with a prefab as model.
+        /// </summary>
+        /// <param name="prefab">The prefab to instantiate as a cell.</param>
+        /// <param name="grid">The grid the cell will belongs.</param>
+        /// <param name="position"> The position of the cell.</param>
+        /// <returns>The cell component associated to the gameobject.</returns>
+        public static Cell InstantiateCell(Grid3D grid, Vector3 position)
 		{
 			Vector3Int index = grid.GetIndexByPosition(ref position);
-			return InstantiateCell(pallet, grid, index);
+			return InstantiateCell(grid, index);
 		}
 
 		public static Vector3Int GetIndexByPosition(Grid3D grid, Vector3 position)
@@ -217,7 +122,7 @@ namespace MapTileGridCreator.Utilities
 		/// <param name="grid">The grid the cell will belongs.</param>
 		/// <param name="index"> The index of the cell.</param>
 		/// <returns>The cell component associated to the gameobject.</returns>
-		public static Cell InstantiateCell(List<GameObject> pallet, Grid3D grid, Vector3Int index)
+		public static Cell InstantiateCell(Grid3D grid, Vector3Int index)
 		{
 			//GameObject cellGameObject = PrefabUtility.InstantiatePrefab(pallet, grid.transform) as GameObject;
 			GameObject cellGameObject = new GameObject();
@@ -226,20 +131,15 @@ namespace MapTileGridCreator.Utilities
 			BoxCollider coll = cellGameObject.AddComponent<BoxCollider>();
 			coll.enabled = false;
 			Cell cell = cellGameObject.AddComponent<Cell>();
-
+			/*
 			foreach (GameObject child in pallet)
 			{
 				GameObject newChild = PrefabUtility.InstantiatePrefab(child, grid.transform) as GameObject;
 				PrefabUtility.UnpackPrefabInstance(newChild, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
 				newChild.transform.parent = cellGameObject.transform;
 				newChild.SetActive(false);
-			}
-			/*PrefabUtility.UnpackPrefabInstance(gameObject, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-			Cell cell = gameObject.GetComponent<Cell>();
-			if (cell == null)
-			{
-				cell = gameObject.AddComponent<Cell>();
 			}*/
+
 			grid.AddCell(index, cell);
 			cell.ResetTransform();
 
@@ -313,7 +213,7 @@ namespace MapTileGridCreator.Utilities
 				GameObject prefab = GetPrefabFromInstance(prefabInstance);
 				if (cdest == null)
 				{
-					InstantiateCell(prefab, grid, index);
+					InstantiateCell(grid, index);
 				}
 				else if (overwrite)
 				{
@@ -370,10 +270,18 @@ namespace MapTileGridCreator.Utilities
 			return null;
 		}
 
-		public static void CreateEmptyCells(ref float progressBarTime, out Dictionary<Vector3Int, Cell>  cells, List<GameObject> pallet, Grid3D grid, Vector3Int size_grid)
+		/// <summary>
+		/// Create a new cells
+		/// </summary>
+		/// /// <param name="progressBarTime"> float use to track time spend creating cells</param>
+		/// /// /// <param name="cells"> List of cells created</param>
+		/// /// <param name="pallet"> List of all gameobject that can be painted on cells.</param>
+		/// /// <param name="grid"> Parent grid of the cell.</param>
+		/// /// <param name="size_grid"> Give number of the cells to create.</param>
+		public static void CreateEmptyCells(ref float progressBarTime, out Cell[,,] cells, Grid3D grid, Vector3Int size_grid)
 		{
 			//GameObject pallet = AssetDatabase.LoadAssetAtPath("Assets/Cells/Cell.prefab", typeof(GameObject)) as GameObject;
-			Dictionary<Vector3Int, Cell> newCells = new Dictionary<Vector3Int, Cell>();
+			Cell[,,] newCells = new Cell[size_grid.x, size_grid.y, size_grid.z];
 			int numberCells = size_grid.x * size_grid.y * size_grid.z;
 
 			for (int x = 0; x < size_grid.x; x++)
@@ -383,8 +291,8 @@ namespace MapTileGridCreator.Utilities
 					for (int z = 0; z < size_grid.z; z++)
 					{
 						progressBarTime += 1;
-						newCells.Add(new Vector3Int(x, y, z), InstantiateCell(pallet, grid, new Vector3Int(x, y, z)));
-						EditorUtility.DisplayProgressBar("Creatings empty cells", "You can go take a coffee...", progressBarTime / (2*numberCells));
+						newCells[x, y, z] = InstantiateCell(grid, new Vector3Int(x, y, z));
+						EditorUtility.DisplayProgressBar("Creatings empty cells", "You can go have a coffee...", progressBarTime / (2*numberCells));
 					}
 				}
 			}
@@ -392,32 +300,25 @@ namespace MapTileGridCreator.Utilities
 			cells = newCells;
 		}
 
-		public static bool InputInGridBoundaries(Grid3D grid, Vector3 input, Vector3Int size_grid)
+		/// <summary>
+		/// Check if input is in the grid.
+		/// </summary>
+		/// /// <returns>Return true if Input is in Boundaries.</returns>
+		public static bool InputInGridBoundaries(Vector3 input, Vector3Int size_grid)
 		{
-			TypeGrid3D typegrid = grid.GetTypeGrid();
 			bool inBoundaries = true;
 
-			switch (typegrid)
-			{
-				case TypeGrid3D.Cube:
-					{
-						if (input.x < 0 || input.y < 0 || input.z < 0 || input.x > size_grid.x - 1 || input.y > size_grid.y - 1 || input.z > size_grid.z - 1)
-							inBoundaries = false;
-					}
-					break;
-				case TypeGrid3D.Hexagonal:
-					{
-
-					}
-
-					break;
-				default:
-					throw new ArgumentException("No type implemented " + typegrid.ToString() + " inherit Grid3D");
-			}
+			if (input.x < 0 || input.y < 0 || input.z < 0 || input.x > size_grid.x - 1 || input.y > size_grid.y - 1 || input.z > size_grid.z - 1)
+				inBoundaries = false;
 
 			return inBoundaries;
 		}
 
+
+		/// <summary>
+		/// Set Planes for debug position and normal in function of the camera Rotation
+		/// </summary>
+		/// /// <returns>Return planes updated
 		public static Plane[] SetGridDebugPlanesNormalAndPosition(Plane[] planesGrid, Vector3Int size_grid, Vector3 rot)
 		{
 			bool[] planesGridInverted = new bool[3];
@@ -435,17 +336,23 @@ namespace MapTileGridCreator.Utilities
 			return planesGrid;
 		}
 
-		public static void CreateCellsAndWaypoints(out Grid3D grid, out Dictionary<Vector3Int, Cell> cells, out WaypointCluster cluster, ref float progressBarTime, List<GameObject> pallet, Vector3Int size_grid)
+		/// <summary>
+		/// Create cells and waypoints
+		/// </summary>
+		public static void CreateCellsAndWaypoints(ref Grid3D grid, ref Cell[,,] cells, ref WaypointCluster cluster, ref float progressBarTime, Dictionary<CellInformation, GameObject> pallet, Vector3Int size_grid)
 		{
 			//Create Grid and all Cells 
-			grid = InstantiateGrid3D(TypeGrid3D.Cube, size_grid);
-			CreateEmptyCells(ref progressBarTime, out cells, pallet, grid, size_grid);
+			grid = InstantiateGrid3D();
+			CreateEmptyCells(ref progressBarTime, out cells, grid, size_grid);
 			//Create Cluster and Waypoints
-			WaypointCluster newCluster = new WaypointCluster(size_grid, cells);
+			WaypointCluster newCluster = new WaypointCluster(size_grid);
 
 			cluster = newCluster;
 		}
 
+		/// <summary>
+		/// Destroy all grids (objects with tag "Grid")
+		/// </summary>
 		public static void DestroyGrids()
 		{
 			//Destroy all existing grids 
@@ -456,54 +363,92 @@ namespace MapTileGridCreator.Utilities
 			}
 		}
 
-		public static Dictionary<Vector3Int, Cell> TransformCellsFromCluster(Dictionary<Vector3Int, Cell> cells, WaypointCluster newCluster)
+		/// <summary>
+		/// Create cells and waypoints
+		/// </summary>
+		/// /// <param name="cells"> Cells to transform</param>
+		/// /// <param name="waypoints"> Waypoints used to get info for transform Cells</param>
+		public static Cell[,,] TransformCellsFromWaypoints(Cell[,,] cells, Waypoint[,,] waypoints, Dictionary<CellInformation, GameObject> cellPrefabs)
 		{
-			foreach (KeyValuePair<Vector3Int, Waypoint> point in newCluster.waypoints)
+			for (int i = 0; i < waypoints.GetLength(0); i++)
 			{
-
-				cells[point.Key].Inactive();
-				if (point.Value != null && point.Value.type != null && point.Value.type.name != null)
+				for (int j = 0; j < waypoints.GetLength(1); j++)
 				{
-					cells[point.Key].SetTypeAndRotation(point.Value.type);
-					cells[point.Key].Active(point.Value.type);
-				}
-				/*
-				if (cells[point.Key].state == CellState.Inactive || point.Value.type != cells[point.Key].type)
-				{
-					if (point.Value.type == null)
-						cells[point.Key].Inactive();
-					else
+					for (int k = 0; k < waypoints.GetLength(2); k++)
 					{
-						cells[point.Key].Inactive();
-						cells[point.Key].SetTypeAndRotation(point.Value.type);
-						cells[point.Key].Active(point.Value.type);
+						if (waypoints[i, j, k].type == null && cells[i, j, k].type != null)
+							cells[i, j, k].Inactive();
+
+						if (waypoints[i, j, k].type != null && cells[i, j, k].type != waypoints[i, j, k].type)
+						{
+							cells[i, j, k].SetTypeAndRotation(waypoints[i, j, k].type);
+							cells[i, j, k].Active(waypoints[i, j, k].type, cellPrefabs[waypoints[i, j, k].type]);
+						}
 					}
-				}*/
+				}
 			}
-				
 			return cells;
 		}
 
-		public static void ShowPathfinding(Dictionary<Vector3Int, Cell> cells, WaypointCluster cluster, PathfindingState pathfindingState)
+		/// <summary>
+		/// Show Pathfinding
+		/// </summary>
+		/// /// <param name="cells"> Cells of the grid</param>
+		/// /// <param name="waypoints"> Waypoints used to get info for pathfinding</param>
+		/// ///  <param name="pathfindingState"> Pathfinfing type (A* or FloodFill)</param>
+		public static void ShowPathfinding(Cell[,,] cells, Waypoint[,,] waypoints, PathfindingState pathfindingState)
 		{
-			foreach (KeyValuePair<Vector3Int, Waypoint> point in cluster.waypoints)
+			for (int i = 0; i < waypoints.GetLength(0); i++)
 			{
-				cells[point.Key].pathFindingType = pathfindingState;
-				cells[point.Key].DebugPath.inPath = point.Value.inPath;
-				cells[point.Key].DebugPath.colorDot = point.Value.colorDot;
-				if(point.Value.from != null)
-					cells[point.Key].DebugPath.fromKey = point.Value.from.key;
+				for (int j = 0; j < waypoints.GetLength(1); j++)
+				{
+					for (int k = 0; k < waypoints.GetLength(2); k++)
+					{
+						cells[i, j, k].pathFindingType = pathfindingState;
+						cells[i, j, k].DebugPath.inPath = waypoints[i, j, k].inPath;
+						cells[i, j, k].DebugPath.colorDot = waypoints[i, j, k].colorDot;
+
+						if (waypoints[i, j, k].from != null)
+							cells[i, j, k].DebugPath.fromKey = waypoints[i, j, k].from.key;
+					}
+				}
 			}
 		}
 
-		public static void ResetWaypointsAndCells(ref Dictionary<Vector3Int, Cell> cells, ref WaypointCluster cluster)
+		/// <summary>
+		/// Reset Cells
+		/// </summary>
+		/// /// <param name="cells"> Cells to reset</param>
+		public static void ResetCells(ref Cell[,,] cells, Vector3Int size_grid)
 		{
-			foreach (KeyValuePair<Vector3Int, Waypoint> point in cluster.waypoints)
+			for (int i = 0; i < size_grid.x; i++)
 			{
-				cells[point.Key].Inactive();
-				cells[point.Key].DebugPath.inPath = false;
-				point.Value.type = null;
-				point.Value.inPath = false;
+				for (int j = 0; j < size_grid.y; j++)
+				{
+					for (int k = 0; k < size_grid.z; k++)
+					{
+						cells[i, j, k].Inactive();
+						cells[i, j, k].DebugPath.inPath = false;
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Reset Waypoints
+		/// </summary>
+		/// /// <param name="cluster"> Cluster to reset</param>
+		public static void ResetWaypoints(ref WaypointCluster cluster, Vector3Int size_grid)
+		{
+			for (int i = 0; i < size_grid.x; i++)
+			{
+				for (int j = 0; j < size_grid.y; j++)
+				{
+					for (int k = 0; k < size_grid.z; k++)
+					{
+						cluster.SetType(null, i, j, k); 
+					}
+				}
 			}
 		}
 	}

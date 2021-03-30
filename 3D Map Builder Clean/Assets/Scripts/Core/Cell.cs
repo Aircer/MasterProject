@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using System.Collections.Generic;
+using UnityEditor;
 
 namespace MapTileGridCreator.Core
 {
@@ -18,7 +18,6 @@ namespace MapTileGridCreator.Core
 		public CellInformation type { get; set; }
 
 		public CellInformation lastType { get; set; }
-		public Waypoint waypoint { get; set; }
 		public CellState state { get; set; }
 
 		public PathfindingState pathFindingType { get; set; }
@@ -27,6 +26,7 @@ namespace MapTileGridCreator.Core
 		private Material startMaterial;
 		private Material endMaterial;
 
+		private Animator animator;
 		public class DebugPathinding
 		{
 			public bool inPath;
@@ -40,6 +40,8 @@ namespace MapTileGridCreator.Core
         {
 			startMaterial = Resources.Load("Material/Start") as Material;
 			endMaterial = Resources.Load("Material/End") as Material;
+			animator = this.gameObject.AddComponent<Animator>();
+			animator.runtimeAnimatorController = Resources.Load("Animations/Cell") as RuntimeAnimatorController;
 		}
 
         /// <summary>
@@ -75,12 +77,19 @@ namespace MapTileGridCreator.Core
 			this.transform.eulerAngles = rotation != -1 ? new Vector3(0, rotation, 0) : this.transform.eulerAngles;
 		}
 
-		public void Painted(CellInformation cellType, float rotation = 0)
+		public void Painted(CellInformation cellType, GameObject newCellObject, float rotation = 0)
 		{
 			SetTypeAndRotation(cellType, rotation);
 			SetColliderState(false);
 			SetMeshState(true);
 
+			GameObject newChild = PrefabUtility.InstantiatePrefab(newCellObject, parent.transform) as GameObject;
+			PrefabUtility.UnpackPrefabInstance(newChild, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+			newChild.transform.parent = this.transform;
+			newChild.transform.position = this.transform.position;
+
+			animator.speed = 0.01f;
+			animator.Play("CellPainted");
 			state = CellState.Painted;
 		}
 
@@ -91,11 +100,19 @@ namespace MapTileGridCreator.Core
 			state = CellState.Erased;
 		}
 
-		public void Active(CellInformation cellType = null, float rotation = -1)
+		public void Active(CellInformation cellType = null, GameObject newCellObject = null, float rotation = -1)
 		{
 			SetTypeAndRotation(cellType, rotation);
 			SetColliderState(true);
 			SetMeshState(true);
+
+			if (this.transform.childCount == 0 && newCellObject != null)
+			{
+				GameObject newChild = PrefabUtility.InstantiatePrefab(newCellObject, parent.transform) as GameObject;
+				PrefabUtility.UnpackPrefabInstance(newChild, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+				newChild.transform.parent = this.transform;
+				newChild.transform.position = this.transform.position;
+			}
 
 			state = CellState.Active;
 		}
@@ -104,6 +121,11 @@ namespace MapTileGridCreator.Core
 		{
 			SetColliderState(false);
 			SetMeshState(false);
+
+			foreach (Transform child in this.transform)
+			{
+				DestroyImmediate(child.gameObject);
+			}
 
 			lastType = type;
 			type = null;
@@ -183,12 +205,17 @@ namespace MapTileGridCreator.Core
 					Gizmos.DrawSphere(index, 0.2f);
 				}
 			}
+
+			animator.Update(Time.deltaTime);
+			//AnimatorClipInfo[] currentClip = animator.GetCurrentAnimatorClipInfo(0);
+			//int currentFrame = (int)(currentClip[0].weight * (currentClip[0].clip.length * currentClip[0].clip.frameRate));
+			//Debug.Log(currentFrame);
 		}
 
-		/// <summary>
-		/// When disable, unregister the cell in the parent grid.
-		/// </summary>
-		private void OnDisable()
+        /// <summary>
+        /// When disable, unregister the cell in the parent grid.
+        /// </summary>
+        private void OnDisable()
 		{
 			if (GetGridParent() != null)
 			{

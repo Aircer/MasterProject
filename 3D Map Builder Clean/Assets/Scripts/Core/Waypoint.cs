@@ -7,11 +7,8 @@ namespace MapTileGridCreator.Core
 {
 	public class Waypoint
 	{
-		/// Parent graph of the waypoint
-		public WaypointCluster parent { get; set; }
 		public Vector3Int key { get; set; }
 		public CellInformation type { get; set; }
-		public Cell cell { get; set; }
 		public bool inPath { get; set; }
 		public Color colorDot = Color.white;
 		public float hCost { get; set; }
@@ -60,17 +57,12 @@ namespace MapTileGridCreator.Core
 
 		public void SetType(CellInformation newType)
 		{
-			if (type != newType)
+			if (type == null || type != newType)
 			{
 				type = newType;
-			}
-		}
 
-		public void ResetType()
-		{
-			if (type != null)
-			{
-				type = null;
+				if (type == null)
+					inPath = false;
 			}
 		}
 	}
