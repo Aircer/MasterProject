@@ -10,12 +10,12 @@ public static class Constants
 
 public enum PaintMode
 {
-	Single, Erase, Eyedropper
+	Single, Erase, Eyedropper, SetPathfindingWaypoint
 };
 
 public enum CellState
 {
-	Painted, Erased, Active, Inactive
+	Painted, Erased, Active, Inactive, Sleep
 };
 
 public enum PathfindingState

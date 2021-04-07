@@ -18,6 +18,8 @@ namespace MapTileGridCreator.Core
 		public CellInformation type { get; set; }
 
 		public CellInformation lastType { get; set; }
+
+		public Vector2 lastRotation { get; set; }
 		public CellState state { get; set; }
 
 		public PathfindingState pathFindingType { get; set; }
@@ -26,12 +28,12 @@ namespace MapTileGridCreator.Core
 		private Material startMaterial;
 		private Material endMaterial;
 
-		private Animator animator;
 		public class DebugPathinding
 		{
 			public bool inPath;
 			public Color colorDot;
 			public Vector3Int fromKey;
+			public bool pathfindingWaypoint;
 		}
 
 		public DebugPathinding DebugPath = new DebugPathinding();
@@ -40,8 +42,6 @@ namespace MapTileGridCreator.Core
         {
 			startMaterial = Resources.Load("Material/Start") as Material;
 			endMaterial = Resources.Load("Material/End") as Material;
-			animator = this.gameObject.AddComponent<Animator>();
-			animator.runtimeAnimatorController = Resources.Load("Animations/Cell") as RuntimeAnimatorController;
 		}
 
         /// <summary>
@@ -67,19 +67,10 @@ namespace MapTileGridCreator.Core
 		{
 			transform.localPosition = parent.GetLocalPositionCell(index);
 			transform.localScale = Vector3.one * parent.SizeCell;
-			transform.rotation = parent.GetDefaultRotation();
 		}
 
-		public void SetTypeAndRotation(CellInformation cellType = null, float rotation = -1)
+		public void Painted(CellInformation cellType, GameObject newCellObject, Vector2 rotation)
 		{
-			//Change Type and Rotation 
-			type = cellType;
-			this.transform.eulerAngles = rotation != -1 ? new Vector3(0, rotation, 0) : this.transform.eulerAngles;
-		}
-
-		public void Painted(CellInformation cellType, GameObject newCellObject, float rotation = 0)
-		{
-			SetTypeAndRotation(cellType, rotation);
 			SetColliderState(false);
 			SetMeshState(true);
 
@@ -87,9 +78,10 @@ namespace MapTileGridCreator.Core
 			PrefabUtility.UnpackPrefabInstance(newChild, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
 			newChild.transform.parent = this.transform;
 			newChild.transform.position = this.transform.position;
+			newChild.transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
+			lastRotation = rotation;
+			lastType = type = cellType;
 
-			animator.speed = 0.01f;
-			animator.Play("CellPainted");
 			state = CellState.Painted;
 		}
 
@@ -100,9 +92,15 @@ namespace MapTileGridCreator.Core
 			state = CellState.Erased;
 		}
 
-		public void Active(CellInformation cellType = null, GameObject newCellObject = null, float rotation = -1)
+		public void Sleep()
 		{
-			SetTypeAndRotation(cellType, rotation);
+			SetColliderState(false);
+			SetMeshState(false);
+			state = CellState.Sleep;
+		}
+
+		public void Active(GameObject newCellObject = null, Vector2 rotation = default(Vector2))
+		{
 			SetColliderState(true);
 			SetMeshState(true);
 
@@ -112,6 +110,9 @@ namespace MapTileGridCreator.Core
 				PrefabUtility.UnpackPrefabInstance(newChild, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
 				newChild.transform.parent = this.transform;
 				newChild.transform.position = this.transform.position;
+				newChild.transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
+				lastRotation = rotation;
+				lastType = type = newChild.transform.GetComponent<CellInformation>();
 			}
 
 			state = CellState.Active;
@@ -127,7 +128,6 @@ namespace MapTileGridCreator.Core
 				DestroyImmediate(child.gameObject);
 			}
 
-			lastType = type;
 			type = null;
 			state = CellState.Inactive;
 		}
@@ -187,6 +187,11 @@ namespace MapTileGridCreator.Core
 		/// Draws the white square representing the nodes and an arrow for each outgoing edge
 		public virtual void OnDrawGizmos()
 		{
+			if (DebugPath.pathfindingWaypoint)
+			{
+				Gizmos.color = Color.red;
+				Gizmos.DrawSphere(index, 0.3f);
+			}
 			if (DebugPath.inPath)
 			{
 				if (pathFindingType == PathfindingState.A_Star)
@@ -205,11 +210,6 @@ namespace MapTileGridCreator.Core
 					Gizmos.DrawSphere(index, 0.2f);
 				}
 			}
-
-			animator.Update(Time.deltaTime);
-			//AnimatorClipInfo[] currentClip = animator.GetCurrentAnimatorClipInfo(0);
-			//int currentFrame = (int)(currentClip[0].weight * (currentClip[0].clip.length * currentClip[0].clip.frameRate));
-			//Debug.Log(currentFrame);
 		}
 
         /// <summary>

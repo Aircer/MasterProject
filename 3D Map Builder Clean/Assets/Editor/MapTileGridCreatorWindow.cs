@@ -5,6 +5,7 @@ using MapTileGridCreator.SerializeSystem;
 using MapTileGridCreator.Utilities;
 using UnityEditor;
 using UnityEngine;
+using System.Reflection;
 
 /// <summary>
 /// Main window class.
@@ -16,7 +17,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	//Global
 	private Vector2 _scroll_position;
-	public float progressBarTime = 5f;
+	private float progressBarTime = 5f;
 
 	private Grid3D _grid;
 	private Cell[,,] _cells;
@@ -51,7 +52,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 	private Vector3Int _startingPaintIndex;
 	private List<Vector3Int> _indexToPaint = new List<Vector3Int>();
 	private GameObject _brush;
-	private float _rotationCell = 0;
+	private Vector2 _rotationCell;
 	private GUIContent _rotationIcon;
 
 	[SerializeField]
@@ -59,11 +60,15 @@ public class MapTileGridCreatorWindow : EditorWindow
 	private float _dist_default_interaction = 100.0f;
 	[SerializeField]
 	private string _path_palletPreview = "Assets/Cells/Pallets";
-	private string _path_eraser= "Assets/Cells";
+	private string _path_eraser= "Assets/Cells/Eraser.prefab";
+	private string _path_setWaypoint = "Assets/Cells/SetWaypoint.prefab";
 	private int _cellTypes_index;
 	private GameObject _erasePrefab;
+	private GameObject _setWaypointPrefab;
 	private Dictionary<CellInformation, GameObject> _cellPrefabs = new Dictionary<CellInformation, GameObject>();
 	private List<CellInformation> _cellTypes = new List<CellInformation>();
+	private List<bool> _cellTypesShow = new List<bool>();
+	private List<bool> _oldCellTypesShow = new List<bool>();
 	public Cell[,,] GetCells()
 	{
 		return _cells;
@@ -102,28 +107,46 @@ public class MapTileGridCreatorWindow : EditorWindow
 		window.Show();
 	}
 
+	[MenuItem("Shortcuts/Rotate Pallet around Y _r")]
+	static void RotateRCommand()
+	{
+		MapTileGridCreatorWindow window = (MapTileGridCreatorWindow)GetWindow(typeof(MapTileGridCreatorWindow));
+		window.RotateCell(1);
+	}
+
+	[MenuItem("Shortcuts/Rotate Pallet around X _e")]
+	static void RotateECommand()
+	{
+		MapTileGridCreatorWindow window = (MapTileGridCreatorWindow)GetWindow(typeof(MapTileGridCreatorWindow));
+		window.RotateCell(0);
+	}
+
 	private void OnEnable()
 	{
 		_modes_paint = new GUIContent[] {
 			new GUIContent(EditorGUIUtility.IconContent("Grid.PaintTool", "Paint one by one the prefab selected")),
 			new GUIContent(EditorGUIUtility.IconContent("Grid.EraserTool", "Erase the cell in scene view")),
-			new GUIContent(EditorGUIUtility.IconContent("Grid.PickingTool", "Eyedropper to auto select the corresponding prefab in pallete")) };
+			new GUIContent(EditorGUIUtility.IconContent("Grid.PickingTool", "Create waypoint for Pathfinding")),
+			new GUIContent(EditorGUIUtility.IconContent("d_ToolHandleCenter@2x", "Eyedropper to auto select the corresponding prefab in pallete")) };
 
 		_undoIcon = new GUIContent(EditorGUIUtility.IconContent("undoIcon", "Undo last Paint/Erase"));
 		_rotationIcon = new GUIContent(EditorGUIUtility.IconContent("d_RotateTool On@2x", "Rotate pallet"));
+
+		RefreshPallet();
 	}
 
 	private void OnFocus()
 	{
 		SceneView.duringSceneGui -= OnSceneGUI;
 		SceneView.duringSceneGui += OnSceneGUI;
-
-		RefreshPallet();
 	}
 
-	private void RefreshPallet()
+	public void RefreshPallet()
 	{
 		_cellPrefabs.Clear();
+		_cellTypes.Clear();
+		_cellTypesShow.Clear();
+		_oldCellTypesShow.Clear();
 
 		string[] prefabFiles = Directory.GetFiles(_path_palletPreview, "*.prefab");
 		foreach (string prefabFile in prefabFiles)
@@ -131,14 +154,12 @@ public class MapTileGridCreatorWindow : EditorWindow
 			GameObject newPrefab = AssetDatabase.LoadAssetAtPath(prefabFile, typeof(GameObject)) as GameObject;
 			_cellPrefabs[newPrefab.GetComponent<CellInformation>()] = newPrefab;
 			_cellTypes.Add(newPrefab.GetComponent<CellInformation>());
+			_cellTypesShow.Add(true);
+			_oldCellTypesShow.Add(true);
 		}
 
-		string[] eraseFiles = Directory.GetFiles(_path_eraser, "*.prefab");
-		foreach (string prefabFile in eraseFiles)
-		{
-			GameObject newPrefab = AssetDatabase.LoadAssetAtPath(prefabFile, typeof(GameObject)) as GameObject;
-			_erasePrefab= newPrefab;
-		}
+		_erasePrefab = AssetDatabase.LoadAssetAtPath(_path_eraser, typeof(GameObject)) as GameObject;
+		_setWaypointPrefab = AssetDatabase.LoadAssetAtPath(_path_setWaypoint, typeof(GameObject)) as GameObject;
 	}
 
     #region SceneManagement
@@ -201,19 +222,39 @@ public class MapTileGridCreatorWindow : EditorWindow
 		{
 			case PaintMode.Single:
 				{
-					Vector3 input = GetGridPositionInput(0.5f);
-					PaintInput(input, _rotationCell);
 					ChangeBrushPallet();
-					SetBrushPosition(input, false, _rotationCell);
+					Vector3Int input = Vector3Int.RoundToInt(GetGridPositionInput(0.5f));
+					if(FuncEditor.CanPaintHere(_size_grid ,_cluster.GetWaypoints(), input, _cellTypes[_cellTypes_index].size, _rotationCell))
+                    {
+						if (_cellTypes[_cellTypes_index].size.x == 1 && _cellTypes[_cellTypes_index].size.y == 1 && _cellTypes[_cellTypes_index].size.z == 1)
+							AddInput(input);
+						else
+							AddInputSolo(input);
+					}
+
+					SetBrushPosition(input);
+					Paint();
 				}
 				break;
 
 			case PaintMode.Erase:
 				{
-					Vector3 input = GetGridPositionInput(-0.5f);
-					PaintInput(input, _rotationCell);
 					ChangeBrushPallet();
-					SetBrushPosition(input, true);
+					Vector3Int input = Vector3Int.RoundToInt(GetGridPositionInput(-0.5f));
+					if(FuncEditor.InputInGridBoundaries(input, _size_grid))
+						AddInput(input);
+					SetBrushPosition(input);
+					Paint();
+				}
+				break;
+
+			case PaintMode.SetPathfindingWaypoint:
+				{
+					ChangeBrushPallet();
+					Vector3Int input = Vector3Int.RoundToInt(GetGridPositionInput(0.5f));
+					if (FuncEditor.InputInGridBoundaries(input, _size_grid))
+						SetWaypoint(input);
+					SetBrushPosition(input);
 				}
 				break;
 
@@ -224,195 +265,173 @@ public class MapTileGridCreatorWindow : EditorWindow
 					EyedropperInput(selected);
 					if (selected != null)
 					{
-						SetBrushPosition(selected.transform.position, false);
+						SetBrushPosition(selected.transform.position);
 					}
 				}
 				break;
 		}
 	}
 
+	private void RotateCell(int axe)
+    {
+		if (axe == 0)
+			_rotationCell.x = _rotationCell.x == 270 ? 0 : _rotationCell.x + 90;
+		if (axe == 1)
+			_rotationCell.y = _rotationCell.y == 270 ? 0 : _rotationCell.y + 90;
+		
+	}
+
 	#region Paint/Erase
-	private void PaintInput(Vector3 input, float rotation)
+	private void AddInput(Vector3Int input)
 	{
-		Vector3Int inputIndex = FuncEditor.GetIndexByPosition(_grid, input);
-
-		//If input is outside the Grid do not paint/erase
-		if (FuncEditor.InputInGridBoundaries(inputIndex, _size_grid))
+		if (Event.current.type == EventType.Layout)
 		{
-			List<Vector3Int> newIndexToPaint = new List<Vector3Int>();
+			HandleUtility.AddDefaultControl(0);
+		}
 
-			if (Event.current.type == EventType.Layout)
-			{
-				HandleUtility.AddDefaultControl(0);
-			}
+		List<Vector3Int> newIndexToPaint = new List<Vector3Int>();
 
-			//Set starting index of paint/erase
-			if (!_painting && Event.current.type == EventType.MouseDown && Event.current.button == 0)
-			{
-				_startingPaintIndex = inputIndex;
-				_indexToPaint.Clear();
-				_painting = true;
-			}
+		//Set starting index of paint/erase
+		if (!_painting && Event.current.type == EventType.MouseDown && Event.current.button == 0)
+		{
+			_startingPaintIndex = input;
+			_indexToPaint.Clear();
+			_painting = true;
+		}
 
-			//Get all indexes that will be paint/erase
-			if (_painting && Event.current.type == EventType.MouseDrag && Event.current.button == 0)
+		//Get all indexes that will be paint/erase
+		if (_painting && (Event.current.type == EventType.MouseDrag || Event.current.type == EventType.MouseDown) && Event.current.button == 0)
+		{
+			newIndexToPaint.Clear();
+			Vector3Int index;
+			for (int i = 0; i <= Mathf.Abs(input.x - _startingPaintIndex.x); i++)
 			{
-				newIndexToPaint.Clear();
-				Vector3Int index;
-				for (int i = 0; i <= Mathf.Abs(inputIndex.x - _startingPaintIndex.x); i++)
+				for (int j = 0; j <= Mathf.Abs(input.y - _startingPaintIndex.y); j++)
 				{
-					for (int j = 0; j <= Mathf.Abs(inputIndex.y - _startingPaintIndex.y); j++)
+					for (int k = 0; k <= Mathf.Abs(input.z - _startingPaintIndex.z); k++)
 					{
-						for (int k = 0; k <= Mathf.Abs(inputIndex.z - _startingPaintIndex.z); k++)
-						{
-							index = new Vector3Int(_startingPaintIndex.x + (int)Mathf.Sign(inputIndex.x - _startingPaintIndex.x) * i, _startingPaintIndex.y + (int)Mathf.Sign(inputIndex.y - _startingPaintIndex.y) * j, _startingPaintIndex.z + (int)Mathf.Sign(inputIndex.z - _startingPaintIndex.z) * k);
-							//Add the index to the list of indexes to paint/erase
-							if (_cells[index.x, index.y, index.z] != null && ((_mode_paint == PaintMode.Single && (_cells[index.x, index.y, index.z].state == CellState.Inactive || _cells[index.x, index.y, index.z].state == CellState.Painted)) || (_mode_paint == PaintMode.Erase && (_cells[index.x, index.y, index.z].state == CellState.Active || _cells[index.x, index.y, index.z].state == CellState.Erased))))
-								newIndexToPaint.Add(index);
-						}
+						index = new Vector3Int(_startingPaintIndex.x + (int)Mathf.Sign(input.x - _startingPaintIndex.x) * i, _startingPaintIndex.y + (int)Mathf.Sign(input.y - _startingPaintIndex.y) * j, _startingPaintIndex.z + (int)Mathf.Sign(input.z - _startingPaintIndex.z) * k);
+						//Add the index to the list of indexes to paint/erase
+						if (_cells[index.x, index.y, index.z] != null && ((_mode_paint == PaintMode.Single && (_cells[index.x, index.y, index.z].state == CellState.Inactive || _cells[index.x, index.y, index.z].state == CellState.Painted)) || (_mode_paint == PaintMode.Erase && (_cells[index.x, index.y, index.z].state == CellState.Active || _cells[index.x, index.y, index.z].state == CellState.Erased))))
+							newIndexToPaint.Add(index);
 					}
 				}
+			}
 
-				//Paint/erase all indexes that have not be already painted/erased
-				foreach (Vector3Int newIndex in newIndexToPaint)
-				{
-					bool indexExist = false;
-					foreach (Vector3Int currentIndex in _indexToPaint)
-					{
-						if (newIndex == currentIndex)
-							indexExist = true;
-					}
-
-					if (!indexExist)
-					{
-						_indexToPaint.Add(newIndex);
-						if (_mode_paint == PaintMode.Single)
-							_cells[newIndex.x, newIndex.y, newIndex.z].Painted(_cellTypes[_cellTypes_index], _cellPrefabs[_cellTypes[_cellTypes_index]] ,rotation);
-						if (_mode_paint == PaintMode.Erase)
-							_cells[newIndex.x, newIndex.y, newIndex.z].Erased();
-					}
-				}
-
-				//Remove indexes no more painted/erased
+			//Paint/erase all indexes that have not be already painted/erased
+			foreach (Vector3Int newIndex in newIndexToPaint)
+			{
+				bool indexExist = false;
 				foreach (Vector3Int currentIndex in _indexToPaint)
 				{
-					bool indexNoMorePainted = true;
-					foreach (Vector3Int newIndex in newIndexToPaint)
-					{
-						if (newIndex == currentIndex)
-							indexNoMorePainted = false;
-					}
-
-					if (indexNoMorePainted)
-					{
-						if (_mode_paint == PaintMode.Single)
-							_cells[currentIndex.x, currentIndex.y, currentIndex.z].Inactive();
-						if (_mode_paint == PaintMode.Erase)
-							_cells[currentIndex.x, currentIndex.y, currentIndex.z].Active();
-						newIndexToPaint.Remove(currentIndex);
-					}
+					if (newIndex == currentIndex)
+						indexExist = true;
 				}
 
-				_indexToPaint = newIndexToPaint;
+				if (!indexExist)
+				{
+					if (_mode_paint == PaintMode.Single)
+					{
+						_indexToPaint.Add(newIndex);
+						_cells[newIndex.x, newIndex.y, newIndex.z].Painted(_cellTypes[_cellTypes_index], _cellPrefabs[_cellTypes[_cellTypes_index]], _rotationCell);
+					}
+					else if (_mode_paint == PaintMode.Erase)
+					{
+						_indexToPaint.Add(newIndex);
+						Vector3Int basePosition = _cluster.GetWaypoints()[newIndex.x, newIndex.y, newIndex.z].basePos;
+						_cells[basePosition.x, basePosition.y, basePosition.z].Erased();
+					}
+				}
 			}
+
+			//Remove indexes no more painted/erased
+			foreach (Vector3Int currentIndex in _indexToPaint)
+			{
+				bool indexNoMorePainted = true;
+				foreach (Vector3Int newIndex in newIndexToPaint)
+				{
+					if (newIndex == currentIndex)
+						indexNoMorePainted = false;
+				}
+
+				if (indexNoMorePainted)
+				{
+					if (_mode_paint == PaintMode.Single)
+                    {
+						_cells[currentIndex.x, currentIndex.y, currentIndex.z].Inactive();
+					}
+					if (_mode_paint == PaintMode.Erase)
+						_cells[currentIndex.x, currentIndex.y, currentIndex.z].Active();
+					newIndexToPaint.Remove(currentIndex);
+				}
+			}
+
+			_indexToPaint = newIndexToPaint;
 		}
+	}
+	private void AddInputSolo(Vector3Int input)
+	{
+		//Set starting index of paint/erase
+		if (!_painting && Event.current.type == EventType.MouseDown && Event.current.button == 0)
+		{
+			_indexToPaint.Clear();
+			_painting = true;
+			_indexToPaint.Add(input);
+			_cells[input.x, input.y, input.z].Painted(_cellTypes[_cellTypes_index], _cellPrefabs[_cellTypes[_cellTypes_index]], _rotationCell);
+		}
+	}
+
+	private void SetWaypoint(Vector3Int input)
+	{
+		//Set waypoint
+		if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
+		{
+			_cluster.SetPathfinding(input, _pathfindingState, _maxJump);
+			FuncEditor.ShowPathfinding(_cells, _cluster.GetWaypoints(), _pathfindingState);
+		}
+	}
+
+	public void Paint()
+	{
+		if (Event.current.type == EventType.Layout)
+		{
+			HandleUtility.AddDefaultControl(0);
+		}
+
+		if (!_painting && Event.current.type == EventType.MouseUp && Event.current.button == 0)
+			Debug.Log("Can't paint here!");
 
 		if (_painting && Event.current.type == EventType.MouseUp && Event.current.button == 0)
 		{
-			_painting = false;
-
-			if (FuncEditor.InputInGridBoundaries(inputIndex, _size_grid) && !_indexToPaint.Contains(inputIndex))
-			{
-				_indexToPaint.Add(inputIndex);
-				if (_mode_paint == PaintMode.Single)
-					_cells[inputIndex.x, inputIndex.y, inputIndex.z].Painted(_cellTypes[_cellTypes_index], _cellPrefabs[_cellTypes[_cellTypes_index]], rotation);
-			}
-
 			foreach (Vector3Int index in _indexToPaint)
 			{
 				if (_mode_paint == PaintMode.Single)
 				{
-                    _cells[index.x, index.y, index.z].Active(_cellTypes[_cellTypes_index]);
-					_cluster.SetType(_cellTypes[_cellTypes_index], index.x, index.y, index.z);
-					SetPathWaypoint(index.x, index.y, index.z);
+                    _cells[index.x, index.y, index.z].Active();
+					FuncEditor.SetType(_size_grid, _rotationCell, _cluster, _cells, _cellTypes[_cellTypes_index], index);
+					_cluster.SetRotation( _rotationCell, index.x, index.y, index.z);
                 }
 
 				if (_mode_paint == PaintMode.Erase) 
 				{
                     _cells[index.x, index.y, index.z].Inactive();
-					_cluster.SetType(null, index.x, index.y, index.z);
-					RemovePathWaypoint(index.x, index.y, index.z);
+					FuncEditor.RemoveType(_size_grid, _rotationCell, _cluster, _cells, _cellTypes[_cellTypes_index], index);
 				}
 			}
 
-			if (_start_end[1] != Constants.UNDEFINED_POSITION)
-				_cluster.FindPath(_start_end[0], _start_end[1], _maxJump);
-			if (_start_end[0] != Constants.UNDEFINED_POSITION && _pathfindingState == PathfindingState.Floodfill)
-				_cluster.FindPath(_start_end[0], _maxJump);
-
-			FuncEditor.ShowPathfinding(_cells, _cluster.GetWaypoints(), _pathfindingState);
 			_undo = MyUndo.UpdateUndo(_undo, _indexToPaint, _mode_paint, _cellTypes_index);
+			_painting = false;
+			//ClearLog();
 		}
 	}
-
-	private void SetPathWaypoint(int x, int y, int z)
-    {
-		if (_cells[x, y, z] && _cells[x, y, z].type)
-        {
-			if (_cells[x, y, z].type.name == "Start_End")
-			{
-				if (_start_end[0] == Constants.UNDEFINED_POSITION || _pathfindingState == PathfindingState.Floodfill)
-                {
-					if (_start_end[0] != Constants.UNDEFINED_POSITION)
-                    {
-						_cells[_start_end[0].x, _start_end[0].y, _start_end[0].z].Inactive();
-						_cluster.SetType(null, _start_end[0].x, _start_end[0].y, _start_end[0].z);
-					}
-					if (_start_end[1] != Constants.UNDEFINED_POSITION)
-                    {
-						_cells[_start_end[1].x, _start_end[1].y, _start_end[1].z].Inactive();
-						_cluster.SetType(null, _start_end[1].x, _start_end[1].y, _start_end[1].z);
-					}
-
-					_start_end[0] = new Vector3Int(x, y, z);
-					_cells[_start_end[0].x, _start_end[0].y, _start_end[0].z].Active(_cells[x, y, z].type);
-					_cluster.SetType(_cells[x, y, z].type, _start_end[0].x, _start_end[0].y, _start_end[0].z);
-					_cells[_start_end[0].x, _start_end[0].y, _start_end[0].z].SetColor("start");
-				}
-				else
-				{
-					if (_start_end[1] != new Vector3Int(x, y, z) && _start_end[1] != Constants.UNDEFINED_POSITION)
-					{
-						_cells[_start_end[1].x, _start_end[1].y, _start_end[1].z].Inactive();
-						_cluster.SetType(null, _start_end[1].x, _start_end[1].y, _start_end[1].z);
-					}
-
-					_start_end[1] = new Vector3Int(x, y, z);
-					_cells[_start_end[1].x, _start_end[1].y, _start_end[1].z].Active(_cells[x, y, z].type);
-					_cluster.SetType(_cells[x, y, z].type, _start_end[1].x, _start_end[1].y, _start_end[1].z);
-					_cells[_start_end[1].x, _start_end[1].y, _start_end[1].z].SetColor("end");
-				}
-			}
-		}
-	}
-
-	private void RemovePathWaypoint(int x, int y, int z)
+	public void ClearLog()
 	{
-		if (_cells[x, y, z].type && _cells[x, y, z].type.name == "Start_End")
-		{
-			if (_start_end[0] == new Vector3(x, y, z))
-			{
-				_start_end[0] = _start_end[1];
-				_start_end[1] = Constants.UNDEFINED_POSITION;
-				if(_cells[_start_end[0].x, _start_end[0].y, _start_end[0].z] != null)
-					_cells[_start_end[0].x, _start_end[0].y, _start_end[0].z].SetColor("start");
-			}
-			else
-			{
-				_start_end[1] = Constants.UNDEFINED_POSITION;
-			}
-		}
+		var assembly = Assembly.GetAssembly(typeof(UnityEditor.Editor));
+		var type = assembly.GetType("UnityEditor.LogEntries");
+		var method = type.GetMethod("Clear");
+		method.Invoke(new object(), null);
 	}
+	
 	#endregion
 
 	private void EyedropperInput(Cell selectedCell)
@@ -493,13 +512,13 @@ public class MapTileGridCreatorWindow : EditorWindow
 		return hitPoint;
 	}
 
-	private void SetBrushPosition(Vector3 position, bool erase = false, float rotation = 0)
+	private void SetBrushPosition(Vector3 position)
 	{
 		Vector3 pos = _grid.TransformPositionToGridPosition(position);
 		if(FuncEditor.InputInGridBoundaries(pos, _size_grid) || !_painting)
 			_brush.transform.position = pos;
 
-		_brush.transform.eulerAngles = new Vector3(0, rotation, 0); 
+		_brush.transform.localEulerAngles = new Vector3(_rotationCell.x, _rotationCell.y, 0); 
 	}
 
 	#endregion
@@ -510,9 +529,6 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	private void OnGUI()
 	{
-		if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.R)
-			_rotationCell = _rotationCell == 270 ? 0 : _rotationCell + 90;
-
 		DrawMainMenu();
 	}
 
@@ -564,14 +580,6 @@ public class MapTileGridCreatorWindow : EditorWindow
 			string[] stringPath = System.Enum.GetNames(typeof(PathfindingState));
 			_pathfindingState = (PathfindingState)EditorGUILayout.Popup("Pathfinding", (int)_pathfindingState, stringPath);
 
-			if (oldPathfindingType != _pathfindingState)
-			{
-                if (_pathfindingState == PathfindingState.A_Star && _start_end[0] != Constants.UNDEFINED_POSITION)
-					_cluster.FindPath(_start_end[0], _maxJump);
-				if (_pathfindingState == PathfindingState.Floodfill && _start_end[1] != Constants.UNDEFINED_POSITION)
-					_cluster.FindPath(_start_end[0], _start_end[1], _maxJump);
-			}
-
 			_debug_grid = EditorGUILayout.Toggle("Debug grid", _debug_grid);
 
 			if (_debug_grid)
@@ -598,31 +606,31 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 		if (GUILayout.Button("New"))
 		{
-			if (_old_size_grid != _size_grid || _cells == null)
-			{
-				progressBarTime = 0f;
-				//Create Visualization object (Coordinates, Brush and ToolManager) if it doesn't exist
-				if (!GameObject.Find("Visualization"))
-					PrefabUtility.InstantiatePrefab(Resources.Load("Visualization"));
+			/*if (_old_size_grid != _size_grid || _cells == null)
+			{*/
+			progressBarTime = 0f;
+			//Create Visualization object (Coordinates, Brush and ToolManager) if it doesn't exist
+			if (!GameObject.Find("Visualization"))
+				PrefabUtility.InstantiatePrefab(Resources.Load("Visualization"));
 
-				_brush = GameObject.Find("Brush");
-				_coordinates = GameObject.Find("Coordinates");
+			_brush = GameObject.Find("Brush");
+			_coordinates = GameObject.Find("Coordinates");
 
-				//Destroy then create Grid and Cells with waypoints
-				FuncEditor.DestroyGrids();
+			//Destroy then create Grid and Cells with waypoints
+			FuncEditor.DestroyGrids();
 
 
-				FuncEditor.CreateCellsAndWaypoints(ref _grid, ref _cells, ref _cluster, ref progressBarTime, _cellPrefabs, _size_grid);
-				WaypointCluster newCluster = _cluster;
-				FuncEditor.CreateCellsAndWaypoints(ref _suggestionsGrid, ref _suggestionCell, ref newCluster, ref progressBarTime, _cellPrefabs, _size_grid);
+			FuncEditor.CreateCellsAndWaypoints(ref _grid, ref _cells, ref _cluster, ref progressBarTime, _cellPrefabs, _size_grid);
+			WaypointCluster newCluster = _cluster;
+			FuncEditor.CreateCellsAndWaypoints(ref _suggestionsGrid, ref _suggestionCell, ref newCluster, ref progressBarTime, _cellPrefabs, _size_grid);
 
-				_suggestionsGrid.transform.position = new Vector3(1000, 1000, 1000);
-			}
+			_suggestionsGrid.transform.position = new Vector3(1000, 1000, 1000);
+			/*}
 			else 
 			{
 				FuncEditor.ResetCells(ref _cells, _size_grid);
 				FuncEditor.ResetWaypoints(ref _cluster, _size_grid);
-			}
+			}*/
 			//Reset position for pathfinding
 			_start_end[0] = Constants.UNDEFINED_POSITION;
 			_start_end[1] = Constants.UNDEFINED_POSITION;
@@ -663,10 +671,16 @@ public class MapTileGridCreatorWindow : EditorWindow
 					{
 						foreach (Vector3Int index in _undo.lastIndexToPaint)
 						{
-							_cells[index.x, index.y, index.z].Active(_cells[index.x, index.y, index.z].lastType);
+							_cells[index.x, index.y, index.z].Active(_cellPrefabs[_cells[index.x, index.y, index.z].lastType] , _cells[index.x, index.y, index.z].lastRotation);
 							_cluster.SetType(_cells[index.x, index.y, index.z].lastType, index.x, index.y, index.z);
 						}
 						_undo.noUndo = true;
+					}
+					break;
+
+				case PaintMode.SetPathfindingWaypoint:
+					{
+						
 					}
 					break;
 
@@ -677,7 +691,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 						EyedropperInput(selected);
 						if (selected != null)
 						{
-							SetBrushPosition(selected.transform.position, false);
+							SetBrushPosition(selected.transform.position);
 						}
 					}
 					break;
@@ -685,12 +699,18 @@ public class MapTileGridCreatorWindow : EditorWindow
 		}
 		GUI.enabled = true;
 
+		/*
 		if (GUILayout.Button(_rotationIcon))
 		{
-			_rotationCell = _rotationCell == 270 ? 0 : _rotationCell + 90;
+			_rotationCell.x = _rotationCell.x == 270 ? 0 : _rotationCell.x + 90;
 		}
 
-		GUILayout.EndHorizontal();
+		if (GUILayout.Button(_rotationIcon))
+		{
+			_rotationCell.y = _rotationCell.y == 270 ? 0 : _rotationCell.y + 90;
+		}*/
+
+	   GUILayout.EndHorizontal();
 
 		_mode_paint = (PaintMode)GUILayout.Toolbar((int)_mode_paint, _modes_paint);
 	}
@@ -703,19 +723,59 @@ public class MapTileGridCreatorWindow : EditorWindow
 		}
 		else
 		{
-			List<GUIContent> palletIcons = new List<GUIContent>();
+			/*List<GUIContent> palletIcons = new List<GUIContent>();
+
 			foreach (KeyValuePair<CellInformation, GameObject> prefab in _cellPrefabs)
 			{
 				Texture2D texture = AssetPreview.GetAssetPreview(prefab.Value);
+				GUILayout.Button(texture);
+				_debug_grid = EditorGUILayout.Toggle("Debug grid", _debug_grid);
 				GUIContent preview = new GUIContent(texture, prefab.Value.name);
 				palletIcons.Add(preview);
 			}
-			_scroll_position = GUILayout.BeginScrollView(_scroll_position);
-			int oldCellType = _cellTypes_index;
-			_cellTypes_index = GUILayout.SelectionGrid(_cellTypes_index, palletIcons.ToArray(), 2);
-			if(oldCellType != _cellTypes_index) ChangeBrushPallet();
 
+			int oldCellType = _cellTypes_index;
+			_scroll_position = GUILayout.BeginScrollView(_scroll_position);
+			_cellTypes_index = GUILayout.SelectionGrid(_cellTypes_index, palletIcons.ToArray(), 2);
 			GUILayout.EndScrollView();
+			if (oldCellType != _cellTypes_index) ChangeBrushPallet();
+			*/
+			
+			List<Texture> palletIcons = new List<Texture>();
+			int oldCellType = _cellTypes_index;
+
+			_scroll_position = GUILayout.BeginScrollView(_scroll_position);
+
+			foreach (KeyValuePair<CellInformation, GameObject> prefab in _cellPrefabs)
+			{
+				palletIcons.Add(AssetPreview.GetAssetPreview(prefab.Value));
+			}
+
+			for(int i=0; i<palletIcons.Count; i += 2)
+            {
+				GUILayout.BeginHorizontal();
+				if (GUILayout.Button(palletIcons[i])) { _cellTypes_index = i; _cellTypesShow[i] = true; _mode_paint = PaintMode.Single; };
+				if(i+1 < palletIcons.Count)
+					if (GUILayout.Button(palletIcons[i+1])) { _cellTypes_index = i + 1; _cellTypesShow[i+1] = true; _mode_paint = PaintMode.Single; };
+				GUILayout.EndHorizontal();
+				GUILayout.BeginHorizontal();
+				_cellTypesShow[i] =  EditorGUILayout.Toggle("Show/Hide", _cellTypesShow[i]);
+				if (i + 1 < palletIcons.Count)
+					_cellTypesShow[i+1] = EditorGUILayout.Toggle("Show/Hide", _cellTypesShow[i + 1]);
+				GUILayout.EndHorizontal();
+			}
+			GUILayout.EndScrollView();
+
+			for (int i = 0; i < palletIcons.Count; i++)
+			{
+				if (_oldCellTypesShow[i] != _cellTypesShow[i])
+                {
+					FuncEditor.SetShowTypeCell(_cellTypesShow[i], _cellTypes[i], _cluster, _cells);
+					_oldCellTypesShow[i] = _cellTypesShow[i];
+				}
+			}
+
+			if (oldCellType != _cellTypes_index) { ChangeBrushPallet(); };
 		}
 	}
 
@@ -730,11 +790,14 @@ public class MapTileGridCreatorWindow : EditorWindow
 			newBrushPallet = Instantiate<GameObject>(_cellPrefabs[_cellTypes[_cellTypes_index]]);
 		else if (_mode_paint == PaintMode.Erase)
 			newBrushPallet = Instantiate<GameObject>(_erasePrefab);
+		else if(_mode_paint == PaintMode.SetPathfindingWaypoint)
+			newBrushPallet = Instantiate<GameObject>(_setWaypointPrefab);
 		else
 			newBrushPallet = new GameObject();
 
 		newBrushPallet.transform.parent = _brush.transform;
 		newBrushPallet.transform.localPosition = new Vector3(0, 0, 0);
+		newBrushPallet.transform.localEulerAngles = new Vector3(0, 0, 0);
 	}
 	#endregion
 }

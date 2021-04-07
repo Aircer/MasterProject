@@ -9,6 +9,11 @@ namespace MapTileGridCreator.Core
 	{
 		public Vector3Int key { get; set; }
 		public CellInformation type { get; set; }
+		public bool baseType { get; set; }
+		public Vector3Int basePos { get; set; }
+		public bool pathfindingWaypoint { get; set; }
+		public bool show { get; set; }
+		public Vector2 rotation { get; set; }
 		public bool inPath { get; set; }
 		public Color colorDot = Color.white;
 		public float hCost { get; set; }
@@ -62,7 +67,13 @@ namespace MapTileGridCreator.Core
 				type = newType;
 
 				if (type == null)
+				{
 					inPath = false;
+					baseType = false;
+					show = false;
+				}
+				else
+					show = true;
 			}
 		}
 	}

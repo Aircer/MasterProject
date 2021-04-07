@@ -2,6 +2,7 @@
 using UnityEngine;
 using System;
 using UnityEditor;
+using MapTileGridCreator.Utilities;
 
 namespace MapTileGridCreator.Core
 {
@@ -32,14 +33,27 @@ namespace MapTileGridCreator.Core
                 {
                     int i = point.x; int j = point.y; int k = point.z;
 
-                    if (waypoints[i, j, k] != null && waypoints[i, j, k].type != null)
+                    if (waypoints[i, j, k] != null && waypoints[i, j, k].type != null && waypoints[i, j, k].baseType && waypoints[i, j, k].show)
                     {
                         Vector3Int newKey = new Vector3Int(i + UnityEngine.Random.Range(-2, 2), j, k + UnityEngine.Random.Range(-2, 2));
                         if (newKey.x >= 0 && newKey.x < waypoints.GetLength(0) && newKey.z >= 0 && newKey.z < waypoints.GetLength(2))
                         {
-                            newCluster.SetType(waypoints[i, j, k].type, newKey.x, newKey.y, newKey.z);
+                            Vector3Int size = new Vector3Int(waypoints.GetLength(0), waypoints.GetLength(1), waypoints.GetLength(2));
+                            newCluster.SetTypeAround(size, waypoints[i, j, k].rotation, waypoints[i, j, k].type, newKey);
+                            newCluster.SetRotation(waypoints[i, j, k].rotation, newKey.x, newKey.y, newKey.z);
+                            //newCluster.SetType(waypoints[i, j, k].type, newKey.x, newKey.y, newKey.z);
                         }
                     }
+
+                    if (waypoints[i, j, k] != null && waypoints[i, j, k].type != null && waypoints[i, j, k].baseType && !waypoints[i, j, k].show)
+                    {
+                        Vector3Int newKey = new Vector3Int(i, j, k);
+                        Vector3Int size = new Vector3Int(waypoints.GetLength(0), waypoints.GetLength(1), waypoints.GetLength(2));
+                        newCluster.SetTypeAround(size, waypoints[i, j, k].rotation, waypoints[i, j, k].type, newKey);
+                        newCluster.SetRotation(waypoints[i, j, k].rotation, newKey.x, newKey.y, newKey.z);
+                        newCluster.GetWaypoints()[i, j, k].show = false;
+                    }
+
                     progressBarTime++;
                     EditorUtility.DisplayProgressBar("Transforming cells", "IA is working...", progressBarTime / (nbSugg * waypoints.Length));
                 }

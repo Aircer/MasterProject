@@ -252,9 +252,9 @@ namespace MapTileGridCreator.Core
                 }
 
                 if (startJump.from == null)
-                    continue;
+                    break;
             }
-       
+
             for (int i = 0; i < waypointsJump.Count-1; i++)
             {
                 dist.x += Mathf.Sqrt(Mathf.Pow(Mathf.Abs(waypointsJump[i].key.x - waypointsJump[i+1].key.x),2) + Mathf.Pow(Mathf.Abs(waypointsJump[i].key.z - waypointsJump[i+1].key.z), 2));

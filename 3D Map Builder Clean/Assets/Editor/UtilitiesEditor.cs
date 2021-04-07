@@ -379,10 +379,12 @@ namespace MapTileGridCreator.Utilities
 						if (waypoints[i, j, k].type == null && cells[i, j, k].type != null)
 							cells[i, j, k].Inactive();
 
-						if (waypoints[i, j, k].type != null && cells[i, j, k].type != waypoints[i, j, k].type)
+						if (waypoints[i, j, k].type != null && waypoints[i, j, k].baseType && cells[i, j, k].type != waypoints[i, j, k].type)
 						{
-							cells[i, j, k].SetTypeAndRotation(waypoints[i, j, k].type);
-							cells[i, j, k].Active(waypoints[i, j, k].type, cellPrefabs[waypoints[i, j, k].type]);
+							cells[i, j, k].Active(cellPrefabs[waypoints[i, j, k].type], waypoints[i, j, k].rotation);
+
+							if (!waypoints[i, j, k].show)
+								cells[i, j, k].Sleep();
 						}
 					}
 				}
@@ -407,7 +409,7 @@ namespace MapTileGridCreator.Utilities
 						cells[i, j, k].pathFindingType = pathfindingState;
 						cells[i, j, k].DebugPath.inPath = waypoints[i, j, k].inPath;
 						cells[i, j, k].DebugPath.colorDot = waypoints[i, j, k].colorDot;
-
+						cells[i, j, k].DebugPath.pathfindingWaypoint = waypoints[i, j, k].pathfindingWaypoint;
 						if (waypoints[i, j, k].from != null)
 							cells[i, j, k].DebugPath.fromKey = waypoints[i, j, k].from.key;
 					}
@@ -429,6 +431,7 @@ namespace MapTileGridCreator.Utilities
 					{
 						cells[i, j, k].Inactive();
 						cells[i, j, k].DebugPath.inPath = false;
+						cells[i, j, k].DebugPath.pathfindingWaypoint = false;
 					}
 				}
 			}
@@ -446,8 +449,130 @@ namespace MapTileGridCreator.Utilities
 				{
 					for (int k = 0; k < size_grid.z; k++)
 					{
-						cluster.SetType(null, i, j, k); 
+						cluster.SetType(null, i, j, k);
 					}
+				}
+			}
+
+			cluster.ResetPathfinding();
+		}
+
+		/// <summary>
+		/// Check if there is enough room to paint the new asset
+		///</summary>
+		public static bool CanPaintHere(Vector3Int size_grid, Waypoint[,,] waypoints, Vector3Int index, Vector3Int size, Vector3 rotation)
+		{
+		
+			Vector3Int lowerBound = default(Vector3Int);
+			Vector3Int upperBound = default(Vector3Int);
+			SetBounds(ref lowerBound, ref upperBound, index, size, rotation);
+
+			for (int i = lowerBound.x; i <= upperBound.x; i++)
+			{
+				for (int j = lowerBound.y; j <= upperBound.y; j++)
+				{
+					for (int k = lowerBound.z; k <= upperBound.z; k++)
+					{
+						if (!InputInGridBoundaries(new Vector3Int(i, j, k), size_grid) || (waypoints[i, j, k].type != null && waypoints[i, j, k].type.blockPath))
+							return false;
+					}
+				}
+			}
+
+			return true;
+		}
+		public static void SetType(Vector3Int size_grid, Vector3 rotation, WaypointCluster cluster, Cell[,,] cells, CellInformation type, Vector3Int index)
+        {
+			Vector3Int lowerBound = default(Vector3Int);
+			Vector3Int upperBound = default(Vector3Int);
+			SetBounds(ref lowerBound, ref upperBound, index, type.size, rotation);
+
+			for (int i = lowerBound.x; i <= upperBound.x; i++)
+			{
+				for (int j = lowerBound.y; j <= upperBound.y; j++)
+				{
+					for (int k = lowerBound.z; k <= upperBound.z; k++)
+					{
+						if(InputInGridBoundaries(new Vector3Int(i,j,k), size_grid))
+                        {
+							cluster.SetType(type, i, j, k);
+							cluster.GetWaypoints()[i, j, k].basePos = index;
+							if(index.x != i || index.y != j || index.z != k)
+								cells[i, j, k].Erased();
+						}
+					}
+				}
+			}
+			cluster.SetBase(index.x, index.y, index.z);
+		}
+
+		public static void RemoveType(Vector3Int size_grid, Vector3 rotation, WaypointCluster cluster, Cell[,,] cells, CellInformation type, Vector3Int index)
+		{
+			Vector3Int lowerBound = default(Vector3Int);
+			Vector3Int upperBound = default(Vector3Int);
+			Vector3Int basePos = cluster.GetWaypoints()[index.x, index.y, index.z].basePos;
+			Waypoint baseWaypoint = cluster.GetWaypoints()[basePos.x, basePos.y, basePos.z];
+			SetBounds(ref lowerBound, ref upperBound, basePos, baseWaypoint.type.size, baseWaypoint.rotation);
+
+			for (int i = lowerBound.x; i <= upperBound.x; i++)
+			{
+				for (int j = lowerBound.y; j <= upperBound.y; j++)
+				{
+					for (int k = lowerBound.z; k <= upperBound.z; k++)
+					{
+						Debug.Log(new Vector3Int(i,j,k));
+						if (InputInGridBoundaries(new Vector3Int(i, j, k), size_grid))
+						{
+							cluster.SetType(null, i, j, k);
+							cells[i, j, k].Inactive();
+						}
+					}
+				}
+			}
+			cluster.ResetBase(basePos.x, basePos.y, basePos.z);
+		}
+
+		public static void SetBounds(ref Vector3Int lowerBound, ref Vector3Int upperBound, Vector3Int index, Vector3Int size, Vector3 rotation)
+		{
+			Vector3Int newSize = default(Vector3Int);
+			newSize.x = (int)Mathf.Cos(rotation.y*Mathf.Deg2Rad) * size.x + (int)Mathf.Sin(rotation.x * Mathf.Deg2Rad) * (int)Mathf.Sin(rotation.y * Mathf.Deg2Rad) * size.y + (int)Mathf.Sin(rotation.y * Mathf.Deg2Rad) * (int)Mathf.Cos(rotation.x * Mathf.Deg2Rad) * size.z;
+			//newSize.x = newSize.x == 0 ? 1 : newSize.x;
+			newSize.y = (int)Mathf.Cos(rotation.x * Mathf.Deg2Rad) * size.y - (int)Mathf.Sin(rotation.x * Mathf.Deg2Rad) * size.z;
+			//newSize.y = newSize.y == 0 ? 1 : newSize.y;
+			newSize.z = -(int)Mathf.Sin(rotation.y * Mathf.Deg2Rad) * size.x + (int)Mathf.Cos(rotation.y * Mathf.Deg2Rad) * (int)Mathf.Sin(rotation.x * Mathf.Deg2Rad) * size.y + (int)Mathf.Cos(rotation.y * Mathf.Deg2Rad) * (int)Mathf.Cos(rotation.x * Mathf.Deg2Rad) * size.z;
+			//newSize.z = newSize.z == 0 ? 1 : newSize.z;
+
+			lowerBound.x = newSize.x < 0 ? index.x + newSize.x +1: index.x;
+			//lowerBound.x = lowerBound.x == 0 ? 1 : lowerBound.x;
+			lowerBound.y = newSize.y < 0 ? index.y + newSize.y +1: index.y;
+			//lowerBound.y = lowerBound.y == 0 ? 1 : lowerBound.y;
+			lowerBound.z = newSize.z < 0 ? index.z + newSize.z +1: index.z;
+			//lowerBound.z = lowerBound.z == 0 ? 1 : lowerBound.z;
+
+			upperBound.x = newSize.x > 0 ? index.x + newSize.x -1: index.x;
+			//upperBound.x = upperBound.x == 0 ? 1 : upperBound.x;
+			upperBound.y = newSize.y > 0 ? index.y + newSize.y -1: index.y;
+			//upperBound.y = upperBound.y == 0 ? 1 : upperBound.y;
+			upperBound.z = newSize.z > 0 ? index.z + newSize.z -1: index.z;
+			//upperBound.z = upperBound.z == 0 ? 1 : upperBound.z;
+
+			//Debug.Log("size: " + newSize + "UPP: " + upperBound + " LOW: " + lowerBound);
+		}
+
+		public static void SetShowTypeCell(bool show, CellInformation cellInfo, WaypointCluster cluster, Cell[,,] cells)
+        {
+			if(cluster.GetWaypointsDico().ContainsKey(cellInfo))
+            {
+				List<Vector3Int> index = cluster.GetWaypointsDico()[cellInfo];
+
+				for (int j = 0; j < index.Count; j++)
+				{
+					if (!show)
+						cells[index[j].x, index[j].y, index[j].z].Sleep();
+					else
+						cells[index[j].x, index[j].y, index[j].z].Active();
+
+					cluster.GetWaypoints()[index[j].x, index[j].y, index[j].z].show = show;
 				}
 			}
 		}

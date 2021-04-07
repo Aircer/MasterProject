@@ -9,6 +9,7 @@ namespace MapTileGridCreator.Core
 		public WaypointCluster(Vector3Int size)
 		{
 			CreateWaypoints(size);
+			pathfindingWaypoints = new List<Waypoint>();
 		}
 
 		/// <summary>
@@ -16,10 +17,52 @@ namespace MapTileGridCreator.Core
 		/// </summary>
 		private Waypoint[,,] waypoints;
 		private Dictionary<CellInformation, List<Vector3Int>> waypointsDico;
+		private List<Waypoint> pathfindingWaypoints;
 
 		public Waypoint[,,] GetWaypoints()
 		{
 			return waypoints;
+		}
+
+		public void SetPathfinding(Vector3Int index, PathfindingState state, Vector2 maxjump)
+		{
+			CleanInPathWaypoints();
+			if (state == PathfindingState.A_Star)
+			{
+				if (pathfindingWaypoints != null && pathfindingWaypoints.Contains(waypoints[index.x, index.y, index.z]))
+				{
+					pathfindingWaypoints.Remove(waypoints[index.x, index.y, index.z]);
+					waypoints[index.x, index.y, index.z].pathfindingWaypoint = false;
+				}
+				else
+				{
+					pathfindingWaypoints.Add(waypoints[index.x, index.y, index.z]);
+					waypoints[index.x, index.y, index.z].pathfindingWaypoint = true;
+				}
+
+				for (int i = 0; i < pathfindingWaypoints.Count - 1; i++)
+				{
+					Debug.Log("PATh");
+					FindPath(pathfindingWaypoints[i], pathfindingWaypoints[i + 1], maxjump);
+				}
+
+			}
+			else if (state == PathfindingState.Floodfill)
+			{
+				foreach (Waypoint wp in pathfindingWaypoints)
+				{
+					wp.pathfindingWaypoint = false;
+				}
+				pathfindingWaypoints.Clear();
+				pathfindingWaypoints.Add(waypoints[index.x, index.y, index.z]);
+				waypoints[index.x, index.y, index.z].pathfindingWaypoint = true;
+				FindPath(waypoints[index.x, index.y, index.z], maxjump);
+			}
+		}
+		public void ResetPathfinding()
+		{
+			pathfindingWaypoints.Clear();
+			Debug.Log("HERE");
 		}
 
 		public Dictionary<CellInformation, List<Vector3Int>> GetWaypointsDico()
@@ -42,6 +85,7 @@ namespace MapTileGridCreator.Core
 						Waypoint newWaypoint = new Waypoint();
 						newWaypoint.key = new Vector3Int(x, y, z);
 						newWaypoint.type = null;
+						newWaypoint.baseType = false;
 						waypoints[x, y, z] = newWaypoint;
 						//waypointsDico[null].Add(new Vector3Int(x, y, z));
 						ConnectWaypoint(x, y, z);
@@ -62,19 +106,16 @@ namespace MapTileGridCreator.Core
 				waypoints[x, y, z].linkTo(waypoints[x, y, z - 1]);
 		}
 
-		public void FindPath(Vector3Int start, Vector3Int end, Vector2 maxJump)
+		public void FindPath(Waypoint start, Waypoint end, Vector2 maxJump)
 		{
 			CleanWaypoints();
-
-			if (start != Constants.UNDEFINED_POSITION && end != Constants.UNDEFINED_POSITION)
-				Pathfinding.FindRouteTo3(waypoints[start.x, start.y, start.z], waypoints[end.x, end.y, end.z], maxJump);
+			Pathfinding.FindRouteTo3(start, end, maxJump);
 		}
 
-		public void FindPath(Vector3Int start, Vector2 maxJump)
+		public void FindPath(Waypoint start, Vector2 maxJump)
 		{
 			CleanWaypoints();
-
-			Pathfinding.FloodFill(waypoints[start.x, start.y, start.z], maxJump);
+			Pathfinding.FloodFill(start, maxJump);
 		}
 
 		public void CleanWaypoints()
@@ -85,10 +126,23 @@ namespace MapTileGridCreator.Core
 				{
 					for (int k = 0; k < waypoints.GetLength(2); k++)
 					{
-						waypoints[i,j,k].inPath = false;
 						waypoints[i, j, k].from = null;
 						waypoints[i, j, k].gCost = 0;
 						waypoints[i, j, k].hCost = 0;
+					}
+				}
+			}
+		}
+
+		public void CleanInPathWaypoints()
+		{
+			for (int i = 0; i < waypoints.GetLength(0); i++)
+			{
+				for (int j = 0; j < waypoints.GetLength(1); j++)
+				{
+					for (int k = 0; k < waypoints.GetLength(2); k++)
+					{
+						waypoints[i,j,k].inPath = false;
 					}
 				}
 			}
@@ -118,6 +172,86 @@ namespace MapTileGridCreator.Core
 			}
 
 			waypoints[x, y, z].SetType(type);
+		}
+
+		public void SetRotation(Vector2 rotation, int x, int y, int z)
+		{
+			waypoints[x, y, z].rotation = rotation;
+		}
+
+		public void SetBase(int x, int y, int z)
+        {
+			waypoints[x, y, z].baseType = true;
+		}
+
+		public void ResetBase(int x, int y, int z)
+		{
+			waypoints[x, y, z].baseType = false;
+		}
+
+		public void SetTypeAround(Vector3Int size_grid, Vector3 rotation, CellInformation type, Vector3Int index)
+		{
+			Vector3Int lowerBound = default(Vector3Int);
+			Vector3Int upperBound = default(Vector3Int);
+			SetBounds(ref lowerBound, ref upperBound, index, type.size, rotation);
+
+			for (int i = lowerBound.x; i <= upperBound.x; i++)
+			{
+				for (int j = lowerBound.y; j <= upperBound.y; j++)
+				{
+					for (int k = lowerBound.z; k <= upperBound.z; k++)
+					{
+						if (InputInGridBoundaries(new Vector3Int(i, j, k), size_grid))
+                        {
+							SetType(type, i, j, k);
+							waypoints[i, j, k].basePos = index;
+						}
+					}
+				}
+			}
+			
+			SetBase(index.x, index.y, index.z);
+		}
+
+		/// <summary>
+		/// Check if input is in the grid.
+		/// </summary>
+		/// /// <returns>Return true if Input is in Boundaries.</returns>
+		public static bool InputInGridBoundaries(Vector3 input, Vector3Int size_grid)
+		{
+			bool inBoundaries = true;
+
+			if (input.x < 0 || input.y < 0 || input.z < 0 || input.x > size_grid.x - 1 || input.y > size_grid.y - 1 || input.z > size_grid.z - 1)
+				inBoundaries = false;
+
+			return inBoundaries;
+		}
+
+		public static void SetBounds(ref Vector3Int lowerBound, ref Vector3Int upperBound, Vector3Int index, Vector3Int size, Vector3 rotation)
+		{
+			Vector3Int newSize = default(Vector3Int);
+			newSize.x = (int)Mathf.Cos(rotation.y * Mathf.Deg2Rad) * size.x + (int)Mathf.Sin(rotation.x * Mathf.Deg2Rad) * (int)Mathf.Sin(rotation.y * Mathf.Deg2Rad) * size.y + (int)Mathf.Sin(rotation.y * Mathf.Deg2Rad) * (int)Mathf.Cos(rotation.x * Mathf.Deg2Rad) * size.z;
+			//newSize.x = newSize.x == 0 ? 1 : newSize.x;
+			newSize.y = (int)Mathf.Cos(rotation.x * Mathf.Deg2Rad) * size.y - (int)Mathf.Sin(rotation.x * Mathf.Deg2Rad) * size.z;
+			//newSize.y = newSize.y == 0 ? 1 : newSize.y;
+			newSize.z = -(int)Mathf.Sin(rotation.y * Mathf.Deg2Rad) * size.x + (int)Mathf.Cos(rotation.y * Mathf.Deg2Rad) * (int)Mathf.Sin(rotation.x * Mathf.Deg2Rad) * size.y + (int)Mathf.Cos(rotation.y * Mathf.Deg2Rad) * (int)Mathf.Cos(rotation.x * Mathf.Deg2Rad) * size.z;
+			//newSize.z = newSize.z == 0 ? 1 : newSize.z;
+
+			lowerBound.x = newSize.x < 0 ? index.x + newSize.x + 1 : index.x;
+			//lowerBound.x = lowerBound.x == 0 ? 1 : lowerBound.x;
+			lowerBound.y = newSize.y < 0 ? index.y + newSize.y + 1 : index.y;
+			//lowerBound.y = lowerBound.y == 0 ? 1 : lowerBound.y;
+			lowerBound.z = newSize.z < 0 ? index.z + newSize.z + 1 : index.z;
+			//lowerBound.z = lowerBound.z == 0 ? 1 : lowerBound.z;
+
+			upperBound.x = newSize.x > 0 ? index.x + newSize.x - 1 : index.x;
+			//upperBound.x = upperBound.x == 0 ? 1 : upperBound.x;
+			upperBound.y = newSize.y > 0 ? index.y + newSize.y - 1 : index.y;
+			//upperBound.y = upperBound.y == 0 ? 1 : upperBound.y;
+			upperBound.z = newSize.z > 0 ? index.z + newSize.z - 1 : index.z;
+			//upperBound.z = upperBound.z == 0 ? 1 : upperBound.z;
+
+			//Debug.Log("size: " + newSize + "UPP: " + upperBound + " LOW: " + lowerBound);
 		}
 	}
 }

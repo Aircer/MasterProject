@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class CellInformation : MonoBehaviour
 {
-    public string ID;
+    public Vector3Int size;
     public bool ground;
     public bool blockPath;
 }
