@@ -42,7 +42,6 @@ namespace MapTileGridCreator.Core
 
 				for (int i = 0; i < pathfindingWaypoints.Count - 1; i++)
 				{
-					Debug.Log("PATh");
 					FindPath(pathfindingWaypoints[i], pathfindingWaypoints[i + 1], maxjump);
 				}
 
@@ -88,22 +87,24 @@ namespace MapTileGridCreator.Core
 						newWaypoint.baseType = false;
 						waypoints[x, y, z] = newWaypoint;
 						//waypointsDico[null].Add(new Vector3Int(x, y, z));
-						ConnectWaypoint(x, y, z);
+						ConnectWaypoint(x, y, z, sg);
 					}
 				}
 			}
 		}
 
-		private void ConnectWaypoint(int x, int y, int z)
+		private void ConnectWaypoint(int x, int y, int z, Vector3Int sg)
 		{
 			if (x - 1 > -1)
 				waypoints[x, y, z].linkTo(waypoints[x - 1, y, z]);
 			if (x - 1 > -1 && z - 1 > -1)
 				waypoints[x, y, z].linkTo(waypoints[x - 1, y, z - 1]);
-			if (y - 1 > -1)
-				waypoints[x, y, z].linkTo(waypoints[x, y - 1, z]);
 			if (z - 1 > -1)
 				waypoints[x, y, z].linkTo(waypoints[x, y, z - 1]);
+			if (y - 1 > -1)
+				waypoints[x, y, z].linkTo(waypoints[x, y - 1, z]);
+			if(x - 1 > -1 && z + 1 < sg.z)
+			waypoints[x, y, z].linkTo(waypoints[x - 1, y, z + 1]);
 		}
 
 		public void FindPath(Waypoint start, Waypoint end, Vector2 maxJump)

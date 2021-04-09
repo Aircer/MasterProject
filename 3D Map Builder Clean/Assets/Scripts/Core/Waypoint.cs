@@ -19,6 +19,7 @@ namespace MapTileGridCreator.Core
 		public float hCost { get; set; }
 		public float gCost { get; set; }
 		public Waypoint from { get; set; }
+		public Waypoint inPathFrom { get; set; }
 		public bool IAChangedMe { get; set; }
 
 		/// The outgoing list of edges

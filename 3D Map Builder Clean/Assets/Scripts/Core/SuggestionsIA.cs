@@ -26,7 +26,7 @@ namespace MapTileGridCreator.Core
         private static WaypointCluster TransformationCluster(Waypoint[,,] waypoints, Dictionary<CellInformation, List<Vector3Int>> waypointsDico, int nbSugg, ref float progressBarTime)
         {
             WaypointCluster newCluster = new WaypointCluster(new Vector3Int(waypoints.GetLength(0), waypoints.GetLength(1), waypoints.GetLength(2)));
-            float t = Time.time;
+
             foreach (CellInformation key in waypointsDico.Keys)
             {
                 foreach (Vector3Int point in waypointsDico[key])
@@ -41,7 +41,6 @@ namespace MapTileGridCreator.Core
                             Vector3Int size = new Vector3Int(waypoints.GetLength(0), waypoints.GetLength(1), waypoints.GetLength(2));
                             newCluster.SetTypeAround(size, waypoints[i, j, k].rotation, waypoints[i, j, k].type, newKey);
                             newCluster.SetRotation(waypoints[i, j, k].rotation, newKey.x, newKey.y, newKey.z);
-                            //newCluster.SetType(waypoints[i, j, k].type, newKey.x, newKey.y, newKey.z);
                         }
                     }
 

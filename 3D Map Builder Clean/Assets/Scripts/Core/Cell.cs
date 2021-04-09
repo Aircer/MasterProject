@@ -25,23 +25,20 @@ namespace MapTileGridCreator.Core
 		public PathfindingState pathFindingType { get; set; }
 		private BoxCollider colliderBox;
 
-		private Material startMaterial;
-		private Material endMaterial;
-
 		public class DebugPathinding
 		{
 			public bool inPath;
 			public Color colorDot;
 			public Vector3Int fromKey;
 			public bool pathfindingWaypoint;
+			public float cost;
 		}
 
 		public DebugPathinding DebugPath = new DebugPathinding();
 
 		public void OnEnable()
         {
-			startMaterial = Resources.Load("Material/Start") as Material;
-			endMaterial = Resources.Load("Material/End") as Material;
+
 		}
 
         /// <summary>
@@ -168,22 +165,6 @@ namespace MapTileGridCreator.Core
 			return parent;
 		}
 
-		public void SetColor(string type)
-		{
-			switch (type)
-			{
-				case "start": 
-					this.transform.Find("Start_End").GetChild(0).GetComponent<Renderer>().material = startMaterial;
-					break;
-				case "end":
-					this.transform.Find("Start_End").GetChild(0).GetComponent<Renderer>().material = endMaterial;
-					break;
-				default:
-					break;
-			}
-
-		}
-
 		/// Draws the white square representing the nodes and an arrow for each outgoing edge
 		public virtual void OnDrawGizmos()
 		{
@@ -208,6 +189,7 @@ namespace MapTileGridCreator.Core
 				{
 					Gizmos.color = DebugPath.colorDot;
 					Gizmos.DrawSphere(index, 0.2f);
+					Handles.Label(new Vector3(transform.position.x, transform.position.y + 0.7f, transform.position.z), DebugPath.cost.ToString("0.00"));
 				}
 			}
 		}

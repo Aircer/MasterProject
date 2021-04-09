@@ -386,9 +386,15 @@ namespace MapTileGridCreator.Utilities
 							if (!waypoints[i, j, k].show)
 								cells[i, j, k].Sleep();
 						}
+
+						if (waypoints[i, j, k].type != null && !waypoints[i, j, k].baseType && cells[i, j, k].type != waypoints[i, j, k].type)
+						{
+							cells[i, j, k].Erased();
+						}
 					}
 				}
 			}
+
 			return cells;
 		}
 
@@ -410,8 +416,11 @@ namespace MapTileGridCreator.Utilities
 						cells[i, j, k].DebugPath.inPath = waypoints[i, j, k].inPath;
 						cells[i, j, k].DebugPath.colorDot = waypoints[i, j, k].colorDot;
 						cells[i, j, k].DebugPath.pathfindingWaypoint = waypoints[i, j, k].pathfindingWaypoint;
-						if (waypoints[i, j, k].from != null)
-							cells[i, j, k].DebugPath.fromKey = waypoints[i, j, k].from.key;
+						cells[i, j, k].DebugPath.cost = waypoints[i, j, k].gCost;
+						if (waypoints[i, j, k].inPathFrom != null)
+                        {
+							cells[i, j, k].DebugPath.fromKey = waypoints[i, j, k].inPathFrom.key;
+						}
 					}
 				}
 			}
@@ -520,7 +529,6 @@ namespace MapTileGridCreator.Utilities
 				{
 					for (int k = lowerBound.z; k <= upperBound.z; k++)
 					{
-						Debug.Log(new Vector3Int(i,j,k));
 						if (InputInGridBoundaries(new Vector3Int(i, j, k), size_grid))
 						{
 							cluster.SetType(null, i, j, k);

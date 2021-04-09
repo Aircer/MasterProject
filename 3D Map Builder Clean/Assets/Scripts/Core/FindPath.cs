@@ -169,6 +169,7 @@ namespace MapTileGridCreator.Core
                     //path[i].colorDot = new Color(1.0f-((float)i / path.Count), 0, ((float)i /path.Count), 1f);
                     path[i].colorDot = Color.HSVToRGB(0.67f, ((float)i / path.Count), 0.76f);
                     path[i].inPath = true;
+                    path[i].inPathFrom = path[i].from;
                 }
             }
 
@@ -224,6 +225,7 @@ namespace MapTileGridCreator.Core
                 {
                     closedSet[i].colorDot = Color.HSVToRGB(0.67f, (float)closedSet[i].gCost / maxGCost, 0.76f);
                     closedSet[i].inPath = true;
+                    closedSet[i].inPathFrom = closedSet[i].from;
                 }
             }
 
