@@ -28,9 +28,13 @@ public class CreateAssetEditor : EditorWindow
         window.Show();
     }
 
-    private void OnEnable()
+    private void OnDisable()
     {
-     
+        if (newCellEditor != null)
+        {
+            DestroyImmediate(newCellEditor.target);
+            DestroyImmediate(newCellEditor);
+        }   
     }
 
     private void OnGUI()
@@ -83,7 +87,7 @@ public class CreateAssetEditor : EditorWindow
                     meshCell = newMeshCell;
                     scaleMesh = meshCell.transform.localScale;
                     rotationMesh = meshCell.transform.localEulerAngles;
-                    positionMesh = meshCell.transform.position;
+                    positionMesh = meshCell.transform.localPosition;
                     DestroyImmediate(newCellEditor);
                     newCellEditor = Editor.CreateEditor(newCell);
                 }
@@ -133,6 +137,7 @@ public class CreateAssetEditor : EditorWindow
         DestroyImmediate(newCellEditor);
         newCell = AssetDatabase.LoadAssetAtPath(path, typeof(GameObject)) as GameObject;
         newCell = PrefabUtility.InstantiatePrefab(newCell) as GameObject;
+        newCell.transform.localPosition = new Vector3(1000, 1000, 1000);
         PrefabUtility.UnpackPrefabInstance(newCell, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
         newCellInformation = newCell.GetComponent<CellInformation>();
         newCellEditor = Editor.CreateEditor(newCell);
@@ -144,7 +149,7 @@ public class CreateAssetEditor : EditorWindow
                 meshCell = child.gameObject;
                 scaleMesh = meshCell.transform.localScale;
                 rotationMesh = meshCell.transform.localEulerAngles;
-                positionMesh = meshCell.transform.position;
+                positionMesh = meshCell.transform.localPosition;
             }
         }
 
@@ -152,6 +157,7 @@ public class CreateAssetEditor : EditorWindow
         coordinates = PrefabUtility.InstantiatePrefab(coordinates) as GameObject;
         PrefabUtility.UnpackPrefabInstance(coordinates, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
         coordinates.transform.parent = newCell.transform;
+        coordinates.transform.localPosition = new Vector3(0, 0, 0);
         meshBoxesShow = true;
         UpdateDefaultMeshes();
     }
@@ -164,7 +170,7 @@ public class CreateAssetEditor : EditorWindow
         GameObject defaultMeshes = new GameObject();
         defaultMeshes.name = "defaultMeshes";
         defaultMeshes.transform.parent = newCell.transform;
-
+        defaultMeshes.transform.localPosition = new Vector3(0, 0, 0);
         GameObject[,,] defaultMesh = new GameObject[newCellInformation.size.x, newCellInformation.size.y, newCellInformation.size.z];
 
         for (int i=0; i < newCellInformation.size.x; i++)
@@ -177,7 +183,7 @@ public class CreateAssetEditor : EditorWindow
                     defaultMesh[i, j, k] = PrefabUtility.InstantiatePrefab(defaultMesh[i, j, k]) as GameObject;
                     PrefabUtility.UnpackPrefabInstance(defaultMesh[i, j, k], PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
                     defaultMesh[i, j, k].transform.parent = newCell.transform.Find("defaultMeshes").transform;
-                    defaultMesh[i, j, k].transform.position = new Vector3Int(i, j, k);
+                    defaultMesh[i, j, k].transform.localPosition = new Vector3Int(i, j, k);
                 }
             }
         }
@@ -201,7 +207,7 @@ public class CreateAssetEditor : EditorWindow
 
     private void UpdateMeshShape()
     {
-        meshCell.transform.position = positionMesh;
+        meshCell.transform.localPosition = positionMesh;
         meshCell.transform.localScale = scaleMesh;
         meshCell.transform.localEulerAngles = rotationMesh;
 

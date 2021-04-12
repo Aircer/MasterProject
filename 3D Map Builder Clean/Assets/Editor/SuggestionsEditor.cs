@@ -3,6 +3,7 @@ using MapTileGridCreator.Core;
 using UnityEditor;
 using UnityEngine;
 using MapTileGridCreator.Utilities;
+using System.Diagnostics;
 
 [CanEditMultipleObjects]
 public class SuggestionsEditor : EditorWindow
@@ -51,33 +52,7 @@ public class SuggestionsEditor : EditorWindow
 
         if (GUILayout.Button("New"))
         {
-            while (suggestionsEditors.Count != 0)
-            {
-                DestroyImmediate(suggestionsEditors[0].target);
-                DestroyImmediate(suggestionsEditors[0]);
-                suggestionsEditors.RemoveAt(0);
-            }
-
-            if (suggestionsClusters != null)
-                suggestionsClusters.Clear();
-
-            if (mapWindow == null)
-                mapWindow = (MapTileGridCreatorWindow)Resources.FindObjectsOfTypeAll(typeof(MapTileGridCreatorWindow))[0];
-
-            mapCluster = mapWindow.GetCluster();
-            mapCells = mapWindow.GetCells();
-            mapSuggestionGrid = mapWindow.GetSuggestionGrid();
-            mapSuggestionCells = mapWindow.GetSuggestionCells();
-
-            //Create new clusters from the current sketch 
-            suggestionsClusters = IA.GetSuggestionsClusters(mapCluster, numberSuggestions);
-
-            //Create GameObject from the newly created clusters and create editors 
-            suggestionsEditors.Clear();
-            foreach (WaypointCluster newcluster in suggestionsClusters)
-            {
-                suggestionsEditors.Add(Editor.CreateEditor(CreateSuggestionObject(newcluster)));
-            }
+            NewSuggestions();
         }
 
         //Get number of suggestions
@@ -104,7 +79,7 @@ public class SuggestionsEditor : EditorWindow
             {
                 for (int j = i; j < i + 2 && j < suggestionsEditors.Count; j++)
                 {
-                    if (GUILayout.Button(" ^^ Swap ^^ "))
+                    if (GUILayout.Button("Swap"))
                     {
                         DestroyImmediate(suggestionsEditors[j].target);
                         suggestionsEditors[j] = Editor.CreateEditor(CreateSuggestionObject(mapCluster));
@@ -128,7 +103,16 @@ public class SuggestionsEditor : EditorWindow
 
     public GameObject CreateSuggestionObject(WaypointCluster cluster)
     {
+        Stopwatch stopWatch;
+        stopWatch = new Stopwatch();
+        stopWatch.Start();
+
         FuncEditor.TransformCellsFromWaypoints(mapSuggestionCells, cluster.GetWaypoints(), mapWindow.GetCellPrefabs());
+
+        stopWatch.Stop();
+        UnityEngine.Debug.Log("Time Taken By Transformation " + stopWatch.ElapsedMilliseconds + "ms");
+        stopWatch.Reset();
+
         GameObject newObject = Instantiate(mapSuggestionGrid.gameObject);
         MeshCombiner combiner = newObject.gameObject.GetComponent<MeshCombiner>();
         combiner.CreateMultiMaterialMesh = true;
@@ -139,6 +123,10 @@ public class SuggestionsEditor : EditorWindow
         {
             DestroyImmediate(newObjectTransform.GetChild(0).gameObject);
         }
+
+        //stopWatch.Stop();
+        //UnityEngine.Debug.Log("Time Taken By MeshMerge " + stopWatch.ElapsedMilliseconds + "ms");
+        //stopWatch.Reset();
 
         return newObject;
     }
@@ -155,5 +143,36 @@ public class SuggestionsEditor : EditorWindow
         WaypointCluster swapCluster = cluster1;
         cluster1 = cluster2;
         cluster2 = swapCluster;
+    }
+
+    public void NewSuggestions()
+    {
+        while (suggestionsEditors.Count != 0)
+        {
+            DestroyImmediate(suggestionsEditors[0].target);
+            DestroyImmediate(suggestionsEditors[0]);
+            suggestionsEditors.RemoveAt(0);
+        }
+
+        if (suggestionsClusters != null)
+            suggestionsClusters.Clear();
+
+        if (mapWindow == null)
+            mapWindow = (MapTileGridCreatorWindow)Resources.FindObjectsOfTypeAll(typeof(MapTileGridCreatorWindow))[0];
+
+        mapCluster = mapWindow.GetCluster();
+        mapCells = mapWindow.GetCells();
+        mapSuggestionGrid = mapWindow.GetSuggestionGrid();
+        mapSuggestionCells = mapWindow.GetSuggestionCells();
+
+        //Create new clusters from the current sketch 
+        suggestionsClusters = IA.GetSuggestionsClusters(mapCluster, numberSuggestions);
+
+        //Create GameObject from the newly created clusters and create editors 
+        suggestionsEditors.Clear();
+        foreach (WaypointCluster newcluster in suggestionsClusters)
+        {
+            suggestionsEditors.Add(Editor.CreateEditor(CreateSuggestionObject(newcluster)));
+        }
     }
 }

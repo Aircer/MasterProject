@@ -3,6 +3,7 @@ using UnityEngine;
 using System;
 using UnityEditor;
 using MapTileGridCreator.Utilities;
+using System.Diagnostics;
 
 namespace MapTileGridCreator.Core
 {
@@ -26,6 +27,9 @@ namespace MapTileGridCreator.Core
         private static WaypointCluster TransformationCluster(Waypoint[,,] waypoints, Dictionary<CellInformation, List<Vector3Int>> waypointsDico, int nbSugg, ref float progressBarTime)
         {
             WaypointCluster newCluster = new WaypointCluster(new Vector3Int(waypoints.GetLength(0), waypoints.GetLength(1), waypoints.GetLength(2)));
+            //Stopwatch stopWatch;
+            //stopWatch = new Stopwatch();
+            //stopWatch.Start();
 
             foreach (CellInformation key in waypointsDico.Keys)
             {
@@ -35,7 +39,14 @@ namespace MapTileGridCreator.Core
 
                     if (waypoints[i, j, k] != null && waypoints[i, j, k].type != null && waypoints[i, j, k].baseType && waypoints[i, j, k].show)
                     {
-                        Vector3Int newKey = new Vector3Int(i + UnityEngine.Random.Range(-2, 2), j, k + UnityEngine.Random.Range(-2, 2));
+                        Vector3Int newKey;
+                        /*if (CheckNeighbordsFull(waypoints[i, j, k]))
+                            newKey = new Vector3Int(i, j, k);
+                        else
+                            newKey = new Vector3Int(i + UnityEngine.Random.Range(-2, 2), j, k + UnityEngine.Random.Range(-2, 2));*/
+
+                        newKey = new Vector3Int(i + UnityEngine.Random.Range(-2, 2), j, k + UnityEngine.Random.Range(-2, 2));
+
                         if (newKey.x >= 0 && newKey.x < waypoints.GetLength(0) && newKey.z >= 0 && newKey.z < waypoints.GetLength(2))
                         {
                             Vector3Int size = new Vector3Int(waypoints.GetLength(0), waypoints.GetLength(1), waypoints.GetLength(2));
@@ -53,8 +64,8 @@ namespace MapTileGridCreator.Core
                         newCluster.GetWaypoints()[i, j, k].show = false;
                     }
 
-                    progressBarTime++;
-                    EditorUtility.DisplayProgressBar("Transforming cells", "IA is working...", progressBarTime / (nbSugg * waypoints.Length));
+                    //progressBarTime++;
+                    //EditorUtility.DisplayProgressBar("Transforming cells", "IA is working...", progressBarTime / (nbSugg * waypoints.Length));
                 }
             }
 
@@ -79,7 +90,22 @@ namespace MapTileGridCreator.Core
                 }
             }*/
 
+            //stopWatch.Stop();
+            //UnityEngine.Debug.Log("Time Taken By Dictionary " + stopWatch.ElapsedMilliseconds + "ms");
+            //stopWatch.Reset();
+
             return newCluster;
+        }
+
+        public static bool CheckNeighbordsFull(Waypoint waypoint)
+        {
+            foreach(Waypoint neighbord in waypoint.SideNeighbor)
+            {
+                if (neighbord.type == null)
+                    return false;
+            }
+
+            return true;
         }
     }
 }

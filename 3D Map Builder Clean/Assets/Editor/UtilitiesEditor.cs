@@ -521,6 +521,7 @@ namespace MapTileGridCreator.Utilities
 			Vector3Int upperBound = default(Vector3Int);
 			Vector3Int basePos = cluster.GetWaypoints()[index.x, index.y, index.z].basePos;
 			Waypoint baseWaypoint = cluster.GetWaypoints()[basePos.x, basePos.y, basePos.z];
+
 			SetBounds(ref lowerBound, ref upperBound, basePos, baseWaypoint.type.size, baseWaypoint.rotation);
 
 			for (int i = lowerBound.x; i <= upperBound.x; i++)

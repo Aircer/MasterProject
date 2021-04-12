@@ -26,6 +26,7 @@ namespace MapTileGridCreator.Core
 		public List<Waypoint> neighbors = new List<Waypoint>();
 		public Waypoint UpNeighbor;
 		public Waypoint DownNeighbor;
+		public List<Waypoint> SideNeighbor = new List<Waypoint>();
 
 		/// Links this waypoint (directionally) with the passed waypoint and sets the probabilities of all edges to the same
 		/// <param name="node"> Node to be linked to</param>
@@ -51,6 +52,12 @@ namespace MapTileGridCreator.Core
 			{
 				DownNeighbor = waypoint;
 				waypoint.UpNeighbor = this;
+			}
+
+			if (waypoint.key.y == this.key.y)
+			{
+				this.SideNeighbor.Add(waypoint);
+				waypoint.SideNeighbor.Add(this);
 			}
 		}
 

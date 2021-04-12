@@ -335,7 +335,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 						_indexToPaint.Add(newIndex);
 						_cells[newIndex.x, newIndex.y, newIndex.z].Painted(_cellTypes[_cellTypes_index], _cellPrefabs[_cellTypes[_cellTypes_index]], _rotationCell);
 					}
-					else if (_mode_paint == PaintMode.Erase)
+					else if (_mode_paint == PaintMode.Erase && _cluster.GetWaypoints()[newIndex.x, newIndex.y, newIndex.z].type != null)
 					{
 						_indexToPaint.Add(newIndex);
 						Vector3Int basePosition = _cluster.GetWaypoints()[newIndex.x, newIndex.y, newIndex.z].basePos;
@@ -414,13 +414,20 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 				if (_mode_paint == PaintMode.Erase) 
 				{
-                    _cells[index.x, index.y, index.z].Inactive();
+					_cells[index.x, index.y, index.z].Inactive();
 					FuncEditor.RemoveType(_size_grid, _rotationCell, _cluster, _cells, _cellTypes[_cellTypes_index], index);
 				}
 			}
 
 			_undo = MyUndo.UpdateUndo(_undo, _indexToPaint, _mode_paint, _cellTypes_index);
 			_painting = false;
+			SuggestionsEditor[] suggWindow;
+			suggWindow = (SuggestionsEditor[])Resources.FindObjectsOfTypeAll(typeof(SuggestionsEditor));
+			if (suggWindow.Length != 0)
+			{
+				suggWindow[0].NewSuggestions();
+				suggWindow[0].Repaint();
+			}
 			//ClearLog();
 		}
 	}
@@ -661,7 +668,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 						foreach (Vector3Int index in _undo.lastIndexToPaint)
 						{
 							_cells[index.x, index.y, index.z].Inactive();
-							_cluster.SetType(null, index.x, index.y, index.z);
+							FuncEditor.RemoveType(_size_grid, _rotationCell, _cluster, _cells, _cellTypes[_cellTypes_index], index);
 						}
 						_undo.noUndo = true;
 					}
@@ -671,8 +678,10 @@ public class MapTileGridCreatorWindow : EditorWindow
 					{
 						foreach (Vector3Int index in _undo.lastIndexToPaint)
 						{
-							_cells[index.x, index.y, index.z].Active(_cellPrefabs[_cells[index.x, index.y, index.z].lastType] , _cells[index.x, index.y, index.z].lastRotation);
-							_cluster.SetType(_cells[index.x, index.y, index.z].lastType, index.x, index.y, index.z);
+							_cells[index.x, index.y, index.z].Painted(_cells[index.x, index.y, index.z].lastType, _cellPrefabs[_cells[index.x, index.y, index.z].lastType], _cells[index.x, index.y, index.z].lastRotation);
+							_cells[index.x, index.y, index.z].Active();
+							FuncEditor.SetType(_size_grid, _cells[index.x, index.y, index.z].lastRotation, _cluster, _cells, _cells[index.x, index.y, index.z].lastType, index);
+							_cluster.SetRotation(_cells[index.x, index.y, index.z].lastRotation, index.x, index.y, index.z);
 						}
 						_undo.noUndo = true;
 					}
