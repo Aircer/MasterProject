@@ -6,6 +6,8 @@ using MapTileGridCreator.Utilities;
 using UnityEditor;
 using UnityEngine;
 using System.Reflection;
+using System.Threading;
+using System.Diagnostics;
 
 /// <summary>
 /// Main window class.
@@ -21,11 +23,15 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	private Grid3D _grid;
 	private Cell[,,] _cells;
-	private Grid3D _suggestionsGrid;
-	private Cell[,,] _suggestionCell;
+	private List<Grid3D> _suggestionsGrid;
+	private List<Cell[,,]> _suggestionCell;
+	private List<Camera> _suggestionCamera;
 
 	private Vector3Int _size_grid = new Vector3Int(5, 5, 5);
 	private Vector3Int _old_size_grid = new Vector3Int(-1, -1, -1);
+	private SuggestionsEditor[] suggWindow;
+	private Thread newSuggestionsClustersThread;
+	private bool newSuggestionsDone; 
 
 	//Debug Grid
 	[SerializeField]
@@ -62,6 +68,8 @@ public class MapTileGridCreatorWindow : EditorWindow
 	private string _path_palletPreview = "Assets/Cells/Pallets";
 	private string _path_eraser= "Assets/Cells/Eraser.prefab";
 	private string _path_setWaypoint = "Assets/Cells/SetWaypoint.prefab";
+	private string _path_camera= "Assets/Cells/Camera.prefab";
+	private GameObject _cameraPrefab;
 	private int _cellTypes_index;
 	private GameObject _erasePrefab;
 	private GameObject _setWaypointPrefab;
@@ -84,12 +92,12 @@ public class MapTileGridCreatorWindow : EditorWindow
 		_cluster = newcluster;
 	}
 
-	public Grid3D GetSuggestionGrid()
+	public List<Grid3D> GetSuggestionGrid()
 	{
 		return _suggestionsGrid;
 	}
 
-	public Cell[,,] GetSuggestionCells()
+	public List<Cell[,,]> GetSuggestionCells()
 	{
 		return _suggestionCell;
 	}
@@ -160,6 +168,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 		_erasePrefab = AssetDatabase.LoadAssetAtPath(_path_eraser, typeof(GameObject)) as GameObject;
 		_setWaypointPrefab = AssetDatabase.LoadAssetAtPath(_path_setWaypoint, typeof(GameObject)) as GameObject;
+		_cameraPrefab = AssetDatabase.LoadAssetAtPath(_path_camera, typeof(GameObject)) as GameObject;
 	}
 
     #region SceneManagement
@@ -172,14 +181,36 @@ public class MapTileGridCreatorWindow : EditorWindow
 			{
 				//Set the planes of the grid position and normal
 				_planesGrid = FuncEditor.SetGridDebugPlanesNormalAndPosition(_planesGrid, _size_grid, SceneView.lastActiveSceneView.rotation.eulerAngles);
+				UpdateCameraSuggestion(SceneView.lastActiveSceneView.rotation.eulerAngles, SceneView.lastActiveSceneView.cameraDistance);
 				//Draw the drawing plans of the grid 
 				FuncEditor.DebugSquareGrid(_grid, DebugsColor.grid_help, _size_grid, _planesGrid);
 			}
 			PaintEdit();
 		}
 
+		if (newSuggestionsClustersThread != null && !newSuggestionsClustersThread.IsAlive && !newSuggestionsDone)
+		{
+			newSuggestionsDone = true;
+			Stopwatch stopWatch;
+			stopWatch = new Stopwatch();
+			stopWatch.Start();
+			suggWindow[0].NewSuggestionsEditors();
+			stopWatch.Stop();
+			UnityEngine.Debug.Log("Time To Create Suggestions Grids" + stopWatch.ElapsedMilliseconds + "ms");
+			stopWatch.Reset();
+		}
+
 		HandleUtility.Repaint();
 	}
+
+	private void UpdateCameraSuggestion(Vector3 rot, float zoom)
+    {
+		for(int i =0; i < _suggestionsGrid.Count; i++)
+		{
+			_suggestionsGrid[i].transform.Find("Camera(Clone)").transform.localEulerAngles = rot;
+			_suggestionsGrid[i].transform.Find("Camera(Clone)").GetComponent<Camera>().orthographicSize = zoom*0.5f;
+		}
+    }
 
 	/// <summary>
 	/// Update the working grid.
@@ -399,18 +430,25 @@ public class MapTileGridCreatorWindow : EditorWindow
 		}
 
 		if (!_painting && Event.current.type == EventType.MouseUp && Event.current.button == 0)
-			Debug.Log("Can't paint here!");
+			UnityEngine.Debug.Log("Can't paint here!");
 
 		if (_painting && Event.current.type == EventType.MouseUp && Event.current.button == 0)
 		{
 			foreach (Vector3Int index in _indexToPaint)
 			{
 				if (_mode_paint == PaintMode.Single)
-				{
-                    _cells[index.x, index.y, index.z].Active();
+				{	/*
+					foreach(Cell[,,] suggestionCell in _suggestionCell)
+                    {
+						suggestionCell[index.x, index.y, index.z].Painted(_cellTypes[_cellTypes_index], _cellPrefabs[_cellTypes[_cellTypes_index]], _rotationCell);
+						suggestionCell[index.x, index.y, index.z].Active();
+					}*/
+
+					_cells[index.x, index.y, index.z].Active();
+
 					FuncEditor.SetType(_size_grid, _rotationCell, _cluster, _cells, _cellTypes[_cellTypes_index], index);
-					_cluster.SetRotation( _rotationCell, index.x, index.y, index.z);
-                }
+					_cluster.SetRotation(_rotationCell, index.x, index.y, index.z);
+				}
 
 				if (_mode_paint == PaintMode.Erase) 
 				{
@@ -421,14 +459,23 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 			_undo = MyUndo.UpdateUndo(_undo, _indexToPaint, _mode_paint, _cellTypes_index);
 			_painting = false;
-			SuggestionsEditor[] suggWindow;
+
 			suggWindow = (SuggestionsEditor[])Resources.FindObjectsOfTypeAll(typeof(SuggestionsEditor));
 			if (suggWindow.Length != 0)
-			{
-				suggWindow[0].NewSuggestions();
-				suggWindow[0].Repaint();
+            {
+				suggWindow[0].NewSuggestionsClusters();
+				newSuggestionsClustersThread = new Thread(NewSuggestionsIA);
+				newSuggestionsClustersThread.Start();
+				newSuggestionsDone = false;
 			}
 			//ClearLog();
+		}
+	}
+	public void NewSuggestionsIA()
+    {
+		if (suggWindow.Length != 0)
+		{
+			suggWindow[0].NewSuggestionsIA();
 		}
 	}
 	public void ClearLog()
@@ -613,9 +660,9 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 		if (GUILayout.Button("New"))
 		{
+			RefreshPallet();
 			/*if (_old_size_grid != _size_grid || _cells == null)
 			{*/
-			progressBarTime = 0f;
 			//Create Visualization object (Coordinates, Brush and ToolManager) if it doesn't exist
 			if (!GameObject.Find("Visualization"))
 				PrefabUtility.InstantiatePrefab(Resources.Load("Visualization"));
@@ -626,12 +673,34 @@ public class MapTileGridCreatorWindow : EditorWindow
 			//Destroy then create Grid and Cells with waypoints
 			FuncEditor.DestroyGrids();
 
+			FuncEditor.CreateCellsAndWaypoints(ref _grid, ref _cells, ref _cluster, _cellPrefabs, _size_grid);
+			_grid.transform.position = new Vector3(0, 0, 0);
+			suggWindow = (SuggestionsEditor[])Resources.FindObjectsOfTypeAll(typeof(SuggestionsEditor));
 
-			FuncEditor.CreateCellsAndWaypoints(ref _grid, ref _cells, ref _cluster, ref progressBarTime, _cellPrefabs, _size_grid);
-			WaypointCluster newCluster = _cluster;
-			FuncEditor.CreateCellsAndWaypoints(ref _suggestionsGrid, ref _suggestionCell, ref newCluster, ref progressBarTime, _cellPrefabs, _size_grid);
+			_suggestionCell = new List<Cell[,,]>();
+			_suggestionsGrid = new List<Grid3D>();
+			_suggestionCamera = new List<Camera>();
 
-			_suggestionsGrid.transform.position = new Vector3(1000, 1000, 1000);
+			if(suggWindow.Length != 0)
+            {
+				for (int i = 0; i < suggWindow[0].numberSuggestions; i++)
+				{
+					WaypointCluster newCluster = _cluster;
+					Cell[,,] newCells = _cells;
+					Grid3D newGrid = _grid;
+					GameObject newcameraObject = Instantiate<GameObject>(_cameraPrefab);
+					FuncEditor.CreateCellsAndWaypoints(ref newGrid, ref newCells, ref newCluster, _cellPrefabs, _size_grid);
+					_suggestionCell.Add(newCells);
+					newGrid.transform.position = new Vector3(1000 * (i + 1), 1000 * (i + 1), 1000 * (i + 1));
+					newcameraObject.transform.parent = newGrid.transform;
+					newcameraObject.transform.localPosition = new Vector3(_size_grid.x/2, 0, _size_grid.z / 2);
+					//newcameraObject.GetComponent<Camera>().hideFlags = HideFlags.HideAndDontSave;
+					newcameraObject.GetComponent<Camera>().farClipPlane = 50;
+					newcameraObject.GetComponent<Camera>().nearClipPlane = -50;
+					_suggestionsGrid.Add(newGrid);
+				}
+			}
+
 			/*}
 			else 
 			{

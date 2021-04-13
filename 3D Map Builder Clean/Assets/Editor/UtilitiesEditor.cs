@@ -122,7 +122,7 @@ namespace MapTileGridCreator.Utilities
 		/// <param name="grid">The grid the cell will belongs.</param>
 		/// <param name="index"> The index of the cell.</param>
 		/// <returns>The cell component associated to the gameobject.</returns>
-		public static Cell InstantiateCell(Grid3D grid, Vector3Int index)
+		public static Cell InstantiateCell(Grid3D grid, Vector3Int index, Dictionary<CellInformation, GameObject> pallet)
 		{
 			//GameObject cellGameObject = PrefabUtility.InstantiatePrefab(pallet, grid.transform) as GameObject;
 			GameObject cellGameObject = new GameObject();
@@ -131,15 +131,17 @@ namespace MapTileGridCreator.Utilities
 			BoxCollider coll = cellGameObject.AddComponent<BoxCollider>();
 			coll.enabled = false;
 			Cell cell = cellGameObject.AddComponent<Cell>();
-			/*
-			foreach (GameObject child in pallet)
+
+			foreach (KeyValuePair<CellInformation, GameObject> child in pallet)
 			{
-				GameObject newChild = PrefabUtility.InstantiatePrefab(child, grid.transform) as GameObject;
+				GameObject newChild = PrefabUtility.InstantiatePrefab(child.Value, grid.transform) as GameObject;
 				PrefabUtility.UnpackPrefabInstance(newChild, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
 				newChild.transform.parent = cellGameObject.transform;
+				newChild.transform.localPosition = new Vector3(0, 0, 0);
 				newChild.SetActive(false);
-			}*/
-
+				cell.typeDicoCell.Add(child.Key, newChild);
+			}
+	
 			grid.AddCell(index, cell);
 			cell.ResetTransform();
 
@@ -278,11 +280,12 @@ namespace MapTileGridCreator.Utilities
 		/// /// <param name="pallet"> List of all gameobject that can be painted on cells.</param>
 		/// /// <param name="grid"> Parent grid of the cell.</param>
 		/// /// <param name="size_grid"> Give number of the cells to create.</param>
-		public static void CreateEmptyCells(ref float progressBarTime, out Cell[,,] cells, Grid3D grid, Vector3Int size_grid)
+		public static void CreateEmptyCells(out Cell[,,] cells, Grid3D grid, Vector3Int size_grid, Dictionary<CellInformation, GameObject> pallet)
 		{
 			//GameObject pallet = AssetDatabase.LoadAssetAtPath("Assets/Cells/Cell.prefab", typeof(GameObject)) as GameObject;
 			Cell[,,] newCells = new Cell[size_grid.x, size_grid.y, size_grid.z];
 			int numberCells = size_grid.x * size_grid.y * size_grid.z;
+			float progressBarTime = 0f;
 
 			for (int x = 0; x < size_grid.x; x++)
 			{
@@ -291,7 +294,7 @@ namespace MapTileGridCreator.Utilities
 					for (int z = 0; z < size_grid.z; z++)
 					{
 						progressBarTime += 1;
-						newCells[x, y, z] = InstantiateCell(grid, new Vector3Int(x, y, z));
+						newCells[x, y, z] = InstantiateCell(grid, new Vector3Int(x, y, z), pallet);
 						EditorUtility.DisplayProgressBar("Creatings empty cells", "You can go have a coffee...", progressBarTime / (2*numberCells));
 					}
 				}
@@ -339,11 +342,11 @@ namespace MapTileGridCreator.Utilities
 		/// <summary>
 		/// Create cells and waypoints
 		/// </summary>
-		public static void CreateCellsAndWaypoints(ref Grid3D grid, ref Cell[,,] cells, ref WaypointCluster cluster, ref float progressBarTime, Dictionary<CellInformation, GameObject> pallet, Vector3Int size_grid)
+		public static void CreateCellsAndWaypoints(ref Grid3D grid, ref Cell[,,] cells, ref WaypointCluster cluster, Dictionary<CellInformation, GameObject> pallet, Vector3Int size_grid)
 		{
 			//Create Grid and all Cells 
 			grid = InstantiateGrid3D();
-			CreateEmptyCells(ref progressBarTime, out cells, grid, size_grid);
+			CreateEmptyCells(out cells, grid, size_grid, pallet);
 			//Create Cluster and Waypoints
 			WaypointCluster newCluster = new WaypointCluster(size_grid);
 
@@ -381,7 +384,7 @@ namespace MapTileGridCreator.Utilities
 
 						if (waypoints[i, j, k].type != null && waypoints[i, j, k].baseType && cells[i, j, k].type != waypoints[i, j, k].type)
 						{
-							cells[i, j, k].Active(cellPrefabs[waypoints[i, j, k].type], waypoints[i, j, k].rotation);
+							cells[i, j, k].Active(waypoints[i, j, k].type, waypoints[i, j, k].rotation);
 
 							if (!waypoints[i, j, k].show)
 								cells[i, j, k].Sleep();

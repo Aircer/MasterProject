@@ -15,16 +15,17 @@ namespace MapTileGridCreator.Core
             Waypoint[,,] waypoints = cluster.GetWaypoints();
             Dictionary<CellInformation, List<Vector3Int>> waypointsDico = cluster.GetWaypointsDico();
             float progressBarTime = 0;
+            System.Random rand = new System.Random();
 
             for (int i=0; i< nbSuggestions;i++)
             {
-                suggestionsClusters.Add(TransformationCluster(waypoints, waypointsDico, nbSuggestions, ref progressBarTime));
+                suggestionsClusters.Add(TransformationCluster(rand, waypoints, waypointsDico, nbSuggestions, ref progressBarTime));
             }
 
             return suggestionsClusters;
         }
 
-        private static WaypointCluster TransformationCluster(Waypoint[,,] waypoints, Dictionary<CellInformation, List<Vector3Int>> waypointsDico, int nbSugg, ref float progressBarTime)
+        private static WaypointCluster TransformationCluster(System.Random rand, Waypoint[,,] waypoints, Dictionary<CellInformation, List<Vector3Int>> waypointsDico, int nbSugg, ref float progressBarTime)
         {
             WaypointCluster newCluster = new WaypointCluster(new Vector3Int(waypoints.GetLength(0), waypoints.GetLength(1), waypoints.GetLength(2)));
             //Stopwatch stopWatch;
@@ -39,13 +40,14 @@ namespace MapTileGridCreator.Core
 
                     if (waypoints[i, j, k] != null && waypoints[i, j, k].type != null && waypoints[i, j, k].baseType && waypoints[i, j, k].show)
                     {
+                        int randI = rand.Next(-2, 2);
+                        int randK = rand.Next(-2, 2);
                         Vector3Int newKey;
-                        /*if (CheckNeighbordsFull(waypoints[i, j, k]))
+
+                        if (CheckNeighbordsFull(waypoints[i, j, k]))
                             newKey = new Vector3Int(i, j, k);
                         else
-                            newKey = new Vector3Int(i + UnityEngine.Random.Range(-2, 2), j, k + UnityEngine.Random.Range(-2, 2));*/
-
-                        newKey = new Vector3Int(i + UnityEngine.Random.Range(-2, 2), j, k + UnityEngine.Random.Range(-2, 2));
+                            newKey = new Vector3Int(i + randI, j, k + randK);  
 
                         if (newKey.x >= 0 && newKey.x < waypoints.GetLength(0) && newKey.z >= 0 && newKey.z < waypoints.GetLength(2))
                         {
@@ -68,6 +70,8 @@ namespace MapTileGridCreator.Core
                     //EditorUtility.DisplayProgressBar("Transforming cells", "IA is working...", progressBarTime / (nbSugg * waypoints.Length));
                 }
             }
+
+            for (int i = 0; i < 2000000; i++) { Mathf.Sqrt(Mathf.Pow(2, 2)); }
 
             /*
             for (int i = 0; i < waypoints.GetLength(0); i++)

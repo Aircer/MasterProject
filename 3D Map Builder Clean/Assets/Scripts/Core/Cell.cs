@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEditor;
+using System.Collections.Generic;
 
 namespace MapTileGridCreator.Core
 {
@@ -16,7 +17,7 @@ namespace MapTileGridCreator.Core
 		public Grid3D parent { get; set; }
 		public Vector3Int index { get; set; }
 		public CellInformation type { get; set; }
-
+		public Dictionary<CellInformation, GameObject> typeDicoCell = new Dictionary<CellInformation, GameObject>();
 		public CellInformation lastType { get; set; }
 
 		public Vector2 lastRotation { get; set; }
@@ -68,9 +69,7 @@ namespace MapTileGridCreator.Core
 
 		public void Painted(CellInformation cellType, GameObject newCellObject, Vector2 rotation)
 		{
-			SetColliderState(false);
-			SetMeshState(true);
-
+			/*
 			GameObject newChild = PrefabUtility.InstantiatePrefab(newCellObject, parent.transform) as GameObject;
 			PrefabUtility.UnpackPrefabInstance(newChild, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
 			newChild.transform.parent = this.transform;
@@ -78,7 +77,14 @@ namespace MapTileGridCreator.Core
 			newChild.transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
 			lastRotation = rotation;
 			lastType = type = cellType;
+			*/
+			typeDicoCell[cellType].SetActive(true);
+			typeDicoCell[cellType].transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
+			lastRotation = rotation;
+			lastType = type = cellType;
 
+			SetColliderState(false);
+			SetMeshState(true);
 			state = CellState.Painted;
 		}
 
@@ -96,11 +102,11 @@ namespace MapTileGridCreator.Core
 			state = CellState.Sleep;
 		}
 
-		public void Active(GameObject newCellObject = null, Vector2 rotation = default(Vector2))
+		public void Active(CellInformation newType = null, Vector2 rotation = default(Vector2))
 		{
 			SetColliderState(true);
 			SetMeshState(true);
-
+			/*
 			if (this.transform.childCount == 0 && newCellObject != null)
 			{
 				GameObject newChild = PrefabUtility.InstantiatePrefab(newCellObject, parent.transform) as GameObject;
@@ -110,8 +116,22 @@ namespace MapTileGridCreator.Core
 				newChild.transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
 				lastRotation = rotation;
 				lastType = type = newChild.transform.GetComponent<CellInformation>();
+			}*/
+
+			//typeDicoCell[type].transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
+			//typeDicoCell[cellType].SetActive(true);
+			//lastRotation = rotation;
+			//lastType = type = cellType;
+
+			if (newType != null)
+			{
+				typeDicoCell[newType].SetActive(true);
+				typeDicoCell[newType].transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
+				lastRotation = rotation;
+				lastType = type = newType;
 			}
 
+			typeDicoCell[type].SetActive(true);
 			state = CellState.Active;
 		}
 
@@ -120,10 +140,8 @@ namespace MapTileGridCreator.Core
 			SetColliderState(false);
 			SetMeshState(false);
 
-			foreach (Transform child in this.transform)
-			{
-				DestroyImmediate(child.gameObject);
-			}
+			if(type != null)
+				typeDicoCell[type].SetActive(false);
 
 			type = null;
 			state = CellState.Inactive;
@@ -131,7 +149,8 @@ namespace MapTileGridCreator.Core
 
 		public void SetColliderState(bool state)
 		{
-			colliderBox.enabled = state;
+			if(colliderBox != null)
+				colliderBox.enabled = state;
 		}
 
 		public void SetMeshState(bool state)
