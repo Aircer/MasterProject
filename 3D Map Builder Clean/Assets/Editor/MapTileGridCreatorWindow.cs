@@ -191,13 +191,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 		if (newSuggestionsClustersThread != null && !newSuggestionsClustersThread.IsAlive && !newSuggestionsDone)
 		{
 			newSuggestionsDone = true;
-			Stopwatch stopWatch;
-			stopWatch = new Stopwatch();
-			stopWatch.Start();
 			suggWindow[0].NewSuggestionsEditors();
-			stopWatch.Stop();
-			UnityEngine.Debug.Log("Time To Create Suggestions Grids" + stopWatch.ElapsedMilliseconds + "ms");
-			stopWatch.Reset();
 		}
 
 		HandleUtility.Repaint();
@@ -344,7 +338,9 @@ public class MapTileGridCreatorWindow : EditorWindow
 						index = new Vector3Int(_startingPaintIndex.x + (int)Mathf.Sign(input.x - _startingPaintIndex.x) * i, _startingPaintIndex.y + (int)Mathf.Sign(input.y - _startingPaintIndex.y) * j, _startingPaintIndex.z + (int)Mathf.Sign(input.z - _startingPaintIndex.z) * k);
 						//Add the index to the list of indexes to paint/erase
 						if (_cells[index.x, index.y, index.z] != null && ((_mode_paint == PaintMode.Single && (_cells[index.x, index.y, index.z].state == CellState.Inactive || _cells[index.x, index.y, index.z].state == CellState.Painted)) || (_mode_paint == PaintMode.Erase && (_cells[index.x, index.y, index.z].state == CellState.Active || _cells[index.x, index.y, index.z].state == CellState.Erased))))
+						{
 							newIndexToPaint.Add(index);
+						}
 					}
 				}
 			}
@@ -364,7 +360,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 					if (_mode_paint == PaintMode.Single)
 					{
 						_indexToPaint.Add(newIndex);
-						_cells[newIndex.x, newIndex.y, newIndex.z].Painted(_cellTypes[_cellTypes_index], _cellPrefabs[_cellTypes[_cellTypes_index]], _rotationCell);
+						_cells[newIndex.x, newIndex.y, newIndex.z].Painted(_cellTypes[_cellTypes_index], _rotationCell);
 					}
 					else if (_mode_paint == PaintMode.Erase && _cluster.GetWaypoints()[newIndex.x, newIndex.y, newIndex.z].type != null)
 					{
@@ -408,7 +404,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			_indexToPaint.Clear();
 			_painting = true;
 			_indexToPaint.Add(input);
-			_cells[input.x, input.y, input.z].Painted(_cellTypes[_cellTypes_index], _cellPrefabs[_cellTypes[_cellTypes_index]], _rotationCell);
+			_cells[input.x, input.y, input.z].Painted(_cellTypes[_cellTypes_index], _rotationCell);
 		}
 	}
 
@@ -437,17 +433,11 @@ public class MapTileGridCreatorWindow : EditorWindow
 			foreach (Vector3Int index in _indexToPaint)
 			{
 				if (_mode_paint == PaintMode.Single)
-				{	/*
-					foreach(Cell[,,] suggestionCell in _suggestionCell)
-                    {
-						suggestionCell[index.x, index.y, index.z].Painted(_cellTypes[_cellTypes_index], _cellPrefabs[_cellTypes[_cellTypes_index]], _rotationCell);
-						suggestionCell[index.x, index.y, index.z].Active();
-					}*/
-
+				{
 					_cells[index.x, index.y, index.z].Active();
 
 					FuncEditor.SetType(_size_grid, _rotationCell, _cluster, _cells, _cellTypes[_cellTypes_index], index);
-					_cluster.SetRotation(_rotationCell, index.x, index.y, index.z);
+					_cluster.SetRotation(_rotationCell, index);
 				}
 
 				if (_mode_paint == PaintMode.Erase) 
@@ -475,7 +465,13 @@ public class MapTileGridCreatorWindow : EditorWindow
     {
 		if (suggWindow.Length != 0)
 		{
+			Stopwatch stopWatch;
+			stopWatch = new Stopwatch();
+			stopWatch.Start();
 			suggWindow[0].NewSuggestionsIA();
+			stopWatch.Stop();
+			UnityEngine.Debug.Log("Time To Run IA " + stopWatch.ElapsedMilliseconds + "ms");
+			stopWatch.Reset();
 		}
 	}
 	public void ClearLog()
@@ -693,7 +689,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 					_suggestionCell.Add(newCells);
 					newGrid.transform.position = new Vector3(1000 * (i + 1), 1000 * (i + 1), 1000 * (i + 1));
 					newcameraObject.transform.parent = newGrid.transform;
-					newcameraObject.transform.localPosition = new Vector3(_size_grid.x/2, 0, _size_grid.z / 2);
+					newcameraObject.transform.localPosition = new Vector3(_size_grid.x/2, _size_grid.y / 2, _size_grid.z / 2);
 					//newcameraObject.GetComponent<Camera>().hideFlags = HideFlags.HideAndDontSave;
 					newcameraObject.GetComponent<Camera>().farClipPlane = 50;
 					newcameraObject.GetComponent<Camera>().nearClipPlane = -50;
@@ -747,10 +743,13 @@ public class MapTileGridCreatorWindow : EditorWindow
 					{
 						foreach (Vector3Int index in _undo.lastIndexToPaint)
 						{
-							_cells[index.x, index.y, index.z].Painted(_cells[index.x, index.y, index.z].lastType, _cellPrefabs[_cells[index.x, index.y, index.z].lastType], _cells[index.x, index.y, index.z].lastRotation);
-							_cells[index.x, index.y, index.z].Active();
-							FuncEditor.SetType(_size_grid, _cells[index.x, index.y, index.z].lastRotation, _cluster, _cells, _cells[index.x, index.y, index.z].lastType, index);
-							_cluster.SetRotation(_cells[index.x, index.y, index.z].lastRotation, index.x, index.y, index.z);
+							if (_cells[index.x, index.y, index.z].lastType != null)
+							{
+								_cells[index.x, index.y, index.z].Painted(_cells[index.x, index.y, index.z].lastType, _cells[index.x, index.y, index.z].lastRotation);
+								_cells[index.x, index.y, index.z].Active();
+								FuncEditor.SetType(_size_grid, _cells[index.x, index.y, index.z].lastRotation, _cluster, _cells, _cells[index.x, index.y, index.z].lastType, index);
+								_cluster.SetRotation(_cells[index.x, index.y, index.z].lastRotation, index);
+							}
 						}
 						_undo.noUndo = true;
 					}

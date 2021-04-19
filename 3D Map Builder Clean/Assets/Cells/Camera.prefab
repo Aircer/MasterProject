@@ -50,15 +50,15 @@ Camera:
   m_FocalLength: 50
   m_NormalizedViewPortRect:
     serializedVersion: 2
-    x: 1.0097656
-    y: -0.37447917
-    width: 1.0097656
-    height: 0.5208334
-  near clip plane: -3.53
-  far clip plane: 10
+    x: 0
+    y: 0
+    width: 10
+    height: 10
+  near clip plane: -100
+  far clip plane: 100
   field of view: 155.1
   orthographic: 1
-  orthographic size: 4
+  orthographic size: 10
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
@@ -69,7 +69,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
-  m_AllowDynamicResolution: 0
+  m_AllowDynamicResolution: 1
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10

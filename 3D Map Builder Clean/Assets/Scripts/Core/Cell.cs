@@ -17,6 +17,7 @@ namespace MapTileGridCreator.Core
 		public Grid3D parent { get; set; }
 		public Vector3Int index { get; set; }
 		public CellInformation type { get; set; }
+		public bool baseType;
 		public Dictionary<CellInformation, GameObject> typeDicoCell = new Dictionary<CellInformation, GameObject>();
 		public CellInformation lastType { get; set; }
 
@@ -67,7 +68,7 @@ namespace MapTileGridCreator.Core
 			transform.localScale = Vector3.one * parent.SizeCell;
 		}
 
-		public void Painted(CellInformation cellType, GameObject newCellObject, Vector2 rotation)
+		public void Painted(CellInformation cellType, Vector2 rotation)
 		{
 			/*
 			GameObject newChild = PrefabUtility.InstantiatePrefab(newCellObject, parent.transform) as GameObject;
@@ -78,10 +79,15 @@ namespace MapTileGridCreator.Core
 			lastRotation = rotation;
 			lastType = type = cellType;
 			*/
-			typeDicoCell[cellType].SetActive(true);
-			typeDicoCell[cellType].transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
-			lastRotation = rotation;
-			lastType = type = cellType;
+
+			if (cellType != null)
+			{
+				typeDicoCell[cellType].SetActive(true);
+				typeDicoCell[cellType].transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
+				lastRotation = rotation;
+				lastType = type = cellType;
+				baseType = true;
+			}
 
 			SetColliderState(false);
 			SetMeshState(true);
@@ -106,22 +112,6 @@ namespace MapTileGridCreator.Core
 		{
 			SetColliderState(true);
 			SetMeshState(true);
-			/*
-			if (this.transform.childCount == 0 && newCellObject != null)
-			{
-				GameObject newChild = PrefabUtility.InstantiatePrefab(newCellObject, parent.transform) as GameObject;
-				PrefabUtility.UnpackPrefabInstance(newChild, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-				newChild.transform.parent = this.transform;
-				newChild.transform.position = this.transform.position;
-				newChild.transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
-				lastRotation = rotation;
-				lastType = type = newChild.transform.GetComponent<CellInformation>();
-			}*/
-
-			//typeDicoCell[type].transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
-			//typeDicoCell[cellType].SetActive(true);
-			//lastRotation = rotation;
-			//lastType = type = cellType;
 
 			if (newType != null)
 			{
@@ -131,7 +121,8 @@ namespace MapTileGridCreator.Core
 				lastType = type = newType;
 			}
 
-			typeDicoCell[type].SetActive(true);
+			if(type != null)
+				typeDicoCell[type].SetActive(true);
 			state = CellState.Active;
 		}
 

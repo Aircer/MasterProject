@@ -55,6 +55,7 @@ namespace MapTileGridCreator.Core
 				pathfindingWaypoints.Clear();
 				pathfindingWaypoints.Add(waypoints[index.x, index.y, index.z]);
 				waypoints[index.x, index.y, index.z].pathfindingWaypoint = true;
+
 				FindPath(waypoints[index.x, index.y, index.z], maxjump);
 			}
 		}
@@ -175,9 +176,9 @@ namespace MapTileGridCreator.Core
 			waypoints[x, y, z].SetType(type);
 		}
 
-		public void SetRotation(Vector2 rotation, int x, int y, int z)
+		public void SetRotation(Vector2 rotation, Vector3Int index)
 		{
-			waypoints[x, y, z].rotation = rotation;
+			waypoints[index.x, index.y, index.z].rotation = rotation;
 		}
 
 		public void SetBase(int x, int y, int z)
