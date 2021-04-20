@@ -395,6 +395,19 @@ namespace MapTileGridCreator.Utilities
 							cells[i, j, k].Painted(waypoints[i, j, k].type, waypoints[i, j, k].rotation);
 							cells[i, j, k].Active();
 
+							if (waypoints[i, j, k].type.wall)
+							{
+								cells[i, j, k].WallTransform(waypoints);
+								if (i > 0)
+									cells[i-1, j, k].WallTransform(waypoints);
+								if (k > 0)
+									cells[i, j, k-1].WallTransform(waypoints);
+								if (i < waypoints.GetLength(0) - 1)
+									cells[i + 1, j, k].WallTransform(waypoints);
+								if (k < waypoints.GetLength(2) - 1)
+									cells[i, j, k+1].WallTransform(waypoints);
+							}
+
 							if (!waypoints[i, j, k].show)
 								cells[i, j, k].Sleep();
 						}
@@ -486,7 +499,7 @@ namespace MapTileGridCreator.Utilities
 		/// <summary>
 		/// Check if there is enough room to paint the new asset
 		///</summary>
-		public static bool CanPaintHere(Vector3Int size_grid, Waypoint[,,] waypoints, Vector3Int index, Vector3Int size, Vector3 rotation)
+		public static bool CanPaintHere(Vector3Int size_grid, Vector3Int index, Vector3Int size, Cell[,,] cells, Vector3 rotation)
 		{
 		
 			Vector3Int lowerBound = default(Vector3Int);
@@ -499,7 +512,7 @@ namespace MapTileGridCreator.Utilities
 				{
 					for (int k = lowerBound.z; k <= upperBound.z; k++)
 					{
-						if (!InputInGridBoundaries(new Vector3Int(i, j, k), size_grid) || (waypoints[i, j, k].type != null && waypoints[i, j, k].type.blockPath))
+						if (!InputInGridBoundaries(new Vector3Int(i, j, k), size_grid) || !(cells[i, j, k].state == CellState.Inactive || cells[i, j, k].state == CellState.Painted))
 							return false;
 					}
 				}
@@ -513,7 +526,7 @@ namespace MapTileGridCreator.Utilities
 			Vector3Int lowerBound = default(Vector3Int);
 			Vector3Int upperBound = default(Vector3Int);
 			SetBounds(ref lowerBound, ref upperBound, index, type.size, rotation);
-
+			
 			for (int i = lowerBound.x; i <= upperBound.x; i++)
 			{
 				for (int j = lowerBound.y; j <= upperBound.y; j++)
@@ -522,6 +535,7 @@ namespace MapTileGridCreator.Utilities
 					{
 						if(InputInGridBoundaries(new Vector3Int(i,j,k), size_grid))
                         {
+							UnityEngine.Debug.Log("PAINT");
 							cluster.SetType(type, i, j, k);
 							cluster.GetWaypoints()[i, j, k].basePos = index;
 							if(index.x != i || index.y != j || index.z != k)

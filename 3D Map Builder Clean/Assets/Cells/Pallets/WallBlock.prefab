@@ -716,6 +716,7 @@ MonoBehaviour:
   size: {x: 1, y: 1, z: 1}
   ground: 1
   blockPath: 1
+  wall: 0
 --- !u!1 &7822502714086082502
 GameObject:
   m_ObjectHideFlags: 0

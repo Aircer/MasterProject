@@ -249,7 +249,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 				{
 					ChangeBrushPallet();
 					Vector3Int input = Vector3Int.RoundToInt(GetGridPositionInput(0.5f));
-					if(FuncEditor.CanPaintHere(_size_grid ,_cluster.GetWaypoints(), input, _cellTypes[_cellTypes_index].size, _rotationCell))
+					if(FuncEditor.CanPaintHere(_size_grid , input, _cellTypes[_cellTypes_index].size, _cells, _rotationCell))
                     {
 						if (_cellTypes[_cellTypes_index].size.x == 1 && _cellTypes[_cellTypes_index].size.y == 1 && _cellTypes[_cellTypes_index].size.z == 1)
 							AddInput(input);
@@ -329,6 +329,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 		{
 			newIndexToPaint.Clear();
 			Vector3Int index;
+
 			for (int i = 0; i <= Mathf.Abs(input.x - _startingPaintIndex.x); i++)
 			{
 				for (int j = 0; j <= Mathf.Abs(input.y - _startingPaintIndex.y); j++)
@@ -337,7 +338,8 @@ public class MapTileGridCreatorWindow : EditorWindow
 					{
 						index = new Vector3Int(_startingPaintIndex.x + (int)Mathf.Sign(input.x - _startingPaintIndex.x) * i, _startingPaintIndex.y + (int)Mathf.Sign(input.y - _startingPaintIndex.y) * j, _startingPaintIndex.z + (int)Mathf.Sign(input.z - _startingPaintIndex.z) * k);
 						//Add the index to the list of indexes to paint/erase
-						if (_cells[index.x, index.y, index.z] != null && ((_mode_paint == PaintMode.Single && (_cells[index.x, index.y, index.z].state == CellState.Inactive || _cells[index.x, index.y, index.z].state == CellState.Painted)) || (_mode_paint == PaintMode.Erase && (_cells[index.x, index.y, index.z].state == CellState.Active || _cells[index.x, index.y, index.z].state == CellState.Erased))))
+
+						if (((_mode_paint == PaintMode.Single && (_cells[index.x, index.y, index.z].state == CellState.Inactive || _cells[index.x, index.y, index.z].state == CellState.Painted)) || (_mode_paint == PaintMode.Erase && (_cells[index.x, index.y, index.z].state == CellState.Active || _cells[index.x, index.y, index.z].state == CellState.Erased))))
 						{
 							newIndexToPaint.Add(index);
 						}
@@ -361,10 +363,29 @@ public class MapTileGridCreatorWindow : EditorWindow
 					{
 						_indexToPaint.Add(newIndex);
 						_cells[newIndex.x, newIndex.y, newIndex.z].Painted(_cellTypes[_cellTypes_index], _rotationCell);
+
+						FuncEditor.SetType(_size_grid, _rotationCell, _cluster, _cells, _cellTypes[_cellTypes_index], newIndex);
+						_cluster.SetRotation(_rotationCell, newIndex);
+
+						if (_cellTypes[_cellTypes_index].wall)
+						{
+							_cells[newIndex.x, newIndex.y, newIndex.z].WallTransform(_cluster.GetWaypoints());
+							if(newIndex.x > 0)
+								_cells[newIndex.x-1, newIndex.y, newIndex.z].WallTransform(_cluster.GetWaypoints());
+							if (newIndex.z > 0)
+								_cells[newIndex.x, newIndex.y, newIndex.z-1].WallTransform(_cluster.GetWaypoints());
+							if (newIndex.x < _size_grid.x-1)
+								_cells[newIndex.x + 1, newIndex.y, newIndex.z].WallTransform(_cluster.GetWaypoints());
+							if (newIndex.z < _size_grid.z - 1)
+								_cells[newIndex.x, newIndex.y, newIndex.z+1].WallTransform(_cluster.GetWaypoints());
+							if (newIndex.y > 0)
+								_cells[newIndex.x, newIndex.y - 1, newIndex.z].WallTransform(_cluster.GetWaypoints());
+						}
 					}
 					else if (_mode_paint == PaintMode.Erase && _cluster.GetWaypoints()[newIndex.x, newIndex.y, newIndex.z].type != null)
 					{
 						_indexToPaint.Add(newIndex);
+
 						Vector3Int basePosition = _cluster.GetWaypoints()[newIndex.x, newIndex.y, newIndex.z].basePos;
 						_cells[basePosition.x, basePosition.y, basePosition.z].Erased();
 					}
@@ -385,10 +406,27 @@ public class MapTileGridCreatorWindow : EditorWindow
 				{
 					if (_mode_paint == PaintMode.Single)
                     {
+						FuncEditor.RemoveType(_size_grid, _rotationCell, _cluster, _cells, _cellTypes[_cellTypes_index], currentIndex);
 						_cells[currentIndex.x, currentIndex.y, currentIndex.z].Inactive();
 					}
 					if (_mode_paint == PaintMode.Erase)
 						_cells[currentIndex.x, currentIndex.y, currentIndex.z].Active();
+
+					if (_cells[currentIndex.x, currentIndex.y, currentIndex.z].lastType.wall)
+					{
+						_cells[currentIndex.x, currentIndex.y, currentIndex.z].WallTransform(_cluster.GetWaypoints());
+						if (currentIndex.x > 0)
+							_cells[currentIndex.x - 1, currentIndex.y, currentIndex.z].WallTransform(_cluster.GetWaypoints());
+						if (currentIndex.z > 0)
+							_cells[currentIndex.x, currentIndex.y, currentIndex.z - 1].WallTransform(_cluster.GetWaypoints());
+						if (currentIndex.x < _size_grid.x - 1)
+							_cells[currentIndex.x + 1, currentIndex.y, currentIndex.z].WallTransform(_cluster.GetWaypoints());
+						if (currentIndex.z < _size_grid.z - 1)
+							_cells[currentIndex.x, currentIndex.y, currentIndex.z + 1].WallTransform(_cluster.GetWaypoints());
+						if (currentIndex.y > 0)
+							_cells[currentIndex.x, currentIndex.y - 1, currentIndex.z].WallTransform(_cluster.GetWaypoints());
+					}
+
 					newIndexToPaint.Remove(currentIndex);
 				}
 			}
@@ -405,6 +443,8 @@ public class MapTileGridCreatorWindow : EditorWindow
 			_painting = true;
 			_indexToPaint.Add(input);
 			_cells[input.x, input.y, input.z].Painted(_cellTypes[_cellTypes_index], _rotationCell);
+			FuncEditor.SetType(_size_grid, _rotationCell, _cluster, _cells, _cellTypes[_cellTypes_index], input);
+			_cluster.SetRotation(_rotationCell, input);
 		}
 	}
 
@@ -435,15 +475,28 @@ public class MapTileGridCreatorWindow : EditorWindow
 				if (_mode_paint == PaintMode.Single)
 				{
 					_cells[index.x, index.y, index.z].Active();
-
-					FuncEditor.SetType(_size_grid, _rotationCell, _cluster, _cells, _cellTypes[_cellTypes_index], index);
-					_cluster.SetRotation(_rotationCell, index);
 				}
 
 				if (_mode_paint == PaintMode.Erase) 
 				{
-					_cells[index.x, index.y, index.z].Inactive();
 					FuncEditor.RemoveType(_size_grid, _rotationCell, _cluster, _cells, _cellTypes[_cellTypes_index], index);
+
+					if (_cells[index.x, index.y, index.z].lastType.wall)
+					{
+						_cells[index.x, index.y, index.z].WallTransform(_cluster.GetWaypoints());
+						if (index.x > 0)
+							_cells[index.x-1, index.y, index.z].WallTransform(_cluster.GetWaypoints());
+						if (index.z > 0)
+							_cells[index.x, index.y, index.z-1].WallTransform(_cluster.GetWaypoints());
+						if (index.x < _size_grid.x - 1)
+							_cells[index.x+1, index.y, index.z].WallTransform(_cluster.GetWaypoints());
+						if (index.z < _size_grid.z - 1)
+							_cells[index.x, index.y, index.z+1].WallTransform(_cluster.GetWaypoints());
+						if (index.y > 0)
+							_cells[index.x, index.y-1, index.z].WallTransform(_cluster.GetWaypoints());
+					}
+
+					_cells[index.x, index.y, index.z].Inactive();
 				}
 			}
 

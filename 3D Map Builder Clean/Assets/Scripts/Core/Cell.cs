@@ -94,6 +94,112 @@ namespace MapTileGridCreator.Core
 			state = CellState.Painted;
 		}
 
+		public void WallTransform(Waypoint[,,] waypoints)
+        {
+			if (type != null && type.wall)
+			{
+				typeDicoCell[type].transform.Find("Single").gameObject.SetActive(false);
+				typeDicoCell[type].transform.Find("DoubleSides").gameObject.SetActive(false);
+				typeDicoCell[type].transform.Find("Triple").gameObject.SetActive(false);
+				typeDicoCell[type].transform.Find("Corner").gameObject.SetActive(false);
+				typeDicoCell[type].transform.Find("Quattro").gameObject.SetActive(false);
+
+				bool[] neighbordsWalls = new bool[4];
+
+				if (index.x > 0 && waypoints[index.x - 1, index.y, index.z].type != null && waypoints[index.x - 1, index.y, index.z].type.wall)
+					neighbordsWalls[0] = true;
+				else
+					neighbordsWalls[0] = false;
+
+				if (index.x < waypoints.GetLength(0)-1 && waypoints[index.x + 1, index.y, index.z].type != null && waypoints[index.x + 1, index.y, index.z].type.wall)
+					neighbordsWalls[1] = true;
+				else
+					neighbordsWalls[1] = false;
+
+				if (index.z > 0 && waypoints[index.x, index.y, index.z-1].type != null && waypoints[index.x, index.y, index.z-1].type.wall)
+					neighbordsWalls[2] = true;
+				else
+					neighbordsWalls[2] = false;
+
+				if (index.z < waypoints.GetLength(2)-1 && waypoints[index.x, index.y, index.z+1].type != null && waypoints[index.x, index.y, index.z+1].type.wall)
+					neighbordsWalls[3] = true;
+				else
+					neighbordsWalls[3] = false;
+
+				if (!neighbordsWalls[0] && !neighbordsWalls[1] && !neighbordsWalls[2] && !neighbordsWalls[3])
+				{
+					typeDicoCell[type].transform.Find("Single").gameObject.SetActive(true);
+					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 0, 0);
+				}
+
+				if ((neighbordsWalls[0] || neighbordsWalls[1]) && !neighbordsWalls[2] && !neighbordsWalls[3])
+				{
+					typeDicoCell[type].transform.Find("DoubleSides").gameObject.SetActive(true);
+					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 0, 0);
+				}
+
+				if ((neighbordsWalls[2] || neighbordsWalls[3]) && !neighbordsWalls[0] && !neighbordsWalls[1])
+				{
+					typeDicoCell[type].transform.Find("DoubleSides").gameObject.SetActive(true);
+					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 90, 0);
+				}
+
+				if (neighbordsWalls[1] && neighbordsWalls[2] && !neighbordsWalls[0] && !neighbordsWalls[3])
+				{
+					typeDicoCell[type].transform.Find("Corner").gameObject.SetActive(true);
+					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 0, 0);
+				}
+
+				if (neighbordsWalls[0] && neighbordsWalls[2] && !neighbordsWalls[1] && !neighbordsWalls[3])
+				{
+					typeDicoCell[type].transform.Find("Corner").gameObject.SetActive(true);
+					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 90, 0);
+				}
+
+				if (neighbordsWalls[0] && neighbordsWalls[3] && !neighbordsWalls[1] && !neighbordsWalls[2])
+				{
+					typeDicoCell[type].transform.Find("Corner").gameObject.SetActive(true);
+					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 180, 0);
+				}
+
+				if (neighbordsWalls[1] && neighbordsWalls[3] && !neighbordsWalls[0] && !neighbordsWalls[2])
+				{
+					typeDicoCell[type].transform.Find("Corner").gameObject.SetActive(true);
+					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 270, 0);
+				}
+
+				if (neighbordsWalls[1] && neighbordsWalls[2] && !neighbordsWalls[0] && neighbordsWalls[3])
+				{
+					typeDicoCell[type].transform.Find("Triple").gameObject.SetActive(true);
+					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 0, 0);
+				}
+
+				if (neighbordsWalls[1] && neighbordsWalls[2] && neighbordsWalls[0] && !neighbordsWalls[3])
+				{
+					typeDicoCell[type].transform.Find("Triple").gameObject.SetActive(true);
+					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 90, 0);
+				}
+
+				if (!neighbordsWalls[1] && neighbordsWalls[3] && neighbordsWalls[0] && neighbordsWalls[2])
+				{
+					typeDicoCell[type].transform.Find("Triple").gameObject.SetActive(true);
+					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 180, 0);
+				}
+
+				if (neighbordsWalls[0] && neighbordsWalls[3] && neighbordsWalls[1] && !neighbordsWalls[2])
+				{
+					typeDicoCell[type].transform.Find("Triple").gameObject.SetActive(true);
+					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 270, 0);
+				}
+
+				if (neighbordsWalls[0] && neighbordsWalls[3] && neighbordsWalls[1] && neighbordsWalls[2])
+				{
+					typeDicoCell[type].transform.Find("Quattro").gameObject.SetActive(true);
+					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 0, 0);
+				}
+			}
+        }
+
 		public void Erased()
 		{
 			SetColliderState(true);
