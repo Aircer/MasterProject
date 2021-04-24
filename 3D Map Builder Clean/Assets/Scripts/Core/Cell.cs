@@ -254,7 +254,7 @@ namespace MapTileGridCreator.Core
 		{
 			for (int i = 0; i < gameObject.transform.childCount; i++)
 			{
-				if (type && gameObject.transform.GetChild(i).name == type.name)
+				if (type && gameObject.transform.GetChild(i).name == type.name || !state)
 				{
 					gameObject.transform.GetChild(i).transform.gameObject.SetActive(state);
 				}

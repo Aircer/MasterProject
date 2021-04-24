@@ -22,3 +22,11 @@ public enum PathfindingState
 {
 	A_Star, Floodfill
 };
+
+public struct EvolutionaryAlgoParams
+{
+    public float mutationRate;
+    public int population;
+    public int generations;
+	public int elitism;
+}

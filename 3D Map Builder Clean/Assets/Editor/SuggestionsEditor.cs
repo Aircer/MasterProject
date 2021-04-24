@@ -17,6 +17,7 @@ public class SuggestionsEditor : EditorWindow
     private Vector2 scrollPos;
 
     public int numberSuggestions;
+    public EvolutionaryAlgoParams evolAlgoParams;
 
     [MenuItem("3D Map/SuggestionsEditor")]
     static void ShowWindow()
@@ -49,7 +50,20 @@ public class SuggestionsEditor : EditorWindow
         //GUILayout.BeginHorizontal();
         //numberSuggestions = EditorGUILayout.IntField("Number Suggestions: ", numberSuggestions);
         //GUILayout.EndHorizontal();
-        numberSuggestions = 4; 
+        numberSuggestions = 4;
+
+        //Get parameters of Evolutionary the Algorithm
+        GUILayout.BeginHorizontal();
+        evolAlgoParams.mutationRate = EditorGUILayout.FloatField("Mutation Rate ", evolAlgoParams.mutationRate);
+        evolAlgoParams.population = EditorGUILayout.IntField("Population ", evolAlgoParams.population);
+        evolAlgoParams.population = evolAlgoParams.population > numberSuggestions ? evolAlgoParams.population:numberSuggestions;
+        GUILayout.EndHorizontal();
+        GUILayout.BeginHorizontal();
+        evolAlgoParams.generations = EditorGUILayout.IntField("Generations ", evolAlgoParams.generations);
+        evolAlgoParams.generations = evolAlgoParams.generations > 0 ? evolAlgoParams.generations : 1;
+        evolAlgoParams.elitism = EditorGUILayout.IntField("Elitism ", evolAlgoParams.elitism);
+        evolAlgoParams.elitism = evolAlgoParams.generations > 0 ? evolAlgoParams.elitism : 1;
+        GUILayout.EndHorizontal();
 
         if (mapSuggestionGrid == null || mapSuggestionGrid.Count == 0 || mapSuggestionGrid[0] == null)
             NewSuggestionsClusters();
@@ -72,20 +86,20 @@ public class SuggestionsEditor : EditorWindow
                 //GUI.DrawTexture(new Rect(0.5f * position.width, i * position.height / numberSuggestions, 0.5f*position.width, 0.5f * position.height), renderTexture);
 
                 
-                GUILayoutUtility.GetRect(0.5f*position.width, position.height*0.5f - 25);
+                GUILayoutUtility.GetRect(0.5f*position.width, position.height*0.5f - 50);
                 //GUI.BeginGroup(new Rect(5, 5, 0.5f * position.width, position.height));
                 Camera previewCam = mapSuggestionGrid[i].transform.GetComponentInChildren<Camera>();
                 previewCam.hideFlags = HideFlags.HideAndDontSave;
-                Rect cameraRect = new Rect(5, 10 + (i* position.height * 0.25f -10), 0.5f * position.width-10, position.height * 0.5f - 30);
+                Rect cameraRect = new Rect(5, 50 + i*(position.height * 0.25f-15f), 0.5f * position.width-10, position.height * 0.5f - 60);
                 if (previewCam)
                 {
                     Handles.DrawCamera(cameraRect, previewCam, DrawCameraMode.Normal);
                 }
 
-                GUILayoutUtility.GetRect(0.5f * position.width, position.height * 0.5f - 25);
+                GUILayoutUtility.GetRect(0.5f * position.width, position.height * 0.5f - 50);
                 previewCam = mapSuggestionGrid[i+1].transform.GetComponentInChildren<Camera>();
                 previewCam.hideFlags = HideFlags.HideAndDontSave;
-                cameraRect = new Rect(0.5f*position.width+5, 10 +(i * position.height * 0.25f -10), 0.5f * position.width-10, position.height * 0.5f - 30);
+                cameraRect = new Rect(0.5f*position.width+5, 50 + i *(position.height * 0.25f-15f), 0.5f * position.width-10, position.height * 0.5f - 60);
                 if (previewCam)
                 {
                     Handles.DrawCamera(cameraRect, previewCam, DrawCameraMode.Normal);
@@ -140,10 +154,10 @@ public class SuggestionsEditor : EditorWindow
     public void NewSuggestionsIA()
     {
         //Create new clusters from the current sketch 
-        suggestionsClusters = IA.GetSuggestionsClusters(mapCluster, numberSuggestions);
+        suggestionsClusters = IA.GetSuggestionsClusters(mapCluster, numberSuggestions, evolAlgoParams);
     }
 
-    public void NewSuggestionsEditors()
+    public void NewSuggestionsCells()
     {
         //Create GameObject from the newly created clusters and create editors 
         for (int i = 0; i < numberSuggestions; i++)

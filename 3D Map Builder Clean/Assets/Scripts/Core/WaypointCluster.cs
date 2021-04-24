@@ -12,6 +12,40 @@ namespace MapTileGridCreator.Core
 			pathfindingWaypoints = new List<Waypoint>();
 		}
 
+		public WaypointCluster(CellInformation[,,] newCellInfos)
+		{
+			CreateWaypoints(new Vector3Int(newCellInfos.GetLength(0), newCellInfos.GetLength(1), newCellInfos.GetLength(2)));
+			pathfindingWaypoints = new List<Waypoint>();
+			waypointsDico = new Dictionary<CellInformation, List<Vector3Int>>();
+
+			for (int x = 0; x < waypoints.GetLength(0); x++)
+			{
+				for (int y = 0; y < waypoints.GetLength(1); y++)
+				{
+					for (int z = 0; z < waypoints.GetLength(2); z++)
+					{
+						waypoints[x, y, z].type = newCellInfos[x, y, z];
+						waypoints[x, y, z].baseType = true;
+						waypoints[x, y, z].show = true;
+
+						if (waypoints[x, y, z].type != null)
+                        {
+							if (waypointsDico.ContainsKey(waypoints[x, y, z].type))
+							{
+								waypointsDico[waypoints[x, y, z].type].Add(new Vector3Int(x, y, z));
+							}
+							else
+							{
+								List<Vector3Int> newList = new List<Vector3Int>();
+								newList.Add(new Vector3Int(x, y, z));
+								waypointsDico.Add(waypoints[x, y, z].type, newList);
+							}
+						}
+					}
+				}
+			}
+		}
+
 		/// <summary>
 		/// List of ALL waypoints inside the cluster
 		/// </summary>
@@ -62,7 +96,6 @@ namespace MapTileGridCreator.Core
 		public void ResetPathfinding()
 		{
 			pathfindingWaypoints.Clear();
-			Debug.Log("HERE");
 		}
 
 		public Dictionary<CellInformation, List<Vector3Int>> GetWaypointsDico()
@@ -170,6 +203,11 @@ namespace MapTileGridCreator.Core
 				if(waypoints[x, y, z].type != null)
                 {
 					waypointsDico[waypoints[x, y, z].type].Remove(new Vector3Int(x, y, z));
+					
+					if(waypointsDico[waypoints[x, y, z].type].Count == 0)
+                    {
+						waypointsDico.Remove(waypoints[x, y, z].type);
+                    }
 				}
 			}
 

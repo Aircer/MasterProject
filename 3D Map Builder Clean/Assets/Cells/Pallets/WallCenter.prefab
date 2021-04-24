@@ -763,6 +763,7 @@ MonoBehaviour:
   ground: 1
   blockPath: 1
   wall: 1
+  floor: 0
 --- !u!1 &8771384065082663149
 GameObject:
   m_ObjectHideFlags: 0

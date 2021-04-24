@@ -9,17 +9,31 @@ namespace MapTileGridCreator.Core
 {
     public static class IA
     {
-        public static List<WaypointCluster> GetSuggestionsClusters(WaypointCluster cluster, int nbSuggestions)
+        public static List<WaypointCluster> GetSuggestionsClusters(WaypointCluster cluster, int nbSuggestions, EvolutionaryAlgoParams algoParams)
         {
             List<WaypointCluster> suggestionsClusters = new List<WaypointCluster>();
             Waypoint[,,] waypoints = cluster.GetWaypoints();
             Dictionary<CellInformation, List<Vector3Int>> waypointsDico = cluster.GetWaypointsDico();
             System.Random rand = new System.Random();
 
+            TestGenetics newGenetic = new TestGenetics();
+            newGenetic.elitism = algoParams.elitism;
+            newGenetic.populationSize = algoParams.population;
+            newGenetic.mutationRate = algoParams.mutationRate;
+            newGenetic.StartGenetics(new Vector3Int(waypoints.GetLength(0), waypoints.GetLength(1), waypoints.GetLength(2)), cluster);
+
+            for (int j = 0; j < algoParams.generations; j++)
+            {
+                newGenetic.UpdateGenetics();
+            }
+
             for (int i=0; i< nbSuggestions;i++)
             {
-                suggestionsClusters.Add(TransformationCluster(rand, waypoints, waypointsDico));
+                //suggestionsClusters.Add(TransformationCluster(rand, waypoints, waypointsDico));
+
             }
+
+            suggestionsClusters = newGenetic.GetBestClusters(nbSuggestions);
 
             return suggestionsClusters;
         }

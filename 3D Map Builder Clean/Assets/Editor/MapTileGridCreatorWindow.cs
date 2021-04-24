@@ -191,7 +191,11 @@ public class MapTileGridCreatorWindow : EditorWindow
 		if (newSuggestionsClustersThread != null && !newSuggestionsClustersThread.IsAlive && !newSuggestionsDone)
 		{
 			newSuggestionsDone = true;
-			suggWindow[0].NewSuggestionsEditors();
+			suggWindow = (SuggestionsEditor[])Resources.FindObjectsOfTypeAll(typeof(SuggestionsEditor));
+			if (suggWindow.Length != 0)
+			{
+				suggWindow[0].NewSuggestionsCells();
+			}
 		}
 
 		HandleUtility.Repaint();
@@ -523,7 +527,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			stopWatch.Start();
 			suggWindow[0].NewSuggestionsIA();
 			stopWatch.Stop();
-			UnityEngine.Debug.Log("Time To Run IA " + stopWatch.ElapsedMilliseconds + "ms");
+			//UnityEngine.Debug.Log("Time To Run IA " + stopWatch.ElapsedMilliseconds + "ms");
 			stopWatch.Reset();
 		}
 	}
@@ -709,61 +713,70 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 		if (GUILayout.Button("New"))
 		{
-			RefreshPallet();
-			/*if (_old_size_grid != _size_grid || _cells == null)
-			{*/
-			//Create Visualization object (Coordinates, Brush and ToolManager) if it doesn't exist
-			if (!GameObject.Find("Visualization"))
-				PrefabUtility.InstantiatePrefab(Resources.Load("Visualization"));
+			if (_size_grid != _old_size_grid || _cells == null)
+			{
+				RefreshPallet();
 
-			_brush = GameObject.Find("Brush");
-			_coordinates = GameObject.Find("Coordinates");
+				//Create Visualization object (Coordinates, Brush and ToolManager) if it doesn't exist
+				if (!GameObject.Find("Visualization"))
+					PrefabUtility.InstantiatePrefab(Resources.Load("Visualization"));
 
-			//Destroy then create Grid and Cells with waypoints
-			FuncEditor.DestroyGrids();
+				_brush = GameObject.Find("Brush");
+				_coordinates = GameObject.Find("Coordinates");
 
-			FuncEditor.CreateCellsAndWaypoints(ref _grid, ref _cells, ref _cluster, _cellPrefabs, _size_grid);
-			_grid.transform.position = new Vector3(0, 0, 0);
-			suggWindow = (SuggestionsEditor[])Resources.FindObjectsOfTypeAll(typeof(SuggestionsEditor));
+				//Destroy then create Grid and Cells with waypoints
+				FuncEditor.DestroyGrids();
 
-			_suggestionCell = new List<Cell[,,]>();
-			_suggestionsGrid = new List<Grid3D>();
-			_suggestionCamera = new List<Camera>();
+				FuncEditor.CreateCellsAndWaypoints(ref _grid, ref _cells, ref _cluster, _cellPrefabs, _size_grid);
+				_grid.transform.position = new Vector3(0, 0, 0);
+				suggWindow = (SuggestionsEditor[])Resources.FindObjectsOfTypeAll(typeof(SuggestionsEditor));
 
-			if(suggWindow.Length != 0)
-            {
-				for (int i = 0; i < suggWindow[0].numberSuggestions; i++)
+				_suggestionCell = new List<Cell[,,]>();
+				_suggestionsGrid = new List<Grid3D>();
+				_suggestionCamera = new List<Camera>();
+
+				if (suggWindow.Length != 0)
 				{
-					WaypointCluster newCluster = _cluster;
-					Cell[,,] newCells = _cells;
-					Grid3D newGrid = _grid;
-					GameObject newcameraObject = Instantiate<GameObject>(_cameraPrefab);
-					FuncEditor.CreateCellsAndWaypoints(ref newGrid, ref newCells, ref newCluster, _cellPrefabs, _size_grid);
-					_suggestionCell.Add(newCells);
-					newGrid.transform.position = new Vector3(1000 * (i + 1), 1000 * (i + 1), 1000 * (i + 1));
-					newcameraObject.transform.parent = newGrid.transform;
-					newcameraObject.transform.localPosition = new Vector3(_size_grid.x/2, _size_grid.y / 2, _size_grid.z / 2);
-					//newcameraObject.GetComponent<Camera>().hideFlags = HideFlags.HideAndDontSave;
-					newcameraObject.GetComponent<Camera>().farClipPlane = 50;
-					newcameraObject.GetComponent<Camera>().nearClipPlane = -50;
-					_suggestionsGrid.Add(newGrid);
+					for (int i = 0; i < suggWindow[0].numberSuggestions; i++)
+					{
+						WaypointCluster newCluster = _cluster;
+						Cell[,,] newCells = _cells;
+						Grid3D newGrid = _grid;
+						GameObject newcameraObject = Instantiate<GameObject>(_cameraPrefab);
+						FuncEditor.CreateCellsAndWaypoints(ref newGrid, ref newCells, ref newCluster, _cellPrefabs, _size_grid);
+						_suggestionCell.Add(newCells);
+						newGrid.transform.position = new Vector3(1000 * (i + 1), 1000 * (i + 1), 1000 * (i + 1));
+						newcameraObject.transform.parent = newGrid.transform;
+						newcameraObject.transform.localPosition = new Vector3(_size_grid.x / 2, _size_grid.y / 2, _size_grid.z / 2);
+						//newcameraObject.GetComponent<Camera>().hideFlags = HideFlags.HideAndDontSave;
+						newcameraObject.GetComponent<Camera>().farClipPlane = 50;
+						newcameraObject.GetComponent<Camera>().nearClipPlane = -50;
+						_suggestionsGrid.Add(newGrid);
+					}
+				}
+
+				_old_size_grid = _size_grid;
+			}
+			else
+			{
+				FuncEditor.ResetCells(ref _cells, _old_size_grid);
+				FuncEditor.ResetWaypoints(ref _cluster, _old_size_grid);
+
+				if (suggWindow.Length != 0)
+				{
+					for (int i = 0; i < suggWindow[0].numberSuggestions; i++)
+					{
+						FuncEditor.TransformCellsFromWaypoints(_suggestionCell[i], _cluster.GetWaypoints());
+					}
 				}
 			}
-
-			/*}
-			else 
-			{
-				FuncEditor.ResetCells(ref _cells, _size_grid);
-				FuncEditor.ResetWaypoints(ref _cluster, _size_grid);
-			}*/
-			//Reset position for pathfinding
-			_start_end[0] = Constants.UNDEFINED_POSITION;
-			_start_end[1] = Constants.UNDEFINED_POSITION;
-
-			_undo.noUndo = true;
-			_old_size_grid = _size_grid;
-			EditorUtility.ClearProgressBar();
 		}
+		//Reset position for pathfinding
+		_start_end[0] = Constants.UNDEFINED_POSITION;
+		_start_end[1] = Constants.UNDEFINED_POSITION;
+
+		_undo.noUndo = true;
+		EditorUtility.ClearProgressBar();
 	}
 
 	private void DrawEditor()

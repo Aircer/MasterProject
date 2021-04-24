@@ -295,7 +295,7 @@ namespace MapTileGridCreator.Utilities
 					{
 						progressBarTime += 1;
 						newCells[x, y, z] = InstantiateCell(grid, new Vector3Int(x, y, z), pallet);
-						EditorUtility.DisplayProgressBar("Creatings empty cells", "You can go have a coffee...", progressBarTime / (2*numberCells));
+						EditorUtility.DisplayProgressBar("Creatings empty cells", "You can go have a coffee...", progressBarTime / numberCells);
 					}
 				}
 			}
@@ -535,7 +535,6 @@ namespace MapTileGridCreator.Utilities
 					{
 						if(InputInGridBoundaries(new Vector3Int(i,j,k), size_grid))
                         {
-							UnityEngine.Debug.Log("PAINT");
 							cluster.SetType(type, i, j, k);
 							cluster.GetWaypoints()[i, j, k].basePos = index;
 							if(index.x != i || index.y != j || index.z != k)
