@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
 using MapTileGridCreator.Core;
-using MapTileGridCreator.Utilities;
+using MapTileGridCreator.UtilitiesMain;
 
 using UnityEngine;
 
@@ -52,7 +52,7 @@ namespace MapTileGridCreator.TransformationsBank
 				{
 					if (!grid.HaveCell(ref upIndex))
 					{
-						FuncEditor.InstantiateCell(grid, upIndex);
+						FuncMain.InstantiateCell(grid, upIndex);
 					}
 					upIndex += grid.GetConnexAxes()[1];
 				}

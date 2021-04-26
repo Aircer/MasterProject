@@ -61,13 +61,6 @@ namespace MapTileGridCreator.Core
 			}
 		}
 
-		/// Removes a link (directionally) between this waypoiny and the passed waypoint and sets the probabilities of all edges to the same
-		/// <param name="node"> Node to remove the link from</param>
-		public void unlinkFrom(Waypoint waypoint)
-		{
-			for (int i = 0; i < neighbors.Count; ++i) if (neighbors[i] == waypoint) neighbors.RemoveAt(i);
-		}
-
 		public void SetType(CellInformation newType)
 		{
 			if (type == null || type != newType)

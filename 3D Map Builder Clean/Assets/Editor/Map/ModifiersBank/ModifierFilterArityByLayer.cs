@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
 using MapTileGridCreator.Core;
-using MapTileGridCreator.Utilities;
+using MapTileGridCreator.UtilitiesMain;
 
 using UnityEngine;
 
@@ -39,7 +39,7 @@ namespace MapTileGridCreator.TransformationsBank
 		{
 			foreach (Cell c in _to_delete)
 			{
-				FuncEditor.DestroyCell(c);
+				FuncMain.DestroyCell(c);
 			}
 			last_index = last_index + Vector3Int.up;
 		}

@@ -2,7 +2,7 @@
 using MapTileGridCreator.Core;
 using UnityEditor;
 using UnityEngine;
-using MapTileGridCreator.Utilities;
+using MapTileGridCreator.UtilitiesMain;
 using System.Diagnostics;
 
 [CanEditMultipleObjects]
@@ -120,8 +120,8 @@ public class SuggestionsEditor : EditorWindow
                         SwapCluster(ref mapCluster, ref newCluster);
                         suggestionsClusters[j] = newCluster;
 
-                        FuncEditor.TransformCellsFromWaypoints(mapSuggestionCells[j], suggestionsClusters[j].GetWaypoints());
-                        FuncEditor.TransformCellsFromWaypoints(mapCells, mapCluster.GetWaypoints());
+                        FuncMain.TransformCellsFromWaypoints(mapSuggestionCells[j], suggestionsClusters[j].GetWaypoints());
+                        FuncMain.TransformCellsFromWaypoints(mapCells, mapCluster.GetWaypoints());
 
                     }
                 }
@@ -161,6 +161,6 @@ public class SuggestionsEditor : EditorWindow
     {
         //Create GameObject from the newly created clusters and create editors 
         for (int i = 0; i < numberSuggestions; i++)
-            FuncEditor.TransformCellsFromWaypoints(mapSuggestionCells[i], suggestionsClusters[i].GetWaypoints());
+            FuncMain.TransformCellsFromWaypoints(mapSuggestionCells[i], suggestionsClusters[i].GetWaypoints());
     }
 }

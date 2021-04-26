@@ -1,5 +1,5 @@
 ﻿using MapTileGridCreator.Core;
-using MapTileGridCreator.Utilities;
+using MapTileGridCreator.UtilitiesMain;
 
 using UnityEditor;
 
@@ -15,7 +15,7 @@ namespace MapTileGridCreator.CustomInpectors
 		public void OnEnable()
 		{
 			_grid = (Grid3D)target;
-			FuncEditor.RefreshGrid(_grid);
+			FuncMain.RefreshGrid(_grid);
 		}
 
 		public void OnDisable()
@@ -35,11 +35,11 @@ namespace MapTileGridCreator.CustomInpectors
 			DrawDefaultInspector();
 			if (GUILayout.Button("Refresh"))
 			{
-				FuncEditor.RefreshGrid(_grid);
+				FuncMain.RefreshGrid(_grid);
 			}
 			if (GUILayout.Button("Reset childs"))
 			{
-				FuncEditor.RefreshGrid(_grid);
+				FuncMain.RefreshGrid(_grid);
 				foreach (Cell c in _grid.GetComponentsInChildren<Cell>())
 				{
 					c.ResetTransform();

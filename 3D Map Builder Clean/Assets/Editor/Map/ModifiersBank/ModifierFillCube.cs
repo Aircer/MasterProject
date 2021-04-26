@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
 using MapTileGridCreator.Core;
-using MapTileGridCreator.Utilities;
+using MapTileGridCreator.UtilitiesMain;
 
 using UnityEngine;
 
@@ -39,7 +39,7 @@ namespace MapTileGridCreator.TransformationsBank
 		{
 			foreach (Vector3Int index in _to_instantiate)
 			{
-				FuncEditor.InstantiateCell(grid, index);
+				FuncMain.InstantiateCell(grid, index);
 			}
 		}
 

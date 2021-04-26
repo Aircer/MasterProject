@@ -1,5 +1,5 @@
 ﻿using MapTileGridCreator.Core;
-using MapTileGridCreator.Utilities;
+using MapTileGridCreator.UtilitiesMain;
 
 using UnityEditor;
 
@@ -32,7 +32,7 @@ namespace MapTileGridCreator.SerializeSystem
 
 		public CellDTO(Cell cell)
 		{
-			GameObject prefab = FuncEditor.GetPrefabFromInstance(cell.gameObject);
+			GameObject prefab = FuncMain.GetPrefabFromInstance(cell.gameObject);
 			_pathPrefab = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(prefab);
 			_index = cell.index;
 			_localposition = cell.transform.localPosition;
@@ -42,7 +42,7 @@ namespace MapTileGridCreator.SerializeSystem
 
 		public Cell ToCell(Grid3D grid)
 		{
-			Cell cell = FuncEditor.InstantiateCell(grid, _index);
+			Cell cell = FuncMain.InstantiateCell(grid, _index);
 			cell.transform.localPosition = _localposition;
 			cell.transform.localRotation = Quaternion.Euler(_localrotation);
 			cell.transform.localScale = _localscale;

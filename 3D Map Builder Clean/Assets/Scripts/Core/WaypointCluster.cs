@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using MapTileGridCreator.UtilitiesMain;
 using UnityEditor;
 
 namespace MapTileGridCreator.Core
@@ -93,17 +94,13 @@ namespace MapTileGridCreator.Core
 				FindPath(waypoints[index.x, index.y, index.z], maxjump);
 			}
 		}
-		public void ResetPathfinding()
-		{
-			pathfindingWaypoints.Clear();
-		}
 
 		public Dictionary<CellInformation, List<Vector3Int>> GetWaypointsDico()
 		{
 			return waypointsDico;
 		}
 
-		public void CreateWaypoints(Vector3Int sg)
+		private void CreateWaypoints(Vector3Int sg)
 		{
 			waypoints = new Waypoint[sg.x, sg.y, sg.z];
 			waypointsDico = new Dictionary<CellInformation, List<Vector3Int>>();
@@ -120,7 +117,6 @@ namespace MapTileGridCreator.Core
 						newWaypoint.type = null;
 						newWaypoint.baseType = false;
 						waypoints[x, y, z] = newWaypoint;
-						//waypointsDico[null].Add(new Vector3Int(x, y, z));
 						ConnectWaypoint(x, y, z, sg);
 					}
 				}
@@ -153,7 +149,7 @@ namespace MapTileGridCreator.Core
 			Pathfinding.FloodFill(start, maxJump);
 		}
 
-		public void CleanWaypoints()
+		private void CleanWaypoints()
 		{
 			for(int i =0; i < waypoints.GetLength(0); i++)
 			{
@@ -183,7 +179,7 @@ namespace MapTileGridCreator.Core
 			}
 		}
 
-		public void SetType(CellInformation type, int x, int y, int z)
+		private void SetType(CellInformation type, int x, int y, int z)
 		{ 
 			if (type != null)
 			{
@@ -214,26 +210,21 @@ namespace MapTileGridCreator.Core
 			waypoints[x, y, z].SetType(type);
 		}
 
-		public void SetRotation(Vector2 rotation, Vector3Int index)
-		{
-			waypoints[index.x, index.y, index.z].rotation = rotation;
-		}
-
-		public void SetBase(int x, int y, int z)
+		private void SetBase(int x, int y, int z)
         {
 			waypoints[x, y, z].baseType = true;
 		}
 
-		public void ResetBase(int x, int y, int z)
+		private void ResetBase(int x, int y, int z)
 		{
 			waypoints[x, y, z].baseType = false;
 		}
 
-		public void SetTypeAround(Vector3Int size_grid, Vector3 rotation, CellInformation type, Vector3Int index)
+		private void SetTypeAround(Vector3Int size_grid, Vector3 rotation, CellInformation type, Vector3Int index)
 		{
-			Vector3Int lowerBound = default(Vector3Int);
-			Vector3Int upperBound = default(Vector3Int);
-			SetBounds(ref lowerBound, ref upperBound, index, type.size, rotation);
+			Vector3Int lowerBound = default;
+			Vector3Int upperBound = default;
+			FuncMain.SetBounds(ref lowerBound, ref upperBound, index, type.size, rotation);
 
 			for (int i = lowerBound.x; i <= upperBound.x; i++)
 			{
@@ -241,7 +232,7 @@ namespace MapTileGridCreator.Core
 				{
 					for (int k = lowerBound.z; k <= upperBound.z; k++)
 					{
-						if (InputInGridBoundaries(new Vector3Int(i, j, k), size_grid))
+						if (FuncMain.InputInGridBoundaries(new Vector3Int(i, j, k), size_grid))
                         {
 							SetType(type, i, j, k);
 							waypoints[i, j, k].basePos = index;
@@ -253,45 +244,44 @@ namespace MapTileGridCreator.Core
 			SetBase(index.x, index.y, index.z);
 		}
 
-		/// <summary>
-		/// Check if input is in the grid.
-		/// </summary>
-		/// /// <returns>Return true if Input is in Boundaries.</returns>
-		public static bool InputInGridBoundaries(Vector3 input, Vector3Int size_grid)
+		private void SetRotation(Vector2 rotation, Vector3Int index)
 		{
-			bool inBoundaries = true;
-
-			if (input.x < 0 || input.y < 0 || input.z < 0 || input.x > size_grid.x - 1 || input.y > size_grid.y - 1 || input.z > size_grid.z - 1)
-				inBoundaries = false;
-
-			return inBoundaries;
+			waypoints[index.x, index.y, index.z].rotation = rotation;
 		}
 
-		public static void SetBounds(ref Vector3Int lowerBound, ref Vector3Int upperBound, Vector3Int index, Vector3Int size, Vector3 rotation)
+		public void RemoveTypeAround(Vector3Int size_grid, Vector3 rotation, CellInformation type, Vector3Int index)
 		{
-			Vector3Int newSize = default(Vector3Int);
-			newSize.x = (int)Mathf.Cos(rotation.y * Mathf.Deg2Rad) * size.x + (int)Mathf.Sin(rotation.x * Mathf.Deg2Rad) * (int)Mathf.Sin(rotation.y * Mathf.Deg2Rad) * size.y + (int)Mathf.Sin(rotation.y * Mathf.Deg2Rad) * (int)Mathf.Cos(rotation.x * Mathf.Deg2Rad) * size.z;
-			//newSize.x = newSize.x == 0 ? 1 : newSize.x;
-			newSize.y = (int)Mathf.Cos(rotation.x * Mathf.Deg2Rad) * size.y - (int)Mathf.Sin(rotation.x * Mathf.Deg2Rad) * size.z;
-			//newSize.y = newSize.y == 0 ? 1 : newSize.y;
-			newSize.z = -(int)Mathf.Sin(rotation.y * Mathf.Deg2Rad) * size.x + (int)Mathf.Cos(rotation.y * Mathf.Deg2Rad) * (int)Mathf.Sin(rotation.x * Mathf.Deg2Rad) * size.y + (int)Mathf.Cos(rotation.y * Mathf.Deg2Rad) * (int)Mathf.Cos(rotation.x * Mathf.Deg2Rad) * size.z;
-			//newSize.z = newSize.z == 0 ? 1 : newSize.z;
+			Vector3Int lowerBound = default(Vector3Int);
+			Vector3Int upperBound = default(Vector3Int);
+			Vector3Int basePos = waypoints[index.x, index.y, index.z].basePos;
+			Waypoint baseWaypoint = waypoints[basePos.x, basePos.y, basePos.z];
 
-			lowerBound.x = newSize.x < 0 ? index.x + newSize.x + 1 : index.x;
-			//lowerBound.x = lowerBound.x == 0 ? 1 : lowerBound.x;
-			lowerBound.y = newSize.y < 0 ? index.y + newSize.y + 1 : index.y;
-			//lowerBound.y = lowerBound.y == 0 ? 1 : lowerBound.y;
-			lowerBound.z = newSize.z < 0 ? index.z + newSize.z + 1 : index.z;
-			//lowerBound.z = lowerBound.z == 0 ? 1 : lowerBound.z;
+			if (baseWaypoint != null && baseWaypoint.type != null)
+			{
+				FuncMain.SetBounds(ref lowerBound, ref upperBound, basePos, baseWaypoint.type.size, baseWaypoint.rotation);
 
-			upperBound.x = newSize.x > 0 ? index.x + newSize.x - 1 : index.x;
-			//upperBound.x = upperBound.x == 0 ? 1 : upperBound.x;
-			upperBound.y = newSize.y > 0 ? index.y + newSize.y - 1 : index.y;
-			//upperBound.y = upperBound.y == 0 ? 1 : upperBound.y;
-			upperBound.z = newSize.z > 0 ? index.z + newSize.z - 1 : index.z;
-			//upperBound.z = upperBound.z == 0 ? 1 : upperBound.z;
+				for (int i = lowerBound.x; i <= upperBound.x; i++)
+				{
+					for (int j = lowerBound.y; j <= upperBound.y; j++)
+					{
+						for (int k = lowerBound.z; k <= upperBound.z; k++)
+						{
+							if (FuncMain.InputInGridBoundaries(new Vector3Int(i, j, k), size_grid))
+							{
+								SetType(null, i, j, k);
+							}
+						}
+					}
+				}
 
-			//Debug.Log("size: " + newSize + "UPP: " + upperBound + " LOW: " + lowerBound);
+				ResetBase(basePos.x, basePos.y, basePos.z);
+			}
+		}
+
+		public void SetTypeAndRotationAround(Vector3Int size_grid, Vector3 rotation, CellInformation type, Vector3Int index)
+		{
+			SetTypeAround(size_grid, rotation, type, index);
+			SetRotation(rotation, index);
 		}
 	}
 }

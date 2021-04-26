@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
 using MapTileGridCreator.Core;
-using MapTileGridCreator.Utilities;
+using MapTileGridCreator.UtilitiesMain;
 
 using UnityEngine;
 
@@ -47,7 +47,7 @@ namespace MapTileGridCreator.SerializeSystem
 
 		public Grid3D ToGrid3D()
 		{
-			Grid3D grid = FuncEditor.InstantiateGrid3D();
+			Grid3D grid = FuncMain.InstantiateGrid3D();
 			grid.name = _name;
 			grid.SizeCell = _size_cell;
 			grid.GapRatio = _gap;

@@ -68,8 +68,7 @@ namespace MapTileGridCreator.Core
 
         private static void MoveOldKey(WaypointCluster newCluster, Vector3Int size, Waypoint[,,] waypoints, Vector3Int newKey, Vector3Int oldKey)
         {
-            newCluster.SetTypeAround(size, waypoints[oldKey.x, oldKey.y, oldKey.z].rotation, waypoints[oldKey.x, oldKey.y, oldKey.z].type, newKey);
-            newCluster.SetRotation(waypoints[oldKey.x, oldKey.y, oldKey.z].rotation, newKey);
+            newCluster.SetTypeAndRotationAround(size, waypoints[oldKey.x, oldKey.y, oldKey.z].rotation, waypoints[oldKey.x, oldKey.y, oldKey.z].type, newKey);
             newCluster.GetWaypoints()[newKey.x, newKey.y, newKey.z].show = waypoints[oldKey.x, oldKey.y, oldKey.z].show;
         }
 

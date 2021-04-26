@@ -1,7 +1,7 @@
 ﻿using UnityEditor;
 using UnityEngine;
 using System.IO;
-using MapTileGridCreator.Utilities;
+using MapTileGridCreator.UtilitiesMain;
 
 [CanEditMultipleObjects]
 public class NewAssetEditor : EditorWindow
@@ -51,11 +51,11 @@ public class NewAssetEditor : EditorWindow
         }
 
         newCell.name = EditorGUILayout.TextField("Name : ", newCell.name);
-        FuncEditor.DrawUILine(Color.gray);
+        FuncMain.DrawUILine(Color.gray);
         newCellInformation.size = EditorGUILayout.Vector3IntField("Size: ", newCellInformation.size);
         newCellInformation.ground = EditorGUILayout.Toggle("Ground: ", newCellInformation.ground);
         newCellInformation.blockPath = EditorGUILayout.Toggle("Block Path: ", newCellInformation.blockPath);
-        FuncEditor.DrawUILine(Color.gray);
+        FuncMain.DrawUILine(Color.gray);
 
         GUILayout.BeginHorizontal();
         if (GUILayout.Button("Load"))

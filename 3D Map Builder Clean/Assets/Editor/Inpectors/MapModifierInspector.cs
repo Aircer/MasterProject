@@ -1,6 +1,6 @@
 ﻿
 using MapTileGridCreator.Core;
-using MapTileGridCreator.Utilities;
+using MapTileGridCreator.UtilitiesMain;
 
 using UnityEditor;
 
@@ -23,7 +23,7 @@ namespace MapTileGridCreator.CustomInpectors
 			DrawDefaultInspector();
 
 			EditorGUILayout.BeginVertical();
-			FuncEditor.DrawUILine(Color.gray, 1);
+			FuncMain.DrawUILine(Color.gray, 1);
 
 			foreach (Modifier modif in _map_modif.m_ModifiersList)
 			{
@@ -31,7 +31,7 @@ namespace MapTileGridCreator.CustomInpectors
 				{
 					GUILayout.Label(modif.name, EditorStyles.boldLabel);
 
-					FuncEditor.DrawUILine(Color.gray, 1);
+					FuncMain.DrawUILine(Color.gray, 1);
 					CreateEditor(modif).OnInspectorGUI();
 				}
 				else if (modif != null && modif.Pass)
@@ -43,7 +43,7 @@ namespace MapTileGridCreator.CustomInpectors
 				{
 					EditorGUILayout.HelpBox("Null modifier will be ignored.", MessageType.Warning);
 				}
-				FuncEditor.DrawUILine(Color.gray, 1);
+				FuncMain.DrawUILine(Color.gray, 1);
 			}
 			EditorGUILayout.EndVertical();
 		}

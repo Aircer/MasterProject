@@ -14,19 +14,6 @@ namespace MapTileGridCreator.Core
 	public class Cell : MonoBehaviour
 #pragma warning restore CS0659 // Le type se substitue à Object.Equals(object o) mais pas à Object.GetHashCode()
 	{
-		public Grid3D parent { get; set; }
-		public Vector3Int index { get; set; }
-		public CellInformation type { get; set; }
-		public bool baseType;
-		public Dictionary<CellInformation, GameObject> typeDicoCell = new Dictionary<CellInformation, GameObject>();
-		public CellInformation lastType { get; set; }
-
-		public Vector2 lastRotation { get; set; }
-		public CellState state { get; set; }
-
-		public PathfindingState pathFindingType { get; set; }
-		private BoxCollider colliderBox;
-
 		public class DebugPathinding
 		{
 			public bool inPath;
@@ -36,7 +23,19 @@ namespace MapTileGridCreator.Core
 			public float cost;
 		}
 
-		public DebugPathinding DebugPath = new DebugPathinding();
+		public Grid3D parent { get; set; }
+		public Vector3Int index { get; set; }
+		public CellInformation type { get; set; }
+		public CellInformation lastType { get; set; }
+		public Vector2 lastRotation { get; set; }
+		public CellState state { get; set; }
+		public PathfindingState pathFindingType { get; set; }
+
+		private BoxCollider colliderBox;
+		private DebugPathinding DebugPath = new DebugPathinding();
+
+		public bool baseType;
+		public Dictionary<CellInformation, GameObject> typeDicoCell = new Dictionary<CellInformation, GameObject>();
 
 		public void OnEnable()
         {
@@ -70,16 +69,6 @@ namespace MapTileGridCreator.Core
 
 		public void Painted(CellInformation cellType, Vector2 rotation)
 		{
-			/*
-			GameObject newChild = PrefabUtility.InstantiatePrefab(newCellObject, parent.transform) as GameObject;
-			PrefabUtility.UnpackPrefabInstance(newChild, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-			newChild.transform.parent = this.transform;
-			newChild.transform.position = this.transform.position;
-			newChild.transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
-			lastRotation = rotation;
-			lastType = type = cellType;
-			*/
-
 			if (cellType != null)
 			{
 				typeDicoCell[cellType].SetActive(true);
@@ -94,111 +83,18 @@ namespace MapTileGridCreator.Core
 			state = CellState.Painted;
 		}
 
-		public void WallTransform(Waypoint[,,] waypoints)
+		public void TransformVisual(string activeElement, Vector3 rotation)
         {
-			if (type != null && type.wall)
-			{
-				typeDicoCell[type].transform.Find("Single").gameObject.SetActive(false);
-				typeDicoCell[type].transform.Find("DoubleSides").gameObject.SetActive(false);
-				typeDicoCell[type].transform.Find("Triple").gameObject.SetActive(false);
-				typeDicoCell[type].transform.Find("Corner").gameObject.SetActive(false);
-				typeDicoCell[type].transform.Find("Quattro").gameObject.SetActive(false);
-
-				bool[] neighbordsWalls = new bool[4];
-
-				if (index.x > 0 && waypoints[index.x - 1, index.y, index.z].type != null && waypoints[index.x - 1, index.y, index.z].type.wall)
-					neighbordsWalls[0] = true;
-				else
-					neighbordsWalls[0] = false;
-
-				if (index.x < waypoints.GetLength(0)-1 && waypoints[index.x + 1, index.y, index.z].type != null && waypoints[index.x + 1, index.y, index.z].type.wall)
-					neighbordsWalls[1] = true;
-				else
-					neighbordsWalls[1] = false;
-
-				if (index.z > 0 && waypoints[index.x, index.y, index.z-1].type != null && waypoints[index.x, index.y, index.z-1].type.wall)
-					neighbordsWalls[2] = true;
-				else
-					neighbordsWalls[2] = false;
-
-				if (index.z < waypoints.GetLength(2)-1 && waypoints[index.x, index.y, index.z+1].type != null && waypoints[index.x, index.y, index.z+1].type.wall)
-					neighbordsWalls[3] = true;
-				else
-					neighbordsWalls[3] = false;
-
-				if (!neighbordsWalls[0] && !neighbordsWalls[1] && !neighbordsWalls[2] && !neighbordsWalls[3])
+			if(type != null)
+            {
+				foreach (Transform child in typeDicoCell[type].transform)
 				{
-					typeDicoCell[type].transform.Find("Single").gameObject.SetActive(true);
-					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 0, 0);
+					child.gameObject.SetActive(false);
 				}
-
-				if ((neighbordsWalls[0] || neighbordsWalls[1]) && !neighbordsWalls[2] && !neighbordsWalls[3])
-				{
-					typeDicoCell[type].transform.Find("DoubleSides").gameObject.SetActive(true);
-					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 0, 0);
-				}
-
-				if ((neighbordsWalls[2] || neighbordsWalls[3]) && !neighbordsWalls[0] && !neighbordsWalls[1])
-				{
-					typeDicoCell[type].transform.Find("DoubleSides").gameObject.SetActive(true);
-					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 90, 0);
-				}
-
-				if (neighbordsWalls[1] && neighbordsWalls[2] && !neighbordsWalls[0] && !neighbordsWalls[3])
-				{
-					typeDicoCell[type].transform.Find("Corner").gameObject.SetActive(true);
-					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 0, 0);
-				}
-
-				if (neighbordsWalls[0] && neighbordsWalls[2] && !neighbordsWalls[1] && !neighbordsWalls[3])
-				{
-					typeDicoCell[type].transform.Find("Corner").gameObject.SetActive(true);
-					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 90, 0);
-				}
-
-				if (neighbordsWalls[0] && neighbordsWalls[3] && !neighbordsWalls[1] && !neighbordsWalls[2])
-				{
-					typeDicoCell[type].transform.Find("Corner").gameObject.SetActive(true);
-					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 180, 0);
-				}
-
-				if (neighbordsWalls[1] && neighbordsWalls[3] && !neighbordsWalls[0] && !neighbordsWalls[2])
-				{
-					typeDicoCell[type].transform.Find("Corner").gameObject.SetActive(true);
-					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 270, 0);
-				}
-
-				if (neighbordsWalls[1] && neighbordsWalls[2] && !neighbordsWalls[0] && neighbordsWalls[3])
-				{
-					typeDicoCell[type].transform.Find("Triple").gameObject.SetActive(true);
-					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 0, 0);
-				}
-
-				if (neighbordsWalls[1] && neighbordsWalls[2] && neighbordsWalls[0] && !neighbordsWalls[3])
-				{
-					typeDicoCell[type].transform.Find("Triple").gameObject.SetActive(true);
-					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 90, 0);
-				}
-
-				if (!neighbordsWalls[1] && neighbordsWalls[3] && neighbordsWalls[0] && neighbordsWalls[2])
-				{
-					typeDicoCell[type].transform.Find("Triple").gameObject.SetActive(true);
-					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 180, 0);
-				}
-
-				if (neighbordsWalls[0] && neighbordsWalls[3] && neighbordsWalls[1] && !neighbordsWalls[2])
-				{
-					typeDicoCell[type].transform.Find("Triple").gameObject.SetActive(true);
-					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 270, 0);
-				}
-
-				if (neighbordsWalls[0] && neighbordsWalls[3] && neighbordsWalls[1] && neighbordsWalls[2])
-				{
-					typeDicoCell[type].transform.Find("Quattro").gameObject.SetActive(true);
-					typeDicoCell[type].transform.localEulerAngles = new Vector3(0, 0, 0);
-				}
+				typeDicoCell[type].transform.Find(activeElement).gameObject.SetActive(true);
+				typeDicoCell[type].transform.localEulerAngles = rotation;
 			}
-        }
+		}
 
 		public void Erased()
 		{
@@ -279,6 +175,25 @@ namespace MapTileGridCreator.Core
 				parent = gridParent.GetComponent<Grid3D>();
 			}
 			return parent;
+		}
+
+		public void SetDebug(PathfindingState pathfindingState, bool inPath, Color colorDot, bool pathfindingWaypoint, float gCost, Vector3Int fromKey)
+		{
+			pathFindingType = pathfindingState;
+			DebugPath.inPath = inPath;
+			DebugPath.colorDot = colorDot;
+			DebugPath.pathfindingWaypoint = pathfindingWaypoint;
+			DebugPath.cost = gCost;
+			if(fromKey != Vector3Int.down)
+				DebugPath.fromKey = fromKey;
+		}
+
+		public void ResetDebug()
+		{
+			DebugPath.inPath = false;
+			DebugPath.pathfindingWaypoint = false;
+			DebugPath.cost = 0;
+			DebugPath.fromKey = Vector3Int.down;
 		}
 
 		/// Draws the white square representing the nodes and an arrow for each outgoing edge

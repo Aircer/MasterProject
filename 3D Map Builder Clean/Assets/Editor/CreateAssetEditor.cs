@@ -1,7 +1,7 @@
 ﻿using UnityEditor;
 using UnityEngine;
 using System.IO;
-using MapTileGridCreator.Utilities;
+using MapTileGridCreator.UtilitiesMain;
 
 [CanEditMultipleObjects]
 public class CreateAssetEditor : EditorWindow
@@ -103,7 +103,7 @@ public class CreateAssetEditor : EditorWindow
             rotationMesh = EditorGUILayout.Vector3Field("Rotation Mesh: ", rotationMesh);
             if (EditorGUI.EndChangeCheck()) UpdateMeshShape();
 
-            FuncEditor.DrawUILine(Color.gray);
+            FuncMain.DrawUILine(Color.gray);
             EditorGUILayout.LabelField("Properties Editor: ", EditorStyles.boldLabel);
             EditorGUI.BeginChangeCheck();
             newCell.name = EditorGUILayout.TextField("Name : ", newCell.name);
@@ -111,7 +111,7 @@ public class CreateAssetEditor : EditorWindow
             if (EditorGUI.EndChangeCheck()) UpdateDefaultMeshes(); 
             newCellInformation.ground = EditorGUILayout.Toggle("Ground: ", newCellInformation.ground);
             newCellInformation.blockPath = EditorGUILayout.Toggle("Block Path: ", newCellInformation.blockPath);
-            FuncEditor.DrawUILine(Color.gray);
+            FuncMain.DrawUILine(Color.gray);
           
             if (GUILayout.Button("Save"))
             {
