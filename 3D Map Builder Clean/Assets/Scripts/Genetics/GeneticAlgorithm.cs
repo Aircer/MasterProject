@@ -1,143 +1,155 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace MapTileGridCreator.Core
 {
 	public class GeneticAlgorithm
 	{
-		public List<DNA> Population { get; private set; }
+		public DNA[] oldPopulation { get; private set; }
+		public DNA[] newPopulation { get; private set; }
 		public int Generation { get; private set; }
 		public float BestFitness { get; private set; }
-		public CellInformation[,,] BestGenes { get; private set; }
+		public Waypoint[,,] BestGenes { get; private set; }
 
 		public int Elitism;
 		public float MutationRate;
 
-		private List<DNA> newPopulation;
 		private System.Random random;
 		private float fitnessSum;
 		private Vector3Int dnaSize;
-		private Func<CellInformation> getRandomGeneType;
+		private Func<CellInformation> getRandomType;
 		private Func<int, float> fitnessFunction;
 
-		public GeneticAlgorithm(int populationSize, Vector3Int dnaSize, System.Random random, Func<CellInformation> getRandomGeneType, Func<int, float> fitnessFunction,
-			int elitism, Waypoint[,,] waypoints, float mutationRate = 0.01f)
+		public GeneticAlgorithm(int populationSize, Vector3Int dnaSize, System.Random random, Func<CellInformation> getRandomType, Func<int, float> fitnessFunction,
+			int elitism, WaypointCluster cluster, float mutationRate = 0.01f)
 		{
 			Generation = 1;
 			Elitism = elitism;
 			MutationRate = mutationRate;
-			Population = new List<DNA>(populationSize);
-			newPopulation = new List<DNA>(populationSize);
+			oldPopulation = new DNA[populationSize];
+			newPopulation = new DNA[populationSize];
 			this.random = random;
 			this.dnaSize = dnaSize;
-			this.getRandomGeneType = getRandomGeneType;
+			this.getRandomType = getRandomType;
 			this.fitnessFunction = fitnessFunction;
 
-			BestGenes = new CellInformation[dnaSize.x, dnaSize.y, dnaSize.z];
+			BestGenes = new Waypoint[dnaSize.x, dnaSize.y, dnaSize.z];
 
 			for (int i = 0; i < populationSize; i++)
 			{
-				Population.Add(new DNA(dnaSize, random, getRandomGeneType, fitnessFunction, waypoints));
+				DNA newPop = new DNA(dnaSize, random, getRandomType, fitnessFunction, cluster);
+				oldPopulation[i] = newPop;
+				DNA newPop2 = new DNA(dnaSize, random, getRandomType, fitnessFunction, cluster);
+				newPopulation[i] = newPop2;
+			}
+
+			foreach (Wall wall in newPopulation[0].phenotype.walls_x)
+			{
+				UnityEngine.Debug.Log("WallX position : " + wall.position + " size : " + wall.indexes.Count);
+			}
+
+			foreach (Wall wall in newPopulation[0].phenotype.walls_z)
+			{
+				UnityEngine.Debug.Log("WallZ position : " + wall.position + " size : " + wall.indexes.Count);
 			}
 		}
 
 		public void NewGeneration(int numNewDNA = 0, bool crossoverNewDNA = false)
 		{
-			int finalCount = Population.Count + numNewDNA;
+			int finalCount = oldPopulation.Length + numNewDNA;
 
 			if (finalCount <= 0)
 			{
 				return;
 			}
 
-			if (Population.Count > 0)
-			{
-				CalculateFitness();
-				Population.Sort(CompareDNA);
-			}
-			newPopulation.Clear();
+			ClassifyPopulation();
 
 			for (int i = 0; i < finalCount; i++)
 			{
-				if (i < Elitism && i < Population.Count)
+				if (i < Elitism && i < oldPopulation.Length)
 				{
-					newPopulation.Add(Population[i]);
+					newPopulation[i].Crossover(oldPopulation[i]);
 				}
-				else if (i < Population.Count || crossoverNewDNA)
+				else if (i < oldPopulation.Length || crossoverNewDNA)
 				{
 					DNA parent1 = ChooseParent();
-					DNA parent2 = ChooseParent();
-
-					DNA child = parent1.Crossover(parent2);
-
-					child.Mutate(MutationRate);
-
-					newPopulation.Add(child);
-				}
-				else
-				{
-					newPopulation.Add(new DNA(dnaSize, random, getRandomGeneType, fitnessFunction));
+					newPopulation[i].Crossover(parent1);
+					newPopulation[i].Mutate(MutationRate);
 				}
 			}
-
-			List<DNA> tmpList = Population;
-			Population = newPopulation;
-			newPopulation = tmpList;
+			
+			DNA[] tmpArray = oldPopulation;
+			oldPopulation = newPopulation;
+			newPopulation = tmpArray;
 
 			Generation++;
 		}
 
-		private int CompareDNA(DNA a, DNA b)
+		public void ClassifyPopulation()
 		{
-			if (a.Fitness > b.Fitness)
+			if (oldPopulation.Length > 0)
 			{
-				return -1;
-			}
-			else if (a.Fitness < b.Fitness)
-			{
-				return 1;
-			}
-			else
-			{
-				return 0;
+				CalculateFitness();
+
+				DNA temp;
+
+				for (int i = 0; i < oldPopulation.Length - 1; i++)
+				{
+					for (int j = i + 1; j < oldPopulation.Length; j++)
+					{
+						if (oldPopulation[i].Fitness < oldPopulation[j].Fitness)
+						{
+
+							temp = oldPopulation[i];
+							oldPopulation[i] = oldPopulation[j];
+							oldPopulation[j] = temp;
+
+							temp = newPopulation[i];
+							newPopulation[i] = newPopulation[j];
+							newPopulation[j] = temp;
+						}
+					}
+				}
 			}
 		}
 
 		private void CalculateFitness()
 		{
 			fitnessSum = 0;
-			DNA best = Population[0];
+			DNA best = oldPopulation[0];
 
-			for (int i = 0; i < Population.Count; i++)
+			for (int i = 0; i < oldPopulation.Length; i++)
 			{
-				fitnessSum += Population[i].CalculateFitness(i);
+				fitnessSum += oldPopulation[i].CalculateFitness(i);
 
-				if (Population[i].Fitness > best.Fitness)
+				if (oldPopulation[i].Fitness > best.Fitness)
 				{
-					best = Population[i];
+					best = oldPopulation[i];
 				}
 			}
 
 			BestFitness = best.Fitness;
-			Array.Copy(best.Genes, 0, BestGenes, 0, best.Genes.Length);
+			BestGenes = best.Genes;
 		}
 
 		private DNA ChooseParent()
 		{
 			double randomNumber = random.NextDouble() * fitnessSum;
 
-			for (int i = 0; i < Population.Count; i++)
+			for (int i = 0; i < oldPopulation.Length; i++)
 			{
-				if (randomNumber < Population[i].Fitness)
+				if (randomNumber < oldPopulation[i].Fitness)
 				{
-					return Population[i];
+					return oldPopulation[i];
 				}
 
-				randomNumber -= Population[i].Fitness;
+				randomNumber -= oldPopulation[i].Fitness;
 			}
 
-			return Population[0];
+			return oldPopulation[0];
 		}
 	}
 }

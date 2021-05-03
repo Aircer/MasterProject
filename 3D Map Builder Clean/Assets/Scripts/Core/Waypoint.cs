@@ -7,13 +7,17 @@ namespace MapTileGridCreator.Core
 {
 	public class Waypoint
 	{
-		public Vector3Int key { get; set; }
+		private Vector3Int sizeCluster;
+		public WaypointCluster cluster;
+		public Vector3Int key { get; private set; }
 		public CellInformation type { get; set; }
+
+		public Vector2 rotation { get; set; }
 		public bool baseType { get; set; }
 		public Vector3Int basePos { get; set; }
+
 		public bool pathfindingWaypoint { get; set; }
 		public bool show { get; set; }
-		public Vector2 rotation { get; set; }
 		public bool inPath { get; set; }
 		public Color colorDot = Color.white;
 		public float hCost { get; set; }
@@ -22,43 +26,97 @@ namespace MapTileGridCreator.Core
 		public Waypoint inPathFrom { get; set; }
 		public bool IAChangedMe { get; set; }
 
-		/// The outgoing list of edges
-		public List<Waypoint> neighbors = new List<Waypoint>();
-		public Waypoint UpNeighbor;
-		public Waypoint DownNeighbor;
-		public List<Waypoint> SideNeighbor = new List<Waypoint>();
-
-		/// Links this waypoint (directionally) with the passed waypoint and sets the probabilities of all edges to the same
-		/// <param name="node"> Node to be linked to</param>
-		public void linkTo(Waypoint waypoint)
+		public List<Waypoint> GetNeighbors() 
 		{
-			if (waypoint == this)
-			{
-				Debug.LogError("A waypoint cannot be linked to itself");
-				return;
-			}
-			for (int i = 0; i < neighbors.Count; ++i) if (waypoint == neighbors[i]) return;
+			List<Waypoint> neighbors = new List<Waypoint>();
+			neighbors.AddRange(GetSideNeighborsX());
+			neighbors.AddRange(GetSideNeighborsZ());
+			if (GetUpNeighbor() != null)
+				neighbors.Add(GetUpNeighbor());
+			if (GetDownNeighbor() != null)
+				neighbors.Add(GetDownNeighbor());
+			return neighbors;
+		}
 
-			neighbors.Add(waypoint);
-			waypoint.neighbors.Add(this);
+		public List<Waypoint> GetSideNeighbors()
+		{
+			List<Waypoint> neighbors = new List<Waypoint>();
+			neighbors.AddRange(GetSideNeighborsX());
+			neighbors.AddRange(GetSideNeighborsZ());
+			return neighbors;
+		}
 
-			if (waypoint.key.y > this.key.y)
-			{
-				UpNeighbor = waypoint;
-				waypoint.DownNeighbor = this;
-			}
+		public List<Waypoint> GetVerticalAndXNeighbors()
+		{
+			List<Waypoint> neighbors = new List<Waypoint>();
+			neighbors.AddRange(GetSideNeighborsX());
+			if (GetUpNeighbor() != null)
+				neighbors.Add(GetUpNeighbor());
+			if (GetDownNeighbor() != null)
+				neighbors.Add(GetDownNeighbor());
+			return neighbors;
+		}
 
-			if (waypoint.key.y < this.key.y)
-			{
-				DownNeighbor = waypoint;
-				waypoint.UpNeighbor = this;
-			}
+		public List<Waypoint> GetVerticalAndZNeighbors()
+		{
+			List<Waypoint> neighbors = new List<Waypoint>();
+			neighbors.AddRange(GetSideNeighborsZ());
+			if (GetUpNeighbor() != null)
+				neighbors.Add(GetUpNeighbor());
+			if (GetDownNeighbor() != null)
+				neighbors.Add(GetDownNeighbor());
+			return neighbors;
+		}
 
-			if (waypoint.key.y == this.key.y)
-			{
-				this.SideNeighbor.Add(waypoint);
-				waypoint.SideNeighbor.Add(this);
-			}
+		public List<Waypoint> GetSideNeighborsX() 
+		{
+			List<Waypoint> sideNeighborsX = new List<Waypoint>();
+
+			if (key.x > 0)
+				sideNeighborsX.Add(cluster.GetWaypoints()[key.x - 1, key.y, key.z]);
+			if (key.x < sizeCluster.x-1)
+				sideNeighborsX.Add(cluster.GetWaypoints()[key.x + 1, key.y, key.z]);
+
+			return sideNeighborsX; 
+		}
+
+		public List<Waypoint> GetSideNeighborsZ()
+		{
+			List<Waypoint> sideNeighborsZ = new List<Waypoint>();
+
+			if (key.z > 0)
+				sideNeighborsZ.Add(cluster.GetWaypoints()[key.x, key.y, key.z - 1]);
+			if (key.z < sizeCluster.z - 1)
+				sideNeighborsZ.Add(cluster.GetWaypoints()[key.x, key.y, key.z + 1]);
+
+			return sideNeighborsZ;
+		}
+
+		public Waypoint GetUpNeighbor() 
+		{
+			if (key.y < sizeCluster.y - 1)
+				return cluster.GetWaypoints()[key.x, key.y + 1, key.z];
+			else
+				return null;
+
+		}
+
+		public Waypoint GetDownNeighbor()
+		{
+			if (key.y > 0)
+				return cluster.GetWaypoints()[key.x, key.y - 1, key.z];
+			else
+				return null;
+		}
+
+		public void Initialize(Vector3Int size, Vector3Int newKey, WaypointCluster cluster)
+		{
+			sizeCluster = size;
+			this.cluster = cluster;
+			key = newKey;
+			type = null;
+			baseType = false;
+			show = true;
 		}
 
 		public void SetType(CellInformation newType)
@@ -77,5 +135,20 @@ namespace MapTileGridCreator.Core
 					show = true;
 			}
 		}
+
+		public void SetBase(bool state)
+		{
+			baseType = state;
+		}
+
+		public void SetBasePos(Vector3Int pos)
+		{
+			basePos = pos;
+		}
+
+		public void SetRotation(Vector3 rot)
+        {
+			rotation = rot;
+        }
 	}
 }

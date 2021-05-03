@@ -198,34 +198,6 @@ namespace MapTileGridCreator.UtilitiesMain
 		}
 
 		/// <summary>
-		/// Stamp cells is to copy and paste a list of cell to an other location.
-		/// </summary>
-		/// <param name="listCell"> The list of cells to copy.</param>
-		/// <param name="grid"> The grid in which place the copy.</param>
-		/// <param name="displacement"> The displacement relative to the current position of cells.</param>
-		/// <param name="overwrite"> Option if we overwrite an existing cell at destination of copy</param>
-		public static void StampCells(List<Cell> listCell, Grid3D grid, Vector3Int destinationIndex, bool overwrite = true)
-		{
-			Vector3Int displacement = destinationIndex - listCell[0].index;
-			foreach (Cell c in listCell)
-			{
-				Vector3Int index = displacement + c.index;
-				Cell cdest = grid.TryGetCellByIndex(ref index);
-
-				GameObject prefabInstance = c.gameObject;
-				GameObject prefab = GetPrefabFromInstance(prefabInstance);
-				if (cdest == null)
-				{
-					InstantiateCell(grid, index);
-				}
-				else if (overwrite)
-				{
-					ReplaceCell(prefab, grid, cdest);
-				}
-			}
-		}
-
-		/// <summary>
 		/// Ui funtions to draw separator in Editors.
 		/// </summary>
 		/// <param name="color"> The color of the separation</param>
@@ -348,6 +320,7 @@ namespace MapTileGridCreator.UtilitiesMain
 			//Create Grid and all Cells 
 			grid = InstantiateGrid3D();
 			CreateEmptyCells(out cells, grid, size_grid, pallet);
+			grid._cells = cells;
 			//Create Cluster and Waypoints
 			WaypointCluster newCluster = new WaypointCluster(size_grid);
 
@@ -487,6 +460,32 @@ namespace MapTileGridCreator.UtilitiesMain
 			return true;
 		}
 
+		/// <summary>
+		/// Check if there is enough room to paint the new asset
+		///</summary>
+		public static bool CanAddTypeHere(Vector3Int size_grid, Vector3Int index, Vector3Int size, WaypointCluster cluster, Vector3 rotation)
+		{
+
+			Vector3Int lowerBound = default(Vector3Int);
+			Vector3Int upperBound = default(Vector3Int);
+			SetBounds(ref lowerBound, ref upperBound, index, size, rotation);
+
+			for (int i = lowerBound.x; i <= upperBound.x; i++)
+			{
+				for (int j = lowerBound.y; j <= upperBound.y; j++)
+				{
+					for (int k = lowerBound.z; k <= upperBound.z; k++)
+					{
+						//if (!InputInGridBoundaries(new Vector3Int(i, j, k), size_grid) || !(cells[i, j, k].state == CellState.Inactive || cells[i, j, k].state == CellState.Painted))
+						if (!InputInGridBoundaries(new Vector3Int(i, j, k), size_grid) || cluster.GetWaypoints()[i, j, k].type != null)
+							return false;
+					}
+				}
+			}
+
+			return true;
+		}
+
 		public static void SetBounds(ref Vector3Int lowerBound, ref Vector3Int upperBound, Vector3Int index, Vector3Int size, Vector3 rotation)
 		{
 			Vector3Int newSize = default(Vector3Int);
@@ -505,18 +504,23 @@ namespace MapTileGridCreator.UtilitiesMain
 
 		public static void SetShowTypeCell(bool show, CellInformation cellInfo, WaypointCluster cluster, Cell[,,] cells)
         {
-			if(cluster.GetWaypointsDico().ContainsKey(cellInfo))
-            {
-				List<Vector3Int> index = cluster.GetWaypointsDico()[cellInfo];
-
-				for (int j = 0; j < index.Count; j++)
+			Vector3Int size_grid = new Vector3Int(cells.GetLength(0), cells.GetLength(1), cells.GetLength(2));
+			for (int i = 0; i < size_grid.x; i++)
+			{
+				for (int j = 0; j < size_grid.y; j++)
 				{
-					if (!show)
-						cells[index[j].x, index[j].y, index[j].z].Sleep();
-					else
-						cells[index[j].x, index[j].y, index[j].z].Active();
+					for (int k = 0; k < size_grid.z; k++)
+					{
+						if(cluster.GetWaypoints()[i,j,k].type == cellInfo)
+                        {
+							if (!show)
+								cells[i, j, k].Sleep();
+							else
+								cells[i, j, k].Active();
 
-					cluster.GetWaypoints()[index[j].x, index[j].y, index[j].z].show = show;
+							cluster.GetWaypoints()[i, j, k].show = show;
+						}
+					}
 				}
 			}
 		}
@@ -541,7 +545,9 @@ namespace MapTileGridCreator.UtilitiesMain
 						if (InputInGridBoundaries(new Vector3Int(i, j, k), size_grid))
 						{
 							if (index.x != i || index.y != j || index.z != k)
+							{
 								cells[i, j, k].Erased();
+							}
 						}
 					}
 				}
@@ -554,6 +560,7 @@ namespace MapTileGridCreator.UtilitiesMain
 			Vector3Int size_grid = new Vector3Int(cells.GetLength(0), cells.GetLength(1), cells.GetLength(2));
 			Vector3Int lowerBound = default(Vector3Int);
 			Vector3Int upperBound = default(Vector3Int);
+
 			SetBounds(ref lowerBound, ref upperBound, cluster.GetWaypoints()[index.x, index.y, index.z].basePos, type.size, rotation);
 
 			for (int i = lowerBound.x; i <= upperBound.x; i++)

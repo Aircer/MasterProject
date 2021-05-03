@@ -33,6 +33,11 @@ public class SuggestionsEditor : EditorWindow
 
         if (mapWindow == null)
             mapWindow = (MapTileGridCreatorWindow)Resources.FindObjectsOfTypeAll(typeof(MapTileGridCreatorWindow))[0];
+
+        evolAlgoParams.population = 20;
+        evolAlgoParams.elitism = 10;
+        evolAlgoParams.generations = 500;
+        evolAlgoParams.mutationRate = 0.01f;
     }
     public void Update()
     {

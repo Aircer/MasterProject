@@ -13,14 +13,13 @@ namespace MapTileGridCreator.Core
         {
             List<WaypointCluster> suggestionsClusters = new List<WaypointCluster>();
             Waypoint[,,] waypoints = cluster.GetWaypoints();
-            Dictionary<CellInformation, List<Vector3Int>> waypointsDico = cluster.GetWaypointsDico();
-            System.Random rand = new System.Random();
+            Vector3Int size = new Vector3Int(waypoints.GetLength(0), waypoints.GetLength(1), waypoints.GetLength(2));
 
             TestGenetics newGenetic = new TestGenetics();
             newGenetic.elitism = algoParams.elitism;
             newGenetic.populationSize = algoParams.population;
             newGenetic.mutationRate = algoParams.mutationRate;
-            newGenetic.StartGenetics(new Vector3Int(waypoints.GetLength(0), waypoints.GetLength(1), waypoints.GetLength(2)), cluster);
+            newGenetic.StartGenetics(size, cluster);
 
             for (int j = 0; j < algoParams.generations; j++)
             {
@@ -74,7 +73,7 @@ namespace MapTileGridCreator.Core
 
         public static bool CheckNeighbordsFull(Waypoint waypoint)
         {
-            foreach(Waypoint neighbord in waypoint.SideNeighbor)
+            foreach(Waypoint neighbord in waypoint.GetSideNeighbors())
             {
                 if (neighbord.type == null)
                     return false;
@@ -136,6 +135,101 @@ namespace MapTileGridCreator.Core
                 inBoundaries = false;
 
             return inBoundaries;
+        }
+
+        public static Phenotype GetPhenotype(Vector3Int minSize, Vector3Int maxSize, Waypoint[,,] Genes)
+        {
+            Phenotype newPhenotype = new Phenotype();
+            newPhenotype.walls_x = new List<Wall>();
+            newPhenotype.walls_z = new List<Wall>();
+
+            for (int x = minSize.x; x < maxSize.x; x++)
+            {
+                for (int y = minSize.y; y < maxSize.y; y++)
+                {
+                    for (int z = minSize.z; z < maxSize.z; z++)
+                    {
+                        if (Genes[x, y, z].type && Genes[x, y, z].type.wall)
+                        {
+                            bool inAWallX = false;
+                            bool inAWallZ = false;
+
+                           foreach (Wall wall in newPhenotype.walls_x)
+                           {
+                                foreach (Waypoint neighbor in Genes[x, y, z].GetVerticalAndXNeighbors())
+                                {
+                                    if (wall.indexes.Contains(neighbor.key) && !wall.indexes.Contains(new Vector3Int(x, y, z)))
+                                    {
+                                        wall.indexes.Add(new Vector3Int(x,y,z));
+                                        inAWallX = true;
+                                    }
+
+                                    if(wall.indexes.Contains(new Vector3Int(x, y, z)))
+                                         inAWallX = true;
+                                }
+                           }
+
+                            foreach (Wall wall in newPhenotype.walls_z)
+                            {
+                                foreach (Waypoint neighbor in Genes[x, y, z].GetVerticalAndZNeighbors())
+                                {
+                                    if (wall.indexes.Contains(neighbor.key) && !wall.indexes.Contains(new Vector3Int(x, y, z)))
+                                    {
+                                        wall.indexes.Add(new Vector3Int(x, y, z));
+                                        inAWallZ = true;
+                                    }
+
+                                    if (wall.indexes.Contains(new Vector3Int(x, y, z)))
+                                        inAWallZ = true;
+                                }
+                            }
+
+                            if (!inAWallX)
+                            {
+                                List<Vector3Int> indexesX = new List<Vector3Int>();
+
+                                foreach (Waypoint neighbor in Genes[x, y, z].GetSideNeighborsX())
+                                {
+                                    if (neighbor.type && neighbor.type.wall)
+                                        indexesX.Add(neighbor.key);
+                                }
+
+                                if (indexesX.Count > 0)
+                                {
+                                    indexesX.Add(new Vector3Int(x, y, z));
+                                    Wall newWall = new Wall();
+                                    newWall.indexes = indexesX;
+                                    newWall.position = z;
+                                    newPhenotype.walls_x.Add(newWall);
+                                }
+                            }
+
+                            if (!inAWallZ)
+                            {
+                                List<Vector3Int> indexesZ = new List<Vector3Int>();
+
+                                foreach (Waypoint neighbor in Genes[x, y, z].GetSideNeighborsZ())
+                                {
+                                    if (neighbor.type && neighbor.type.wall)
+                                        indexesZ.Add(neighbor.key);
+                                }
+
+                                if (indexesZ.Count > 0)
+                                {
+                                    indexesZ.Add(new Vector3Int(x, y, z));
+                                    Wall newWall = new Wall();
+                                    newWall.indexes = indexesZ;
+                                    newWall.position = x;
+                                    newPhenotype.walls_z.Add(newWall);
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+
+            return newPhenotype;
         }
     }
 }

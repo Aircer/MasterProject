@@ -6,35 +6,33 @@ namespace MapTileGridCreator.Core
 {
 	public class DNA
 	{
-		public CellInformation[,,] Genes { get; private set; }
+		public WaypointCluster GenesCluster { get; private set; }
+		public Waypoint[,,] Genes { get; private set; }
 		public float Fitness { get; private set; }
 
 		private System.Random random;
-		private Func<CellInformation> getRandomGeneType;
+		private Func<CellInformation> getRandomType;
 		private Func<int, float> fitnessFunction;
 		private Vector3Int sizeDNA;
 
-		public DNA(Vector3Int size, System.Random random, Func<CellInformation> getRandomGeneType, Func<int, float> fitnessFunction, Waypoint[,,] waypoints = null)
+		public Phenotype phenotype;
+
+		public DNA(Vector3Int size, System.Random random, Func<CellInformation> getRandomType, Func<int, float> fitnessFunction, WaypointCluster cluster = null)
 		{
-			Genes = new CellInformation[size.x, size.y, size.z];
+			Genes = new Waypoint[size.x, size.y, size.z];
 			this.random = random;
-			this.getRandomGeneType = getRandomGeneType;
+			this.getRandomType = getRandomType;
 			this.fitnessFunction = fitnessFunction;
 			this.sizeDNA = size;
+			this.phenotype = new Phenotype();
 
-			if (waypoints != null)
+			if (cluster != null)
 			{
-				for (int i = 0; i < sizeDNA.x; i++)
-				{
-					for (int j = 0; j < sizeDNA.y; j++)
-					{
-						for (int k = 0; k < sizeDNA.z; k++)
-						{
-							Genes[i, j, k] = waypoints[i,j,k].type;
-						}
-					}
-				}
+				this.GenesCluster = new WaypointCluster(cluster.GetWaypoints());
 			}
+
+			Genes = GenesCluster.GetWaypoints();
+			phenotype = IA.GetPhenotype(GenesCluster.minSize, GenesCluster.maxSize, Genes);
 		}
 
 		public float CalculateFitness(int index)
@@ -43,37 +41,46 @@ namespace MapTileGridCreator.Core
 			return Fitness;
 		}
 
-		public DNA Crossover(DNA otherParent)
+		public void Crossover(DNA otherParent)
 		{
-			DNA child = new DNA(sizeDNA, random, getRandomGeneType, fitnessFunction);
+			Vector3Int min = new Vector3Int(Mathf.Min(GenesCluster.minSize.x,otherParent.GenesCluster.minSize.x),
+										Mathf.Min(GenesCluster.minSize.y, otherParent.GenesCluster.minSize.y),
+										Mathf.Min(GenesCluster.minSize.z, otherParent.GenesCluster.minSize.z));
 
-			for (int i = 0; i < sizeDNA.x; i++)
+			Vector3Int max = new Vector3Int(Mathf.Max(GenesCluster.maxSize.x, otherParent.GenesCluster.maxSize.x),
+							Mathf.Max(GenesCluster.maxSize.y, otherParent.GenesCluster.maxSize.y),
+							Mathf.Max(GenesCluster.maxSize.z, otherParent.GenesCluster.maxSize.z));
+
+			for (int x = min.x; x < max.x; x++)
 			{
-				for (int j = 0; j < sizeDNA.y; j++)
+				for (int y = min.y; y < max.y; y++)
 				{
-					for (int k = 0; k < sizeDNA.z; k++)
+					for (int z = min.z; z < max.z; z++)
 					{
-						child.Genes[i, j, k] = random.NextDouble() < 0.5 ? Genes[i, j, k] : otherParent.Genes[i, j, k];
+						Genes[x,y,z].type = otherParent.Genes[x, y, z].type;
+						Genes[x, y, z].rotation = otherParent.Genes[x, y, z].rotation;
+						Genes[x, y, z].basePos = otherParent.Genes[x, y, z].basePos;
+						Genes[x, y, z].baseType = otherParent.Genes[x, y, z].baseType;
 					}
 				}
 			}
-
-			return child;
 		}
 
 		public void Mutate(float mutationRate)
 		{
-			for (int i = 0; i < sizeDNA.x; i++)
+			for (int x = 0; x < mutationRate * sizeDNA.x * sizeDNA.y * sizeDNA.z; x++)
 			{
-				for (int j = 0; j < sizeDNA.y; j++)
+				Vector3Int index = new Vector3Int(random.Next(0, sizeDNA.x), random.Next(0, sizeDNA.y), random.Next(0, sizeDNA.z));
+				CellInformation type = getRandomType();
+				Vector3 rotation = new Vector3(0, 0, 0);
+
+				if (type != null)
 				{
-					for (int k = 0; k < sizeDNA.z; k++)
-					{
-						if (random.NextDouble() < mutationRate)
-						{
-							Genes[i, j, k] = getRandomGeneType();
-						}
-					}
+					GenesCluster.SetTypeAndRotationAround(sizeDNA, rotation, type, index);
+				}
+				else
+				{
+					GenesCluster.RemoveTypeAround(sizeDNA, index);
 				}
 			}
 		}

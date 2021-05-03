@@ -75,7 +75,8 @@ namespace MapTileGridCreator.Core
 				throw new ArgumentException("Not enough axes, must be at least of size 3.");
 			}
 
-			_map = new Dictionary<Vector3Int, Cell>();
+			if(_map == null)
+				_map = new Dictionary<Vector3Int, Cell>();
 			_axes = new List<Vector3>();
 			_connex_axes = new List<Vector3Int>();
 
@@ -395,6 +396,21 @@ namespace MapTileGridCreator.Core
 				new Vector4(0, 0, 0, 1));
 		}
 
+		public void GetCells(Vector3Int size)
+		{
+			_cells = new Cell[size.x, size.y, size.z];
+			for (int i = 0; i < size.x; i++)
+			{
+				for (int j = 0; j < size.y; j++)
+				{
+					for (int k = 0; k < size.z; k++)
+					{
+						_cells[i,j,k] = this.transform.Find("cell_" + i + "_" + j + "_" + k).GetComponent<Cell>();
+					}
+				}
+			}
+		}
+
 		#region Getter/Setter
 
 		public Vector3 Origin => transform.position;
@@ -416,7 +432,8 @@ namespace MapTileGridCreator.Core
 
 		private List<Vector3> _axes;
 		private List<Vector3Int> _connex_axes;
-		private Dictionary<Vector3Int, Cell> _map;
+		public Dictionary<Vector3Int, Cell> _map;
+		public Cell[,,] _cells;
 		#endregion
 	}
 }

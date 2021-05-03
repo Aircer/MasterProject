@@ -11,37 +11,34 @@ namespace MapTileGridCreator.Core
 		{
 			CreateWaypoints(size);
 			pathfindingWaypoints = new List<Waypoint>();
+			minSize = new Vector3Int(size.x, size.y, size.z);
+			maxSize = new Vector3Int(0, 0, 0);
 		}
 
-		public WaypointCluster(CellInformation[,,] newCellInfos)
+		public WaypointCluster(Waypoint[,,] newWaypoints)
 		{
-			CreateWaypoints(new Vector3Int(newCellInfos.GetLength(0), newCellInfos.GetLength(1), newCellInfos.GetLength(2)));
+			Vector3Int size = new Vector3Int(newWaypoints.GetLength(0), newWaypoints.GetLength(1), newWaypoints.GetLength(2));
 			pathfindingWaypoints = new List<Waypoint>();
-			waypointsDico = new Dictionary<CellInformation, List<Vector3Int>>();
+			waypoints = new Waypoint[size.x, size.y, size.z];
+			minSize = new Vector3Int(size.x, size.y, size.z);
+			maxSize = new Vector3Int(0, 0, 0);
 
-			for (int x = 0; x < waypoints.GetLength(0); x++)
-			{
-				for (int y = 0; y < waypoints.GetLength(1); y++)
+			//CreateWaypoints(size);
+
+			for (int x = 0; x < size.x; x++)
+            {
+				for (int y = 0; y < size.y; y++)
 				{
-					for (int z = 0; z < waypoints.GetLength(2); z++)
+					for (int z = 0; z < size.z; z++)
 					{
-						waypoints[x, y, z].type = newCellInfos[x, y, z];
-						waypoints[x, y, z].baseType = true;
-						waypoints[x, y, z].show = true;
-
-						if (waypoints[x, y, z].type != null)
-                        {
-							if (waypointsDico.ContainsKey(waypoints[x, y, z].type))
-							{
-								waypointsDico[waypoints[x, y, z].type].Add(new Vector3Int(x, y, z));
-							}
-							else
-							{
-								List<Vector3Int> newList = new List<Vector3Int>();
-								newList.Add(new Vector3Int(x, y, z));
-								waypointsDico.Add(waypoints[x, y, z].type, newList);
-							}
-						}
+						Waypoint newWaypoint = new Waypoint();
+						newWaypoint.Initialize(size, new Vector3Int(x, y, z), this);
+						newWaypoint.type = newWaypoints[x, y, z].type;
+						newWaypoint.rotation = newWaypoints[x, y, z].rotation;
+						newWaypoint.basePos = newWaypoints[x, y, z].basePos;
+						newWaypoint.baseType = newWaypoints[x, y, z].baseType;
+						waypoints[x, y, z] = newWaypoint;
+						SetSize(x, y, z);
 					}
 				}
 			}
@@ -51,8 +48,9 @@ namespace MapTileGridCreator.Core
 		/// List of ALL waypoints inside the cluster
 		/// </summary>
 		private Waypoint[,,] waypoints;
-		private Dictionary<CellInformation, List<Vector3Int>> waypointsDico;
 		private List<Waypoint> pathfindingWaypoints;
+		public Vector3Int minSize;
+		public Vector3Int maxSize;
 
 		public Waypoint[,,] GetWaypoints()
 		{
@@ -95,15 +93,9 @@ namespace MapTileGridCreator.Core
 			}
 		}
 
-		public Dictionary<CellInformation, List<Vector3Int>> GetWaypointsDico()
-		{
-			return waypointsDico;
-		}
-
 		private void CreateWaypoints(Vector3Int sg)
 		{
 			waypoints = new Waypoint[sg.x, sg.y, sg.z];
-			waypointsDico = new Dictionary<CellInformation, List<Vector3Int>>();
 
 			//Create all the vertices
 			for (int x = 0; x < sg.x; x++)
@@ -113,28 +105,11 @@ namespace MapTileGridCreator.Core
 					for (int z = 0; z < sg.z; z++)
 					{
 						Waypoint newWaypoint = new Waypoint();
-						newWaypoint.key = new Vector3Int(x, y, z);
-						newWaypoint.type = null;
-						newWaypoint.baseType = false;
+						newWaypoint.Initialize(sg, new Vector3Int(x, y, z), this);
 						waypoints[x, y, z] = newWaypoint;
-						ConnectWaypoint(x, y, z, sg);
 					}
 				}
 			}
-		}
-
-		private void ConnectWaypoint(int x, int y, int z, Vector3Int sg)
-		{
-			if (x - 1 > -1)
-				waypoints[x, y, z].linkTo(waypoints[x - 1, y, z]);
-			if (x - 1 > -1 && z - 1 > -1)
-				waypoints[x, y, z].linkTo(waypoints[x - 1, y, z - 1]);
-			if (z - 1 > -1)
-				waypoints[x, y, z].linkTo(waypoints[x, y, z - 1]);
-			if (y - 1 > -1)
-				waypoints[x, y, z].linkTo(waypoints[x, y - 1, z]);
-			if(x - 1 > -1 && z + 1 < sg.z)
-			waypoints[x, y, z].linkTo(waypoints[x - 1, y, z + 1]);
 		}
 
 		public void FindPath(Waypoint start, Waypoint end, Vector2 maxJump)
@@ -179,83 +154,51 @@ namespace MapTileGridCreator.Core
 			}
 		}
 
-		private void SetType(CellInformation type, int x, int y, int z)
+		private void SetBase(Vector3Int index, CellInformation type, Vector3 rotation)
 		{ 
 			if (type != null)
 			{
-				if (waypointsDico.ContainsKey(type))
-				{
-					waypointsDico[type].Add(new Vector3Int(x, y, z));
-				}
-				else
-				{
-					List<Vector3Int> newList = new List<Vector3Int>();
-					newList.Add(new Vector3Int(x, y, z));
-					waypointsDico.Add(type, newList);
-				}
+				waypoints[index.x, index.y, index.z].SetBase(true);
 			}
-			else
-			{ 
-				if(waypoints[x, y, z].type != null)
-                {
-					waypointsDico[waypoints[x, y, z].type].Remove(new Vector3Int(x, y, z));
-					
-					if(waypointsDico[waypoints[x, y, z].type].Count == 0)
-                    {
-						waypointsDico.Remove(waypoints[x, y, z].type);
-                    }
-				}
-			}
-
-			waypoints[x, y, z].SetType(type);
-		}
-
-		private void SetBase(int x, int y, int z)
-        {
-			waypoints[x, y, z].baseType = true;
-		}
-
-		private void ResetBase(int x, int y, int z)
-		{
-			waypoints[x, y, z].baseType = false;
 		}
 
 		private void SetTypeAround(Vector3Int size_grid, Vector3 rotation, CellInformation type, Vector3Int index)
 		{
-			Vector3Int lowerBound = default;
-			Vector3Int upperBound = default;
-			FuncMain.SetBounds(ref lowerBound, ref upperBound, index, type.size, rotation);
-
-			for (int i = lowerBound.x; i <= upperBound.x; i++)
+			if (type != null && FuncMain.CanAddTypeHere(size_grid, index, type.size, this, rotation))
 			{
-				for (int j = lowerBound.y; j <= upperBound.y; j++)
+				Vector3Int lowerBound = default;
+				Vector3Int upperBound = default;
+				FuncMain.SetBounds(ref lowerBound, ref upperBound, index, type.size, rotation);
+
+				for (int i = lowerBound.x; i <= upperBound.x; i++)
 				{
-					for (int k = lowerBound.z; k <= upperBound.z; k++)
+					for (int j = lowerBound.y; j <= upperBound.y; j++)
 					{
-						if (FuncMain.InputInGridBoundaries(new Vector3Int(i, j, k), size_grid))
-                        {
-							SetType(type, i, j, k);
-							waypoints[i, j, k].basePos = index;
+						for (int k = lowerBound.z; k <= upperBound.z; k++)
+						{
+							if (FuncMain.InputInGridBoundaries(new Vector3Int(i, j, k), size_grid))
+							{
+								waypoints[i, j, k].SetType(type);
+								waypoints[i, j, k].SetBasePos(index);
+								SetSize(i,j,k);
+							}
 						}
 					}
 				}
+
+				waypoints[index.x, index.y, index.z].SetBase(true);
+				SetBase(index, type, rotation);
+				//Debug.Log(minSize + " -- " + maxSize);
 			}
-			
-			SetBase(index.x, index.y, index.z);
 		}
 
-		private void SetRotation(Vector2 rotation, Vector3Int index)
-		{
-			waypoints[index.x, index.y, index.z].rotation = rotation;
-		}
-
-		public void RemoveTypeAround(Vector3Int size_grid, Vector3 rotation, CellInformation type, Vector3Int index)
+		public CellInformation RemoveTypeAround(Vector3Int size_grid, Vector3Int index)
 		{
 			Vector3Int lowerBound = default(Vector3Int);
 			Vector3Int upperBound = default(Vector3Int);
 			Vector3Int basePos = waypoints[index.x, index.y, index.z].basePos;
 			Waypoint baseWaypoint = waypoints[basePos.x, basePos.y, basePos.z];
-
+			CellInformation type = baseWaypoint.type;
 			if (baseWaypoint != null && baseWaypoint.type != null)
 			{
 				FuncMain.SetBounds(ref lowerBound, ref upperBound, basePos, baseWaypoint.type.size, baseWaypoint.rotation);
@@ -268,20 +211,205 @@ namespace MapTileGridCreator.Core
 						{
 							if (FuncMain.InputInGridBoundaries(new Vector3Int(i, j, k), size_grid))
 							{
-								SetType(null, i, j, k);
+								waypoints[i, j, k].SetType(null);
+								//UnsetSize(i, j, k);
 							}
 						}
 					}
 				}
 
-				ResetBase(basePos.x, basePos.y, basePos.z);
+				waypoints[index.x, index.y, index.z].SetBase(false);
+				//Debug.Log(minSize + " -- " + maxSize);
 			}
+
+			return type;
 		}
 
 		public void SetTypeAndRotationAround(Vector3Int size_grid, Vector3 rotation, CellInformation type, Vector3Int index)
 		{
 			SetTypeAround(size_grid, rotation, type, index);
-			SetRotation(rotation, index);
+			waypoints[index.x, index.y, index.z].SetRotation(rotation);
+		}
+
+		public void SetSize(int x, int y, int z)
+        {
+			if (x < minSize.x)
+				minSize.x = x;
+			if (y < minSize.y)
+				minSize.y = y;
+			if (z < minSize.z)
+				minSize.z = z;
+
+			if (x+1 > maxSize.x)
+				maxSize.x = x+1;
+			if (y+1 > maxSize.y)
+				maxSize.y = y+1;
+			if (z+1 > maxSize.z)
+				maxSize.z = z+1;
+		}
+		public void UnsetSize(int x, int y, int z)
+		{
+			if (x + 1 < maxSize.x)
+            {
+				int i = x;
+				int j = minSize.y;
+				int k = minSize.z;
+				bool newLimit = true;
+
+				while (i < maxSize.x && newLimit)
+				{
+					j = minSize.y;
+					while (j < maxSize.y && newLimit)
+					{
+						k = minSize.z;
+						while (k < maxSize.z && newLimit)
+						{
+							if (waypoints[i, j, k].type != null) newLimit = false;
+							k++;
+						}
+						j++;
+					}
+					i++;
+				}
+
+				if (newLimit)
+					maxSize.x = x+1;
+			}
+
+			if (y + 1 < maxSize.y)
+			{
+				int i = minSize.x;
+				int j = y;
+				int k = minSize.z;
+				bool newLimit = true;
+
+				while (j < maxSize.y && newLimit)
+				{
+					i = minSize.x;
+					while (i < maxSize.x && newLimit)
+					{
+						k = minSize.z;
+						while (k < maxSize.z && newLimit)
+						{
+							if (waypoints[i, j, k].type != null) newLimit = false;
+							k++;
+						}
+						i++;
+					}
+					j++;
+				}
+
+				if (newLimit)
+					maxSize.y = y + 1;
+			}
+
+			if (z + 1 < maxSize.z)
+			{
+				int i = minSize.x;
+				int j = minSize.y;
+				int k = z;
+				bool newLimit = true;
+
+				while (k < maxSize.z && newLimit)
+				{
+					i = minSize.x;
+					while (i < maxSize.x && newLimit)
+					{
+						j = minSize.y;
+						while (j < maxSize.y && newLimit)
+						{
+							if (waypoints[i, j, k].type != null) newLimit = false;
+							j++;
+						}
+						i++;
+					}
+					k++;
+				}
+
+				if (newLimit)
+					maxSize.z = z + 1;
+			}
+
+			if (x > minSize.x)
+			{
+				int i = maxSize.x;
+				int j = maxSize.y;
+				int k = maxSize.z;
+				bool newLimit = true;
+
+				while (x-1 < i && newLimit)
+				{
+					j = maxSize.y;
+					while (minSize.y > j && newLimit)
+					{
+						k = maxSize.z;
+						while (minSize.z > k && newLimit)
+						{
+							if (waypoints[i, j, k].type != null) newLimit = false;
+							k--;
+						}
+						j--;
+					}
+					i--;
+				}
+
+				if (newLimit)
+					minSize.x = x;
+			}
+
+			if (y > minSize.y)
+			{
+				int i = maxSize.x;
+				int j = maxSize.y;
+				int k = maxSize.z;
+				bool newLimit = true;
+
+				while (y-1 < j && newLimit)
+				{
+					i = maxSize.x;
+					while (minSize.x > i && newLimit)
+					{
+						k = maxSize.z;
+						while (minSize.z > k && newLimit)
+						{
+							if (waypoints[i, j, k].type != null) newLimit = false;
+							k--;
+						}
+						i--;
+					}
+					j--;
+				}
+
+				if (newLimit)
+					minSize.y = y;
+			}
+
+			if (z > minSize.z)
+			{
+				int i = maxSize.x;
+				int j = maxSize.y;
+				int k = maxSize.z;
+				bool newLimit = true;
+
+				while (z-1 < k && newLimit)
+				{
+					i = maxSize.x;
+					while (minSize.x > i && newLimit)
+					{
+						j = maxSize.y;
+						while (minSize.y > j && newLimit)
+						{
+							if (waypoints[i, j, k].type != null) newLimit = false;
+							j--;
+						}
+						i--;
+					}
+					k--;
+				}
+
+				if (newLimit)
+					minSize.z = z;
+			}
 		}
 	}
 }

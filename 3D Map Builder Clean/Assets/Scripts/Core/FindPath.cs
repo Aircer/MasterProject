@@ -22,7 +22,7 @@ namespace MapTileGridCreator.Core
                 Waypoint current = q.Dequeue();
                 if (current == null)
                     continue;
-                foreach (Waypoint e in current.neighbors)
+                foreach (Waypoint e in current.GetNeighbors())
                 {
                     if (!d.ContainsKey(e))
                     {
@@ -86,7 +86,7 @@ namespace MapTileGridCreator.Core
                     return;
                 }
 
-                foreach (Waypoint neighbour in currentNode.neighbors)
+                foreach (Waypoint neighbour in currentNode.GetNeighbors())
                 {
                     if (!neighbour.type.blockPath || closedSet.Contains(neighbour) || !NeighbourReachable(neighbour, currentNode, maxJump)) continue;
                     float newMovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode, neighbour);
@@ -98,7 +98,7 @@ namespace MapTileGridCreator.Core
 
 
                         float gCostFrom = Mathf.Infinity;
-                        foreach (Waypoint from in neighbour.neighbors)
+                        foreach (Waypoint from in neighbour.GetNeighbors())
                         {
                             if (openSet.Contains(from) && from.gCost < currentNode.gCost && from.gCost < gCostFrom && NeighbourReachable(neighbour, from, maxJump))
                             {
@@ -136,7 +136,7 @@ namespace MapTileGridCreator.Core
                 openSet.Remove(currentNode);
                 closedSet.Add(currentNode);
 
-                foreach (Waypoint neighbour in currentNode.neighbors)
+                foreach (Waypoint neighbour in currentNode.GetNeighbors())
                 {
                     if ((neighbour.type != null && neighbour.type.blockPath) || closedSet.Contains(neighbour) || !NeighbourReachable(neighbour, currentNode, maxJump)) continue;
 
@@ -198,9 +198,9 @@ namespace MapTileGridCreator.Core
                 Waypoint currentNode = openSet[0];
 
                 openSet.Remove(currentNode);
-                closedSet.Add(currentNode);
+                closedSet.Add(currentNode); 
 
-                foreach (Waypoint neighbour in currentNode.neighbors)
+                foreach (Waypoint neighbour in currentNode.GetNeighbors())
                 {
                     if ((neighbour.type != null && neighbour.type.blockPath) || closedSet.Contains(neighbour) || !NeighbourReachable(neighbour, currentNode, maxJump)) continue;
 
@@ -291,7 +291,7 @@ namespace MapTileGridCreator.Core
 
         private static bool InAir(Waypoint w)
         {
-            if (w.DownNeighbor != null && w.DownNeighbor.type && w.DownNeighbor.type.ground)
+            if (w.GetUpNeighbor() != null && w.GetDownNeighbor() != null && w.GetDownNeighbor().type && w.GetDownNeighbor().type.ground)
                 return false;
             else
                 return true;
@@ -308,7 +308,7 @@ namespace MapTileGridCreator.Core
             while (currentNode != startNode && i < 10000)
             {
                 float currentGCost = Mathf.Infinity;
-                foreach (Waypoint neighbour in currentNode.neighbors) 
+                foreach (Waypoint neighbour in currentNode.GetNeighbors()) 
                 {
                     if ((neighbour.gCost != 0 && neighbour.gCost < currentGCost) || neighbour == startNode)
                     {

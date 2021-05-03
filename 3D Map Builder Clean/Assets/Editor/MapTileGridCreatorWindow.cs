@@ -9,6 +9,7 @@ using UnityEngine;
 using System.Reflection;
 using System.Threading;
 using System.Diagnostics;
+using System.Linq;
 
 /// <summary>
 /// Main window class.
@@ -200,10 +201,13 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	private void UpdateCameraSuggestion(Vector3 rot, float zoom)
     {
-		for(int i =0; i < _suggestionsGrid.Count; i++)
-		{
-			_suggestionsGrid[i].transform.Find("Camera(Clone)").transform.localEulerAngles = rot;
-			_suggestionsGrid[i].transform.Find("Camera(Clone)").GetComponent<Camera>().orthographicSize = zoom*0.5f;
+		if(_suggestionsGrid != null)
+        {
+			for (int i = 0; i < _suggestionsGrid.Count; i++)
+			{
+				_suggestionsGrid[i].transform.Find("Camera(Clone)").transform.localEulerAngles = rot;
+				_suggestionsGrid[i].transform.Find("Camera(Clone)").GetComponent<Camera>().orthographicSize = zoom * 0.5f;
+			}
 		}
     }
 
@@ -369,7 +373,6 @@ public class MapTileGridCreatorWindow : EditorWindow
 					{
 						_indexToPaint.Add(newIndex);
 						FuncMain.PaintCell(_cells, newIndex, _cellTypes[_cellTypes_index], _rotationCell);
-
 						_cluster.SetTypeAndRotationAround(_size_grid, _rotationCell, _cellTypes[_cellTypes_index], newIndex);
 					}
 					else if (_mode_paint == PaintMode.Erase && _cluster.GetWaypoints()[newIndex.x, newIndex.y, newIndex.z].type != null)
@@ -397,10 +400,12 @@ public class MapTileGridCreatorWindow : EditorWindow
 					if (_mode_paint == PaintMode.Single)
                     {
 						FuncMain.DesactivateCell(_cells, _cluster, currentIndex, _cellTypes[_cellTypes_index], _rotationCell);
-						_cluster.RemoveTypeAround(_size_grid, _rotationCell, _cellTypes[_cellTypes_index], currentIndex);
+						_cluster.RemoveTypeAround(_size_grid, currentIndex);
 					}
 					if (_mode_paint == PaintMode.Erase)
+                    {
 						_cells[currentIndex.x, currentIndex.y, currentIndex.z].Active();
+					}
 
 					FuncVisual.UpdateCellsAroundVisual(_cells, _cluster.GetWaypoints(), currentIndex, _cells[currentIndex.x, currentIndex.y, currentIndex.z].lastType);
 
@@ -456,13 +461,16 @@ public class MapTileGridCreatorWindow : EditorWindow
 				if (_mode_paint == PaintMode.Erase) 
 				{
 					FuncMain.DesactivateCell(_cells, _cluster, index, _cellTypes[_cellTypes_index], _rotationCell);
-					_cluster.RemoveTypeAround(_size_grid, _rotationCell, _cellTypes[_cellTypes_index], index);
+					_cluster.RemoveTypeAround(_size_grid, index);
 					FuncVisual.UpdateCellsAroundVisual(_cells, _cluster.GetWaypoints(), index, _cells[index.x, index.y, index.z].lastType);
 				}
 			}
 
 			_undo = MyUndo.UpdateUndo(_undo, _indexToPaint, _mode_paint, _cellTypes_index);
 			_painting = false;
+
+			if(newSuggestionsClustersThread != null)
+				newSuggestionsClustersThread.Abort();
 
 			suggWindow = (SuggestionsEditor[])Resources.FindObjectsOfTypeAll(typeof(SuggestionsEditor));
 			if (suggWindow.Length != 0)
@@ -698,10 +706,10 @@ public class MapTileGridCreatorWindow : EditorWindow
 					{
 						WaypointCluster newCluster = _cluster;
 						Cell[,,] newCells = _cells;
-						Grid3D newGrid = _grid;
+						Grid3D newGrid = _grid; 
 						GameObject newcameraObject = Instantiate<GameObject>(_suggestionsCameraPrefab);
 						FuncMain.CreateCellsAndWaypoints(ref newGrid, ref newCells, ref newCluster, _cellPrefabs, _size_grid);
-						_suggestionsCell.Add(newCells);
+						_suggestionsCell.Add(newGrid._cells);
 						newGrid.transform.position = new Vector3(1000 * (i + 1), 1000 * (i + 1), 1000 * (i + 1));
 						newcameraObject.transform.parent = newGrid.transform;
 						newcameraObject.transform.localPosition = new Vector3(_size_grid.x / 2, _size_grid.y / 2, _size_grid.z / 2);
@@ -755,7 +763,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 						foreach (Vector3Int index in _undo.lastIndexToPaint)
 						{
 							FuncMain.DesactivateCell(_cells, _cluster, index, _cellTypes[_cellTypes_index], _rotationCell);
-							_cluster.RemoveTypeAround(_size_grid, _rotationCell, _cellTypes[_cellTypes_index], index);
+							_cluster.RemoveTypeAround(_size_grid, index);
 						}
 						_undo.noUndo = true;
 					}

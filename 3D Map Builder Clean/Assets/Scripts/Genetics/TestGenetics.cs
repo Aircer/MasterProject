@@ -16,6 +16,7 @@ namespace MapTileGridCreator.Core
 		private CellInformation targetCellInfo = null;
 		private float numberCells;
 		private Vector3Int sizeGrid;
+
 		public void StartGenetics(Vector3Int size_grid, WaypointCluster cluster)
 		{
 			numberCells = size_grid.x * size_grid.y * size_grid.z;
@@ -23,11 +24,12 @@ namespace MapTileGridCreator.Core
 			random = new System.Random();
 			listCellsInfo.Clear();
 			listCellsInfo.Add(null);
-			foreach (CellInformation key in cluster.GetWaypointsDico().Keys)
+			foreach (Waypoint wp in cluster.GetWaypoints())
 			{
-				listCellsInfo.Add(key);
+				if(!listCellsInfo.Contains(wp.type))
+					listCellsInfo.Add(wp.type);
 			}
-			ga = new GeneticAlgorithm(populationSize, size_grid, random, GetRandomCell, FitnessFunction, elitism, cluster.GetWaypoints(),mutationRate);
+			ga = new GeneticAlgorithm(populationSize, size_grid, random, GetRandomType, FitnessFunction, elitism, cluster, mutationRate);
 		}
 
 		public void UpdateGenetics()
@@ -38,16 +40,26 @@ namespace MapTileGridCreator.Core
 		public List<WaypointCluster> GetBestClusters(int nbSuggestions)
         {
 			List<WaypointCluster> bestClusters = new List<WaypointCluster>();
-
+			int j = 0;
+			ga.ClassifyPopulation();
 			for (int i = 0; i < nbSuggestions; i++)
 			{
-				bestClusters.Add(new WaypointCluster(ga.Population[i].Genes));
+				if (j > 0)
+					while (j < ga.oldPopulation.Length && ga.oldPopulation[j].Fitness == ga.oldPopulation[j - 1].Fitness)
+						j++;
+
+				if (j == ga.oldPopulation.Length)
+					j = ga.oldPopulation.Length - 1;
+
+				//UnityEngine.Debug.Log(ga.oldPopulation[j].Fitness + "  " +  j);
+				bestClusters.Add(new WaypointCluster(ga.oldPopulation[j].Genes));
+				j++;
 			}
 
 			return bestClusters;
 		}
 
-		private CellInformation GetRandomCell()
+		private CellInformation GetRandomType()
 		{
 			int i = random.Next(listCellsInfo.Count);
 			return listCellsInfo[i];
@@ -55,10 +67,9 @@ namespace MapTileGridCreator.Core
 
 		private float FitnessFunction(int index)
 		{
-			float score = 0f;
 			float finalScore = 0;
-			float symTotal = 0.01f;
-			DNA dna = ga.Population[index];
+			float scoreX = 0f; float symTotalX = sizeGrid.x*sizeGrid.y*sizeGrid.z/2;
+			DNA dna = ga.oldPopulation[index];
 
 			for (int l = 0; l < sizeGrid.y; l++)
 			{
@@ -67,20 +78,18 @@ namespace MapTileGridCreator.Core
 				{
 					for (int j = 0; j < sizeGrid.z; j++)
 					{
-
-						if (dna.Genes[i, l, j] == dna.Genes[k, l, j])
+						if (dna.Genes[i, l, j].type == dna.Genes[k, l, j].type || (dna.Genes[i, l, j].type == null && dna.Genes[k, l, j].type == null))
 						{
-							score += 1;
+								scoreX += 1;
 						}
-
-						symTotal++;
 					}
 				}
 			}
 
-			score /= symTotal;
-			finalScore = score;
-			score = 0f; symTotal = 0.01f;
+			scoreX /= symTotalX;
+			//scoreX = Mathf.Pow(2, scoreX) - 1;
+
+			float scoreZ = 0f; int symTotalZ = sizeGrid.x * sizeGrid.y * sizeGrid.z/2;
 
 			for (int l = 0; l < sizeGrid.y; l++)
 			{
@@ -89,19 +98,18 @@ namespace MapTileGridCreator.Core
 				{
 					for (int j = 0; j < sizeGrid.x; j++)
 					{
-
-						if (dna.Genes[j, l, i] == dna.Genes[j, l, k])
+						if (dna.Genes[j, l, i].type == dna.Genes[j, l, k].type || (dna.Genes[j, l, i].type == null && dna.Genes[j, l, k].type == null))
 						{
-							score += 1;
+								scoreZ += 1;
 						}
-
-						symTotal++;
 					}
 				}
 			}
 
-			score /= symTotal;
-			finalScore = Mathf.Pow(2, (score + finalScore) / 2) - 1;
+			scoreZ /= symTotalZ;
+			//scoreZ = Mathf.Pow(2, scoreZ) - 1;
+
+			finalScore = Mathf.Pow(2, (scoreX + scoreZ) / 2) - 1;
 
 			return finalScore;
 		}
