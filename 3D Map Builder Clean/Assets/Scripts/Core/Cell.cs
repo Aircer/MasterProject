@@ -69,14 +69,21 @@ namespace MapTileGridCreator.Core
 
 		public void Painted(CellInformation cellType, Vector2 rotation)
 		{
-			if (cellType != null)
+			if (cellType != null && transform.childCount == 0)
 			{
-				typeDicoCell[cellType].SetActive(true);
-				typeDicoCell[cellType].transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
-				lastRotation = rotation;
-				lastType = type = cellType;
-				baseType = true;
+				GameObject newChild = PrefabUtility.InstantiatePrefab(typeDicoCell[cellType], parent.transform) as GameObject;
+				PrefabUtility.UnpackPrefabInstance(newChild, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+				newChild.transform.parent = this.transform;
+				newChild.transform.localPosition = new Vector3(0, 0, 0);
+				newChild.transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
+
+				//typeDicoCell[cellType].SetActive(true);
+				//typeDicoCell[cellType].transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
 			}
+
+			lastRotation = rotation;
+			lastType = type = cellType;
+			baseType = true;
 
 			SetColliderState(false);
 			SetMeshState(true);
@@ -87,12 +94,19 @@ namespace MapTileGridCreator.Core
         {
 			if(type != null)
             {
-				foreach (Transform child in typeDicoCell[type].transform)
+				/*foreach (Transform child in typeDicoCell[type].transform)
 				{
 					child.gameObject.SetActive(false);
 				}
 				typeDicoCell[type].transform.Find(activeElement).gameObject.SetActive(true);
-				typeDicoCell[type].transform.localEulerAngles = rotation;
+				typeDicoCell[type].transform.localEulerAngles = rotation;*/
+
+				foreach (Transform child in transform.GetChild(0))
+				{
+					child.gameObject.SetActive(false);
+				}
+				transform.GetChild(0).transform.Find(activeElement).gameObject.SetActive(true);
+				transform.GetChild(0).transform.localEulerAngles = rotation;
 			}
 		}
 
@@ -117,14 +131,22 @@ namespace MapTileGridCreator.Core
 
 			if (newType != null)
 			{
-				typeDicoCell[newType].SetActive(true);
-				typeDicoCell[newType].transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
+				//typeDicoCell[newType].SetActive(true);
+				//typeDicoCell[newType].transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
+
+				transform.GetChild(0).gameObject.SetActive(true);
+				transform.GetChild(0).transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
+
 				lastRotation = rotation;
 				lastType = type = newType;
 			}
 
-			if(type != null)
-				typeDicoCell[type].SetActive(true);
+			if (type != null)
+			{
+				//typeDicoCell[type].SetActive(true);
+				transform.GetChild(0).gameObject.SetActive(true);
+			}
+
 			state = CellState.Active;
 		}
 
@@ -133,8 +155,11 @@ namespace MapTileGridCreator.Core
 			SetColliderState(false);
 			SetMeshState(false);
 
-			if(type != null)
-				typeDicoCell[type].SetActive(false);
+			if (type != null)
+			{
+				//typeDicoCell[type].SetActive(false);
+				DestroyImmediate(transform.GetChild(0).gameObject);
+			}
 
 			type = null;
 			state = CellState.Inactive;
@@ -148,13 +173,15 @@ namespace MapTileGridCreator.Core
 
 		public void SetMeshState(bool state)
 		{
-			for (int i = 0; i < gameObject.transform.childCount; i++)
+			/*for (int i = 0; i < gameObject.transform.childCount; i++)
 			{
 				if (type && gameObject.transform.GetChild(i).name == type.name || !state)
 				{
 					gameObject.transform.GetChild(i).transform.gameObject.SetActive(state);
 				}
-			}
+			}*/
+			if(transform.childCount > 0)
+				transform.GetChild(0).transform.gameObject.SetActive(state);
 		}
 
 		public override bool Equals(object obj)

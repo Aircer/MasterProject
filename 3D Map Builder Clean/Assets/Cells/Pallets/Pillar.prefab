@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2188584734746124646}
   - component: {fileID: 1616123695526295087}
+  - component: {fileID: 7878283155016649515}
   m_Layer: 0
   m_Name: Pillar
   m_TagString: Untagged
@@ -47,6 +48,22 @@ MonoBehaviour:
   size: {x: 1, y: 3, z: 1}
   ground: 1
   blockPath: 1
+  wall: 0
+  floor: 0
+--- !u!64 &7878283155016649515
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 603874457488979216}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 4
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 0}
 --- !u!1 &6740344244546443113
 GameObject:
   m_ObjectHideFlags: 0

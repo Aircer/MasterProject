@@ -396,7 +396,7 @@ namespace MapTileGridCreator.Core
 				new Vector4(0, 0, 0, 1));
 		}
 
-		public void GetCells(Vector3Int size)
+		public void GetCells(Vector3Int size, Dictionary<CellInformation, GameObject> pallet)
 		{
 			_cells = new Cell[size.x, size.y, size.z];
 			for (int i = 0; i < size.x; i++)
@@ -406,6 +406,11 @@ namespace MapTileGridCreator.Core
 					for (int k = 0; k < size.z; k++)
 					{
 						_cells[i,j,k] = this.transform.Find("cell_" + i + "_" + j + "_" + k).GetComponent<Cell>();
+
+						foreach (KeyValuePair<CellInformation, GameObject> child in pallet)
+						{
+							_cells[i, j, k].typeDicoCell.Add(child.Key, _cells[i, j, k].gameObject.transform.Find(child.Value.name).gameObject);
+						}
 					}
 				}
 			}

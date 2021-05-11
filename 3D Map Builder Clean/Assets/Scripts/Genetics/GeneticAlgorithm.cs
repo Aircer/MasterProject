@@ -11,7 +11,7 @@ namespace MapTileGridCreator.Core
 		public DNA[] newPopulation { get; private set; }
 		public int Generation { get; private set; }
 		public float BestFitness { get; private set; }
-		public Waypoint[,,] BestGenes { get; private set; }
+		public WaypointParams[][][] BestGenes { get; private set; }
 
 		public int Elitism;
 		public float MutationRate;
@@ -19,11 +19,12 @@ namespace MapTileGridCreator.Core
 		private System.Random random;
 		private float fitnessSum;
 		private Vector3Int dnaSize;
-		private Func<CellInformation> getRandomType;
+		private Func<int> getRandomType;
 		private Func<int, float> fitnessFunction;
+		private TypeParams[] typeParams;
 
-		public GeneticAlgorithm(int populationSize, Vector3Int dnaSize, System.Random random, Func<CellInformation> getRandomType, Func<int, float> fitnessFunction,
-			int elitism, WaypointCluster cluster, float mutationRate = 0.01f)
+		public GeneticAlgorithm(int populationSize, Vector3Int dnaSize, System.Random random, Func<int> getRandomType, Func<int, float> fitnessFunction,
+			int elitism, WaypointCluster cluster, TypeParams[] typeParams, float mutationRate = 0.01f)
 		{
 			Generation = 1;
 			Elitism = elitism;
@@ -34,25 +35,16 @@ namespace MapTileGridCreator.Core
 			this.dnaSize = dnaSize;
 			this.getRandomType = getRandomType;
 			this.fitnessFunction = fitnessFunction;
+			this.typeParams = typeParams;
 
-			BestGenes = new Waypoint[dnaSize.x, dnaSize.y, dnaSize.z];
+			BestGenes = new WaypointParams[dnaSize.x][][];
 
 			for (int i = 0; i < populationSize; i++)
 			{
-				DNA newPop = new DNA(dnaSize, random, getRandomType, fitnessFunction, cluster);
+				DNA newPop = new DNA(dnaSize, random, getRandomType, fitnessFunction, typeParams, cluster);
 				oldPopulation[i] = newPop;
-				DNA newPop2 = new DNA(dnaSize, random, getRandomType, fitnessFunction, cluster);
+				DNA newPop2 = new DNA(dnaSize, random, getRandomType, fitnessFunction, typeParams, cluster);
 				newPopulation[i] = newPop2;
-			}
-
-			foreach (Wall wall in newPopulation[0].phenotype.walls_x)
-			{
-				UnityEngine.Debug.Log("WallX position : " + wall.position + " size : " + wall.indexes.Count);
-			}
-
-			foreach (Wall wall in newPopulation[0].phenotype.walls_z)
-			{
-				UnityEngine.Debug.Log("WallZ position : " + wall.position + " size : " + wall.indexes.Count);
 			}
 		}
 
@@ -77,7 +69,14 @@ namespace MapTileGridCreator.Core
 				{
 					DNA parent1 = ChooseParent();
 					newPopulation[i].Crossover(parent1);
+
 					newPopulation[i].Mutate(MutationRate);
+
+					/*if (Generation % skipMutations == 0)
+					{
+						newPopulation[i].Mutate(MutationRate);
+					}*/
+
 				}
 			}
 			

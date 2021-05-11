@@ -1,7 +1,7 @@
 {
     "name": "MapTileGridCreatorEditor",
     "references": [
-        "MapTileGridCreator"
+        "MapTileGridCreator", "EditorCoroutines"
     ],
     "includePlatforms": [
         "Editor"

@@ -2,43 +2,46 @@
 using System.Collections.Generic;
 using MapTileGridCreator.UtilitiesMain;
 using UnityEditor;
+using NumSharp;
 
 namespace MapTileGridCreator.Core
 {
 	public class WaypointCluster 
 	{
-		public WaypointCluster(Vector3Int size)
+		public WaypointCluster(Vector3Int size, List<CellInformation> cellInfos)
 		{
 			CreateWaypoints(size);
 			pathfindingWaypoints = new List<Waypoint>();
+			this.cellInfos = cellInfos;
 			minSize = new Vector3Int(size.x, size.y, size.z);
 			maxSize = new Vector3Int(0, 0, 0);
 		}
 
-		public WaypointCluster(Waypoint[,,] newWaypoints)
+		public WaypointCluster(Vector3Int size, WaypointParams[][][] newWaypointsParams, List<CellInformation> cellsInfos)
 		{
-			Vector3Int size = new Vector3Int(newWaypoints.GetLength(0), newWaypoints.GetLength(1), newWaypoints.GetLength(2));
 			pathfindingWaypoints = new List<Waypoint>();
-			waypoints = new Waypoint[size.x, size.y, size.z];
-			minSize = new Vector3Int(size.x, size.y, size.z);
+			waypoints = new Waypoint[size.x-2, size.y-2, size.z-2];
+			minSize = new Vector3Int(size.x-2, size.y-2, size.z-2);
 			maxSize = new Vector3Int(0, 0, 0);
-
+			this.cellInfos = cellsInfos;
 			//CreateWaypoints(size);
 
-			for (int x = 0; x < size.x; x++)
-            {
-				for (int y = 0; y < size.y; y++)
+			for (int x = 1; x < size.x-1; x++)
+			{
+				for (int y = 1; y < size.y-1; y++)
 				{
-					for (int z = 0; z < size.z; z++)
+					for (int z = 1; z < size.z-1; z++)
 					{
 						Waypoint newWaypoint = new Waypoint();
-						newWaypoint.Initialize(size, new Vector3Int(x, y, z), this);
-						newWaypoint.type = newWaypoints[x, y, z].type;
-						newWaypoint.rotation = newWaypoints[x, y, z].rotation;
-						newWaypoint.basePos = newWaypoints[x, y, z].basePos;
-						newWaypoint.baseType = newWaypoints[x, y, z].baseType;
-						waypoints[x, y, z] = newWaypoint;
-						SetSize(x, y, z);
+						newWaypoint.Initialize(size, new Vector3Int(x-1, y-1, z-1), this);
+						if (newWaypointsParams[x][y][z].type > 0)
+							newWaypoint.type = cellInfos[newWaypointsParams[x][y][z].type - 1];
+						else
+							newWaypoint.type = null;
+						newWaypoint.rotation = newWaypointsParams[x][y][z].rotation;
+						newWaypoint.basePos = newWaypointsParams[x][y][z].basePos - Vector3Int.one;
+						newWaypoint.baseType = newWaypointsParams[x][y][z].baseType;
+						waypoints[x-1, y-1, z-1] = newWaypoint;
 					}
 				}
 			}
@@ -51,10 +54,48 @@ namespace MapTileGridCreator.Core
 		private List<Waypoint> pathfindingWaypoints;
 		public Vector3Int minSize;
 		public Vector3Int maxSize;
+		public List<CellInformation> cellInfos;
 
 		public Waypoint[,,] GetWaypoints()
 		{
 			return waypoints;
+		}
+
+		public WaypointParams[][][] GetWaypointsParams()
+		{
+			Vector3Int size = new Vector3Int(waypoints.GetLength(0), waypoints.GetLength(1), waypoints.GetLength(2));
+			WaypointParams[][][] waypointsParamsXYZ = new WaypointParams[size.x + 2][][];
+
+			for (int x = 0; x < size.x+2; x++)
+			{
+				WaypointParams[][] waypointsParamsYZ = new WaypointParams[size.y + 2][];
+				for (int y = 0; y < size.y+2; y++)
+				{
+					WaypointParams[] waypointsParamsZ = new WaypointParams[size.z + 2];
+					for (int z = 0; z < size.z+2; z++)
+					{
+						//Genes are bigger than cluster to have empty borders thus it is easier to get neighbors  
+						if (x == 0 || y == 0 || z == 0 || x == size.x + 1 || y == size.y + 1 || z == size.z + 1)
+						{
+							waypointsParamsZ[z].type = 0;
+							waypointsParamsZ[z].rotation = new Vector3(0, 0, 0);
+							waypointsParamsZ[z].basePos = new Vector3Int(0,0,0);
+							waypointsParamsZ[z].baseType = false;
+						}
+						else
+						{
+							waypointsParamsZ[z].type = cellInfos.IndexOf(waypoints[x - 1, y - 1, z - 1].type)+1;
+							waypointsParamsZ[z].rotation = waypoints[x - 1, y - 1, z - 1].rotation;
+							waypointsParamsZ[z].basePos = waypoints[x - 1, y - 1, z - 1].basePos + Vector3Int.one;
+							waypointsParamsZ[z].baseType = waypoints[x - 1, y - 1, z - 1].baseType;
+						}
+					}
+					waypointsParamsYZ[y] = waypointsParamsZ;
+				}
+				waypointsParamsXYZ[x] = waypointsParamsYZ;
+			}
+
+			return waypointsParamsXYZ;
 		}
 
 		public void SetPathfinding(Vector3Int index, PathfindingState state, Vector2 maxjump)

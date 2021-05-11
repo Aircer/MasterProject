@@ -7,6 +7,7 @@ using MapTileGridCreator.HexagonalImplementation;
 using UnityEditor;
 using UnityEngine;
 using System.IO;
+using System.Collections;
 
 namespace MapTileGridCreator.UtilitiesMain
 {
@@ -132,8 +133,8 @@ namespace MapTileGridCreator.UtilitiesMain
 			BoxCollider coll = cellGameObject.AddComponent<BoxCollider>();
 			coll.enabled = false;
 			Cell cell = cellGameObject.AddComponent<Cell>();
-
-			foreach (KeyValuePair<CellInformation, GameObject> child in pallet)
+			cell.typeDicoCell = pallet;
+			/*foreach (KeyValuePair<CellInformation, GameObject> child in pallet)
 			{
 				GameObject newChild = PrefabUtility.InstantiatePrefab(child.Value, grid.transform) as GameObject;
 				PrefabUtility.UnpackPrefabInstance(newChild, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
@@ -141,8 +142,8 @@ namespace MapTileGridCreator.UtilitiesMain
 				newChild.transform.localPosition = new Vector3(0, 0, 0);
 				newChild.SetActive(false);
 				cell.typeDicoCell.Add(child.Key, newChild);
-			}
-	
+			}*/
+
 			grid.AddCell(index, cell);
 			cell.ResetTransform();
 
@@ -322,7 +323,8 @@ namespace MapTileGridCreator.UtilitiesMain
 			CreateEmptyCells(out cells, grid, size_grid, pallet);
 			grid._cells = cells;
 			//Create Cluster and Waypoints
-			WaypointCluster newCluster = new WaypointCluster(size_grid);
+			List<CellInformation> keyList = new List<CellInformation>(pallet.Keys);
+			WaypointCluster newCluster = new WaypointCluster(size_grid, keyList);
 
 			cluster = newCluster;
 		}
@@ -345,7 +347,7 @@ namespace MapTileGridCreator.UtilitiesMain
 		/// </summary>
 		/// /// <param name="cells"> Cells to transform</param>
 		/// /// <param name="waypoints"> Waypoints used to get info for transform Cells</param>
-		public static Cell[,,] TransformCellsFromWaypoints(Cell[,,] cells, Waypoint[,,] waypoints)
+		public static void TransformCellsFromWaypoints(Cell[,,] cells, Waypoint[,,] waypoints)
 		{
 			for (int i = 0; i < waypoints.GetLength(0); i++)
 			{
@@ -387,8 +389,6 @@ namespace MapTileGridCreator.UtilitiesMain
 					}
 				}
 			}
-
-			return cells;
 		}
 
 		/// <summary>
@@ -604,6 +604,116 @@ namespace MapTileGridCreator.UtilitiesMain
 					}
 				}
 			}
+		}
+
+		public static IEnumerator CoroutineTransformCellsFromWaypoints(Cell[,,] cells, Waypoint[,,] waypoints)
+		{
+			//TransformCellsFromWaypoints(cells, waypoints);
+
+			for (int i = 0; i < waypoints.GetLength(0); i++)
+			{
+				for (int j = 0; j < waypoints.GetLength(1); j++)
+				{
+					for (int k = 0; k < waypoints.GetLength(2); k++)
+					{
+						//cells[i, j, k].Inactive();
+						if (!waypoints[i, j, k].baseType && cells[i, j, k].baseType)
+						{
+							cells[i, j, k].Inactive();
+						}
+
+						if (waypoints[i, j, k].type == null && cells[i, j, k].type != null)
+						{
+							cells[i, j, k].Inactive();
+						}
+
+						if (waypoints[i, j, k].type != null && waypoints[i, j, k].baseType)
+						{
+							cells[i, j, k].Painted(waypoints[i, j, k].type, waypoints[i, j, k].rotation);
+							cells[i, j, k].Active();
+
+							FuncVisual.UpdateCellsAroundVisual(cells, waypoints, new Vector3Int(i, j, k), waypoints[i, j, k].type);
+
+							if (!waypoints[i, j, k].show)
+								cells[i, j, k].Sleep();
+						}
+
+						if (waypoints[i, j, k].type != null && !waypoints[i, j, k].baseType && cells[i, j, k].type != waypoints[i, j, k].type)
+						{
+							cells[i, j, k].Erased();
+						}
+
+						if (waypoints[i, j, k].type != null && !waypoints[i, j, k].show)
+						{
+							cells[i, j, k].Sleep();
+						}
+					}
+					yield return null;
+				}
+			}
+		}
+
+		public static class EditorCoroutines
+		{
+
+			public class Coroutine
+			{
+				public IEnumerator enumerator;
+				public System.Action<bool> OnUpdate;
+				public List<IEnumerator> history = new List<IEnumerator>();
+			}
+
+			static readonly List<Coroutine> coroutines = new List<Coroutine>();
+
+			public static void Execute(IEnumerator enumerator, System.Action<bool> OnUpdate = null)
+			{
+				if (coroutines.Count == 0)
+				{
+					EditorApplication.update += Update;
+				}
+				var coroutine = new Coroutine { enumerator = enumerator, OnUpdate = OnUpdate };
+				coroutines.Add(coroutine);
+			}
+
+			static void Update()
+			{
+				for (int i = 0; i < coroutines.Count; i++)
+				{
+					var coroutine = coroutines[i];
+					bool done = !coroutine.enumerator.MoveNext();
+					if (done)
+					{
+						if (coroutine.history.Count == 0)
+						{
+							coroutines.RemoveAt(i);
+							i--;
+						}
+						else
+						{
+							done = false;
+							coroutine.enumerator = coroutine.history[coroutine.history.Count - 1];
+							coroutine.history.RemoveAt(coroutine.history.Count - 1);
+						}
+					}
+					else
+					{
+						if (coroutine.enumerator.Current is IEnumerator)
+						{
+							coroutine.history.Add(coroutine.enumerator);
+							coroutine.enumerator = (IEnumerator)coroutine.enumerator.Current;
+						}
+					}
+					if (coroutine.OnUpdate != null) coroutine.OnUpdate(done);
+				}
+				if (coroutines.Count == 0) EditorApplication.update -= Update;
+			}
+
+			internal static void StopAll()
+			{
+				coroutines.Clear();
+				EditorApplication.update -= Update;
+			}
+
 		}
 	}
 }

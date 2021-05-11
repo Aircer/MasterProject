@@ -4,6 +4,9 @@ using System;
 using UnityEditor;
 using MapTileGridCreator.Utilities;
 using System.Diagnostics;
+using Unity.Burst;
+using Unity.Collections;
+using Unity.Jobs;
 
 namespace MapTileGridCreator.Core
 {
@@ -26,7 +29,7 @@ namespace MapTileGridCreator.Core
                 newGenetic.UpdateGenetics();
             }
 
-            for (int i=0; i< nbSuggestions;i++)
+            for (int i = 0; i < nbSuggestions; i++)
             {
                 //suggestionsClusters.Add(TransformationCluster(rand, waypoints, waypointsDico));
 
@@ -35,51 +38,6 @@ namespace MapTileGridCreator.Core
             suggestionsClusters = newGenetic.GetBestClusters(nbSuggestions);
 
             return suggestionsClusters;
-        }
-
-        private static WaypointCluster TransformationCluster(System.Random rand, Waypoint[,,] waypoints, Dictionary<CellInformation, List<Vector3Int>> waypointsDico)
-        {
-            Vector3Int size_grid = new Vector3Int(waypoints.GetLength(0), waypoints.GetLength(1), waypoints.GetLength(2));
-            WaypointCluster newCluster = new WaypointCluster(size_grid);
-
-            foreach (CellInformation key in waypointsDico.Keys)
-            {
-                foreach (Vector3Int oldKey in waypointsDico[key])
-                {
-                    if (waypoints[oldKey.x, oldKey.y, oldKey.z].baseType)
-                    {
-                        Vector3Int newKey = new Vector3Int(rand.Next(-2, 2) + oldKey.x, oldKey.y, rand.Next(-2, 2) + oldKey.z);
-
-                        if (CheckNeighbordsFull(waypoints[oldKey.x, oldKey.y, oldKey.z]) 
-                                || !waypoints[oldKey.x, oldKey.y, oldKey.z].show 
-                                || !CanPaintHere(size_grid, newCluster.GetWaypoints(), newKey, waypoints[oldKey.x, oldKey.y, oldKey.z].type.size, waypoints[oldKey.x, oldKey.y, oldKey.z].rotation) 
-                                || (!waypoints[newKey.x, newKey.y, newKey.z].show && waypoints[newKey.x, newKey.y, newKey.z].type != null))
-                            newKey = oldKey;
-
-                        if(CanPaintHere(size_grid, newCluster.GetWaypoints(), newKey, waypoints[oldKey.x, oldKey.y, oldKey.z].type.size, waypoints[oldKey.x, oldKey.y, oldKey.z].rotation))
-                            MoveOldKey(newCluster, size_grid, waypoints, newKey, oldKey);
-                    }
-                }
-            }
-
-            return newCluster;
-        }
-
-        private static void MoveOldKey(WaypointCluster newCluster, Vector3Int size, Waypoint[,,] waypoints, Vector3Int newKey, Vector3Int oldKey)
-        {
-            newCluster.SetTypeAndRotationAround(size, waypoints[oldKey.x, oldKey.y, oldKey.z].rotation, waypoints[oldKey.x, oldKey.y, oldKey.z].type, newKey);
-            newCluster.GetWaypoints()[newKey.x, newKey.y, newKey.z].show = waypoints[oldKey.x, oldKey.y, oldKey.z].show;
-        }
-
-        public static bool CheckNeighbordsFull(Waypoint waypoint)
-        {
-            foreach(Waypoint neighbord in waypoint.GetSideNeighbors())
-            {
-                if (neighbord.type == null)
-                    return false;
-            }
-
-            return true;
         }
 
         /// <summary>
@@ -137,94 +95,197 @@ namespace MapTileGridCreator.Core
             return inBoundaries;
         }
 
-        public static Phenotype GetPhenotype(Vector3Int minSize, Vector3Int maxSize, Waypoint[,,] Genes)
+        public static void SetWalls(ref HashSet<Vector3Int> blocksSolos, ref HashSet<Wall> walls_x, ref HashSet<Wall> walls_z, WaypointParams[][][] Genes, TypeParams[] typeParams, Vector3Int index)
+        {
+            int x = index.x; int y = index.y; int z = index.z;
+
+            if (typeParams[Genes[x][y][z].type].wall)
+            {
+                bool inAWallX = false;
+                bool inAWallZ = false;
+                HashSet<Vector3Int> indexesX = new HashSet<Vector3Int>();
+                HashSet<Vector3Int> indexesZ = new HashSet<Vector3Int>();
+                HashSet<Wall> wallsMerged = new HashSet<Wall>();
+                Wall wallToMerge = new Wall();
+
+                CheckIndexInWall(ref walls_x, ref walls_z, ref wallToMerge, ref wallsMerged, ref inAWallX, Genes[x - 1][y][z], new Vector3Int(x - 1, y, z), typeParams, index);
+                CheckIndexInWall(ref walls_x, ref walls_z, ref wallToMerge, ref wallsMerged, ref inAWallX, Genes[x + 1][y][z], new Vector3Int(x + 1, y, z), typeParams, index);
+                CheckIndexInWall(ref walls_x, ref walls_z, ref wallToMerge, ref wallsMerged, ref inAWallX, Genes[x][y - 1][z], new Vector3Int(x, y - 1, z), typeParams, index);
+                CheckIndexInWall(ref walls_x, ref walls_z, ref wallToMerge, ref wallsMerged, ref inAWallX, Genes[x][y + 1][z], new Vector3Int(x, y + 1, z), typeParams, index);
+
+                wallToMerge = new Wall();
+                wallsMerged.Clear();
+                
+                CheckIndexInWall(ref walls_z, ref walls_x, ref wallToMerge, ref wallsMerged, ref inAWallZ, Genes[x][y][z - 1], new Vector3Int(x, y, z - 1), typeParams, index);
+                CheckIndexInWall(ref walls_z, ref walls_x, ref wallToMerge, ref wallsMerged, ref inAWallZ, Genes[x][y][z + 1], new Vector3Int(x, y, z + 1), typeParams, index);
+                CheckIndexInWall(ref walls_z, ref walls_x, ref wallToMerge, ref wallsMerged, ref inAWallZ, Genes[x][y - 1][z], new Vector3Int(x, y - 1, z), typeParams, index);
+                CheckIndexInWall(ref walls_z, ref walls_x, ref wallToMerge, ref wallsMerged, ref inAWallZ, Genes[x][y + 1][z], new Vector3Int(x, y + 1, z), typeParams, index);
+
+                if (!inAWallX)
+                {
+                    AddIndexInWall(Genes[x - 1][y][z], new Vector3Int(x - 1, y, z), typeParams, ref indexesX);
+                    AddIndexInWall(Genes[x + 1][y][z], new Vector3Int(x + 1, y, z), typeParams, ref indexesX);
+
+                    if (indexesX.Count > 0)
+                    {
+                        AddIndexInWall(Genes[x][y - 1][z], new Vector3Int(x, y - 1, z), typeParams, ref indexesX);
+                        AddIndexInWall(Genes[x][y + 1][z], new Vector3Int(x, y + 1, z), typeParams, ref indexesX);
+
+                        indexesX.Add(new Vector3Int(x, y, z));
+                        Wall newWall = new Wall();
+                        newWall.indexes = indexesX;
+                        newWall.position = z;
+                        walls_x.Add(newWall);
+                        inAWallX = true;
+                    }
+                }
+                
+                if (!inAWallZ)
+                {
+                    AddIndexInWall(Genes[x][y][z - 1], new Vector3Int(x, y, z - 1), typeParams, ref indexesZ);
+                    AddIndexInWall(Genes[x][y][z + 1], new Vector3Int(x, y, z + 1), typeParams, ref indexesZ);
+
+                    if (indexesZ.Count > 0)
+                    {
+                        AddIndexInWall(Genes[x][y - 1][z], new Vector3Int(x, y - 1, z), typeParams, ref indexesX);
+                        AddIndexInWall(Genes[x][y + 1][z], new Vector3Int(x, y + 1, z), typeParams, ref indexesX);
+
+                        indexesZ.Add(new Vector3Int(x, y, z));
+                        Wall newWall = new Wall();
+                        newWall.indexes = indexesZ;
+                        newWall.position = x;
+                        walls_z.Add(newWall);
+                        inAWallZ = true;
+                    }
+                }
+
+                if (!typeParams[Genes[x - 1][y][z].type].wall && !typeParams[Genes[x + 1][y][z].type].wall
+                 && !typeParams[Genes[x][y - 1][z].type].wall && !typeParams[Genes[x][y + 1][z].type].wall
+                 && !typeParams[Genes[x][y][z - 1].type].wall && !typeParams[Genes[x][y][z + 1].type].wall)
+                    blocksSolos.Add(new Vector3Int(x, y, z));
+
+                HashSet<Vector3Int> nomoreBlockSolo = new HashSet<Vector3Int>();
+
+                foreach (Vector3Int ind in blocksSolos)
+                {
+                    if (typeParams[Genes[x-1][y][z].type].wall) nomoreBlockSolo.Add(ind);
+                    if (typeParams[Genes[x+1][y][z].type].wall) nomoreBlockSolo.Add(ind);
+                    if (typeParams[Genes[x][y - 1][z].type].wall) nomoreBlockSolo.Add(ind);
+                    if (typeParams[Genes[x][y + 1][z].type].wall) nomoreBlockSolo.Add(ind);
+                    if (typeParams[Genes[x][y][z-1].type].wall) nomoreBlockSolo.Add(ind);
+                    if (typeParams[Genes[x][y][z+1].type].wall) nomoreBlockSolo.Add(ind);
+                }
+
+                foreach (Vector3Int rem in nomoreBlockSolo)
+                {
+                    //blocksSolos.Remove(rem);
+                }
+            }
+        }
+
+        public static void UnsetWalls(ref HashSet<Vector3Int> blocksSolo, ref HashSet<Wall> walls_x, ref HashSet<Wall> walls_z, WaypointParams[][][] Genes, TypeParams[] typeParams, Vector3Int index)
+        {
+            int x = index.x; int y = index.y; int z = index.z;
+
+            if (!typeParams[Genes[x][y][z].type].wall)
+            {
+                Wall wallRebuild =  new Wall();
+
+                foreach (Wall wall in walls_x)
+                {
+                    if (wall.indexes.Contains(index))
+                    {
+                        wallRebuild = wall;
+                        break;
+                    }
+                }
+
+                if (wallRebuild.indexes != null)
+                {
+                    walls_x.Remove(wallRebuild);
+
+                    foreach (Vector3Int indexRebuild in wallRebuild.indexes)
+                    {
+                        SetWalls(ref blocksSolo, ref walls_x, ref walls_z, Genes, typeParams, indexRebuild);
+                    }
+                }
+
+                wallRebuild = new Wall();
+
+                foreach (Wall wall in walls_z)
+                {
+                    if (wall.indexes.Contains(index))
+                    {
+                        wallRebuild = wall;
+                        break;
+                    }
+                }
+
+                if (wallRebuild.indexes != null)
+                {
+                    walls_z.Remove(wallRebuild);
+
+                    foreach (Vector3Int indexRebuild in wallRebuild.indexes)
+                    {
+                        SetWalls(ref blocksSolo, ref walls_x, ref walls_z, Genes, typeParams, indexRebuild);
+                    }
+                }
+
+                blocksSolo.Remove(index);
+            }
+        }
+
+        private static void CheckIndexInWall(ref HashSet<Wall> walls_check, ref HashSet<Wall> walls_other, ref Wall wallToMerge, ref HashSet<Wall> wallsMerged, ref bool inAWall, WaypointParams neighbor, Vector3Int indexNeighbor, TypeParams[] typeParams, Vector3Int index)
+        {
+            if (neighbor.type > 0 && typeParams[neighbor.type].wall)
+            {
+                foreach (Wall wallCheck in walls_check)
+                {
+                    if (wallCheck.indexes.Contains(indexNeighbor) && !wallCheck.indexes.Contains(index))
+                    {
+                        wallCheck.indexes.Add(index);
+                        if (wallToMerge.indexes != null)
+                            wallsMerged.Add(wallToMerge);
+                        wallToMerge = wallCheck;
+                        inAWall = true;
+                    }
+
+                    if (wallCheck.indexes.Contains(index))
+                    {
+                        inAWall = true;
+                    }   
+                }
+                
+                foreach (Wall wall in wallsMerged)
+                {
+                    wallToMerge.indexes.UnionWith(wall.indexes);
+                    walls_check.Remove(wall);
+                }
+            }
+        }
+
+        private static void AddIndexInWall(WaypointParams neighbor, Vector3Int indexNeighbor, TypeParams[] typeParams, ref HashSet<Vector3Int> indexesX)
+        {
+            if (neighbor.type > 0 && typeParams[neighbor.type].wall)
+            {
+                indexesX.Add(indexNeighbor);
+            }
+        }
+
+        public static Phenotype GetPhenotype(Vector3Int size, WaypointParams[][][] Genes, TypeParams[] typeParams)
         {
             Phenotype newPhenotype = new Phenotype();
-            newPhenotype.walls_x = new List<Wall>();
-            newPhenotype.walls_z = new List<Wall>();
+            newPhenotype.walls_x = new HashSet<Wall>();
+            newPhenotype.walls_z = new HashSet<Wall>();
+            newPhenotype.blocksSolo = new HashSet<Vector3Int>();
 
-            for (int x = minSize.x; x < maxSize.x; x++)
+            for (int x = 1; x < size.x-1; x++)
             {
-                for (int y = minSize.y; y < maxSize.y; y++)
+                for (int y = 1; y < size.y-1; y++)
                 {
-                    for (int z = minSize.z; z < maxSize.z; z++)
+                    for (int z = 1; z < size.z-1; z++)
                     {
-                        if (Genes[x, y, z].type && Genes[x, y, z].type.wall)
-                        {
-                            bool inAWallX = false;
-                            bool inAWallZ = false;
-
-                           foreach (Wall wall in newPhenotype.walls_x)
-                           {
-                                foreach (Waypoint neighbor in Genes[x, y, z].GetVerticalAndXNeighbors())
-                                {
-                                    if (wall.indexes.Contains(neighbor.key) && !wall.indexes.Contains(new Vector3Int(x, y, z)))
-                                    {
-                                        wall.indexes.Add(new Vector3Int(x,y,z));
-                                        inAWallX = true;
-                                    }
-
-                                    if(wall.indexes.Contains(new Vector3Int(x, y, z)))
-                                         inAWallX = true;
-                                }
-                           }
-
-                            foreach (Wall wall in newPhenotype.walls_z)
-                            {
-                                foreach (Waypoint neighbor in Genes[x, y, z].GetVerticalAndZNeighbors())
-                                {
-                                    if (wall.indexes.Contains(neighbor.key) && !wall.indexes.Contains(new Vector3Int(x, y, z)))
-                                    {
-                                        wall.indexes.Add(new Vector3Int(x, y, z));
-                                        inAWallZ = true;
-                                    }
-
-                                    if (wall.indexes.Contains(new Vector3Int(x, y, z)))
-                                        inAWallZ = true;
-                                }
-                            }
-
-                            if (!inAWallX)
-                            {
-                                List<Vector3Int> indexesX = new List<Vector3Int>();
-
-                                foreach (Waypoint neighbor in Genes[x, y, z].GetSideNeighborsX())
-                                {
-                                    if (neighbor.type && neighbor.type.wall)
-                                        indexesX.Add(neighbor.key);
-                                }
-
-                                if (indexesX.Count > 0)
-                                {
-                                    indexesX.Add(new Vector3Int(x, y, z));
-                                    Wall newWall = new Wall();
-                                    newWall.indexes = indexesX;
-                                    newWall.position = z;
-                                    newPhenotype.walls_x.Add(newWall);
-                                }
-                            }
-
-                            if (!inAWallZ)
-                            {
-                                List<Vector3Int> indexesZ = new List<Vector3Int>();
-
-                                foreach (Waypoint neighbor in Genes[x, y, z].GetSideNeighborsZ())
-                                {
-                                    if (neighbor.type && neighbor.type.wall)
-                                        indexesZ.Add(neighbor.key);
-                                }
-
-                                if (indexesZ.Count > 0)
-                                {
-                                    indexesZ.Add(new Vector3Int(x, y, z));
-                                    Wall newWall = new Wall();
-                                    newWall.indexes = indexesZ;
-                                    newWall.position = x;
-                                    newPhenotype.walls_z.Add(newWall);
-                                }
-
-                            }
-                        }
+                        SetWalls(ref newPhenotype.blocksSolo, ref newPhenotype.walls_x, ref newPhenotype.walls_z, Genes, typeParams, new Vector3Int(x, y, z));
                     }
                 }
             }

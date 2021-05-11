@@ -3,7 +3,8 @@ using MapTileGridCreator.Core;
 using UnityEditor;
 using UnityEngine;
 using MapTileGridCreator.UtilitiesMain;
-using System.Diagnostics;
+using System.Collections;
+//using EditorCoroutines.Editor;
 
 [CanEditMultipleObjects]
 public class SuggestionsEditor : EditorWindow
@@ -15,6 +16,7 @@ public class SuggestionsEditor : EditorWindow
     private List<Cell[,,]> mapSuggestionCells;
     private List<Grid3D> mapSuggestionGrid;
     private Vector2 scrollPos;
+    private EditorWindow window;
 
     public int numberSuggestions;
     public EvolutionaryAlgoParams evolAlgoParams;
@@ -30,44 +32,29 @@ public class SuggestionsEditor : EditorWindow
     private void OnEnable()
     {
         suggestionsClusters.Clear();
+        numberSuggestions = 4;
 
         if (mapWindow == null)
             mapWindow = (MapTileGridCreatorWindow)Resources.FindObjectsOfTypeAll(typeof(MapTileGridCreatorWindow))[0];
 
+        window = GetWindow(typeof(SuggestionsEditor));
         evolAlgoParams.population = 20;
         evolAlgoParams.elitism = 10;
         evolAlgoParams.generations = 500;
         evolAlgoParams.mutationRate = 0.01f;
+        evolAlgoParams.skipMutations = 10;
     }
-    public void Update()
-    {
-        // This is necessary to make the framerate normal for the editor window.
-        Repaint();
-    }
-
+    
     private void OnGUI()
     {
-        EditorWindow window = GetWindow(typeof(SuggestionsEditor));
-        window.minSize = new Vector2(0, 0);
-        window.maxSize = new Vector2(500, 400);
-
-        //Get number of suggestions
-        //GUILayout.BeginHorizontal();
-        //numberSuggestions = EditorGUILayout.IntField("Number Suggestions: ", numberSuggestions);
-        //GUILayout.EndHorizontal();
-        numberSuggestions = 4;
-
         //Get parameters of Evolutionary the Algorithm
         GUILayout.BeginHorizontal();
         evolAlgoParams.mutationRate = EditorGUILayout.FloatField("Mutation Rate ", evolAlgoParams.mutationRate);
         evolAlgoParams.population = EditorGUILayout.IntField("Population ", evolAlgoParams.population);
-        evolAlgoParams.population = evolAlgoParams.population > numberSuggestions ? evolAlgoParams.population:numberSuggestions;
         GUILayout.EndHorizontal();
         GUILayout.BeginHorizontal();
         evolAlgoParams.generations = EditorGUILayout.IntField("Generations ", evolAlgoParams.generations);
-        evolAlgoParams.generations = evolAlgoParams.generations > 0 ? evolAlgoParams.generations : 1;
         evolAlgoParams.elitism = EditorGUILayout.IntField("Elitism ", evolAlgoParams.elitism);
-        evolAlgoParams.elitism = evolAlgoParams.generations > 0 ? evolAlgoParams.elitism : 1;
         GUILayout.EndHorizontal();
 
         if (mapSuggestionGrid == null || mapSuggestionGrid.Count == 0 || mapSuggestionGrid[0] == null)
@@ -81,18 +68,7 @@ public class SuggestionsEditor : EditorWindow
             GUILayout.BeginHorizontal();
             if (mapSuggestionGrid.Count == numberSuggestions)
             {
-                /*for (int j = i; j < i + 2 && j < numberSuggestions; j++)
-                {
-                    //Handles.DrawCamera(GUILayoutUtility.GetRect(50, 200), mapSuggestionGrid[j].transform.GetComponentInChildren<Camera>());
-                    //Handles.DrawCamera(GUILayoutUtility.GetRect(0.5f * position.width, 2 * position.height / numberSuggestions-40), mapSuggestionGrid[j].transform.GetComponentInChildren<Camera>());
-                }*/
-
-                //GUILayoutUtility.GetRect(0.5f * position.width, 0.5f * position.height);
-                //GUI.DrawTexture(new Rect(0.5f * position.width, i * position.height / numberSuggestions, 0.5f*position.width, 0.5f * position.height), renderTexture);
-
-                
                 GUILayoutUtility.GetRect(0.5f*position.width, position.height*0.5f - 50);
-                //GUI.BeginGroup(new Rect(5, 5, 0.5f * position.width, position.height));
                 Camera previewCam = mapSuggestionGrid[i].transform.GetComponentInChildren<Camera>();
                 previewCam.hideFlags = HideFlags.HideAndDontSave;
                 Rect cameraRect = new Rect(5, 50 + i*(position.height * 0.25f-15f), 0.5f * position.width-10, position.height * 0.5f - 60);
@@ -134,7 +110,6 @@ public class SuggestionsEditor : EditorWindow
             GUILayout.EndHorizontal();
             i += 2;
         }
-        //EditorGUILayout.EndScrollView();
         EditorUtility.ClearProgressBar();
     }
 
@@ -166,6 +141,8 @@ public class SuggestionsEditor : EditorWindow
     {
         //Create GameObject from the newly created clusters and create editors 
         for (int i = 0; i < numberSuggestions; i++)
-            FuncMain.TransformCellsFromWaypoints(mapSuggestionCells[i], suggestionsClusters[i].GetWaypoints());
+        {
+            FuncMain.EditorCoroutines.Execute(FuncMain.CoroutineTransformCellsFromWaypoints(mapSuggestionCells[i], suggestionsClusters[i].GetWaypoints()));
+        }
     }
 }
