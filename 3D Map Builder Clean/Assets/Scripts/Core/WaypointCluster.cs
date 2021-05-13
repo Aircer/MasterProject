@@ -13,27 +13,29 @@ namespace MapTileGridCreator.Core
 			CreateWaypoints(size);
 			pathfindingWaypoints = new List<Waypoint>();
 			this.cellInfos = cellInfos;
-			minSize = new Vector3Int(size.x, size.y, size.z);
-			maxSize = new Vector3Int(0, 0, 0);
+			this.size = size;
 		}
 
-		public WaypointCluster(Vector3Int size, WaypointParams[][][] newWaypointsParams, List<CellInformation> cellsInfos)
+		public WaypointCluster(Vector3Int sizeDNA, WaypointParams[][][] newWaypointsParams, CellInformation[] cellsInfos)
 		{
 			pathfindingWaypoints = new List<Waypoint>();
-			waypoints = new Waypoint[size.x-2, size.y-2, size.z-2];
-			minSize = new Vector3Int(size.x-2, size.y-2, size.z-2);
-			maxSize = new Vector3Int(0, 0, 0);
-			this.cellInfos = cellsInfos;
-			//CreateWaypoints(size);
+			waypoints = new Waypoint[sizeDNA.x-2, sizeDNA.y-2, sizeDNA.z-2];
+			this.size = new Vector3Int(sizeDNA.x - 2, sizeDNA.y - 2, sizeDNA.z - 2);
+			this.cellInfos = new List<CellInformation>();
 
-			for (int x = 1; x < size.x-1; x++)
+			for (int i = 0; i < cellsInfos.Length; i++)
 			{
-				for (int y = 1; y < size.y-1; y++)
+				this.cellInfos.Add(cellsInfos[i]);
+			}
+
+			for (int x = 1; x < sizeDNA.x-1; x++)
+			{
+				for (int y = 1; y < sizeDNA.y-1; y++)
 				{
-					for (int z = 1; z < size.z-1; z++)
+					for (int z = 1; z < sizeDNA.z-1; z++)
 					{
 						Waypoint newWaypoint = new Waypoint();
-						newWaypoint.Initialize(size, new Vector3Int(x-1, y-1, z-1), this);
+						newWaypoint.Initialize(sizeDNA, new Vector3Int(x-1, y-1, z-1), this);
 						if (newWaypointsParams[x][y][z].type > 0)
 							newWaypoint.type = cellInfos[newWaypointsParams[x][y][z].type - 1];
 						else
@@ -52,8 +54,7 @@ namespace MapTileGridCreator.Core
 		/// </summary>
 		private Waypoint[,,] waypoints;
 		private List<Waypoint> pathfindingWaypoints;
-		public Vector3Int minSize;
-		public Vector3Int maxSize;
+		public Vector3Int size;
 		public List<CellInformation> cellInfos;
 
 		public Waypoint[,,] GetWaypoints()
@@ -79,15 +80,11 @@ namespace MapTileGridCreator.Core
 						{
 							waypointsParamsZ[z].type = 0;
 							waypointsParamsZ[z].rotation = new Vector3(0, 0, 0);
-							waypointsParamsZ[z].basePos = new Vector3Int(0,0,0);
-							waypointsParamsZ[z].baseType = false;
 						}
 						else
 						{
 							waypointsParamsZ[z].type = cellInfos.IndexOf(waypoints[x - 1, y - 1, z - 1].type)+1;
 							waypointsParamsZ[z].rotation = waypoints[x - 1, y - 1, z - 1].rotation;
-							waypointsParamsZ[z].basePos = waypoints[x - 1, y - 1, z - 1].basePos + Vector3Int.one;
-							waypointsParamsZ[z].baseType = waypoints[x - 1, y - 1, z - 1].baseType;
 						}
 					}
 					waypointsParamsYZ[y] = waypointsParamsZ;
@@ -205,11 +202,11 @@ namespace MapTileGridCreator.Core
 
 		private void SetTypeAround(Vector3Int size_grid, Vector3 rotation, CellInformation type, Vector3Int index)
 		{
-			if (type != null && FuncMain.CanAddTypeHere(size_grid, index, type.size, this, rotation))
+			if (type != null && FuncMain.CanAddTypeHere(size_grid, index, type.typeParams.size, this, rotation))
 			{
 				Vector3Int lowerBound = default;
 				Vector3Int upperBound = default;
-				FuncMain.SetBounds(ref lowerBound, ref upperBound, index, type.size, rotation);
+				FuncMain.SetBounds(ref lowerBound, ref upperBound, index, type.typeParams.size, rotation);
 
 				for (int i = lowerBound.x; i <= upperBound.x; i++)
 				{
@@ -221,7 +218,6 @@ namespace MapTileGridCreator.Core
 							{
 								waypoints[i, j, k].SetType(type);
 								waypoints[i, j, k].SetBasePos(index);
-								SetSize(i,j,k);
 							}
 						}
 					}
@@ -235,6 +231,9 @@ namespace MapTileGridCreator.Core
 
 		public CellInformation RemoveTypeAround(Vector3Int size_grid, Vector3Int index)
 		{
+			CellInformation type = waypoints[index.x, index.y, index.z].type;
+			waypoints[index.x, index.y, index.z].SetType(null);
+			/*
 			Vector3Int lowerBound = default(Vector3Int);
 			Vector3Int upperBound = default(Vector3Int);
 			Vector3Int basePos = waypoints[index.x, index.y, index.z].basePos;
@@ -242,7 +241,7 @@ namespace MapTileGridCreator.Core
 			CellInformation type = baseWaypoint.type;
 			if (baseWaypoint != null && baseWaypoint.type != null)
 			{
-				FuncMain.SetBounds(ref lowerBound, ref upperBound, basePos, baseWaypoint.type.size, baseWaypoint.rotation);
+				FuncMain.SetBounds(ref lowerBound, ref upperBound, basePos, baseWaypoint.type.typeParams.size, baseWaypoint.rotation);
 
 				for (int i = lowerBound.x; i <= upperBound.x; i++)
 				{
@@ -261,7 +260,7 @@ namespace MapTileGridCreator.Core
 
 				waypoints[index.x, index.y, index.z].SetBase(false);
 				//Debug.Log(minSize + " -- " + maxSize);
-			}
+			}*/
 
 			return type;
 		}
@@ -272,6 +271,7 @@ namespace MapTileGridCreator.Core
 			waypoints[index.x, index.y, index.z].SetRotation(rotation);
 		}
 
+		/*
 		public void SetSize(int x, int y, int z)
         {
 			if (x < minSize.x)
@@ -287,7 +287,8 @@ namespace MapTileGridCreator.Core
 				maxSize.y = y+1;
 			if (z+1 > maxSize.z)
 				maxSize.z = z+1;
-		}
+		}*/
+		/*
 		public void UnsetSize(int x, int y, int z)
 		{
 			if (x + 1 < maxSize.x)
@@ -451,6 +452,6 @@ namespace MapTileGridCreator.Core
 				if (newLimit)
 					minSize.z = z;
 			}
-		}
+		}*/
 	}
 }

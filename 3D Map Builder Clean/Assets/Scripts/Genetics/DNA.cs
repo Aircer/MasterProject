@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Threading;
-using MathNet.Numerics.LinearAlgebra;
+using System.Linq;
 
 namespace MapTileGridCreator.Core
 {
@@ -10,241 +9,160 @@ namespace MapTileGridCreator.Core
 	{
 		//public WaypointCluster GenesCluster { get; private set; }
 		public WaypointParams[][][] Genes { get; private set; }
-		public Matrix<Double>[] typeMatrix;
+
 		public float Fitness { get; private set; }
 
-		private System.Random random;
-		private Func<int> getRandomType;
+		private SharpNeatLib.Maths.FastRandom randomFast;
+		private System.Random randomSystem;
+
 		private Func<int, float> fitnessFunction;
 		private TypeParams[] typeParams;
 
 		public Phenotype phenotype;
-		public Vector3Int sizeDNA;
+		public int sizeDNAx_wtBorder; public int sizeDNAy_wtBorder; public int sizeDNAz_wtBorder;
 
-		public DNA(Vector3Int size, System.Random random, Func<int> getRandomType, Func<int, float> fitnessFunction,TypeParams[] typeParams, WaypointCluster cluster = null)
+		public DNA(Vector3Int size, System.Random randomSystem, SharpNeatLib.Maths.FastRandom randomFast, Func<int, float> fitnessFunction,
+			TypeParams[] typeParams, WaypointCluster cluster = null)
 		{
 			//Genes are bigger than cluster to have empty borders thus it is easier to get neighbors  
-			Genes = new WaypointParams[size.x+2][][];
-			this.random = random;
-			this.getRandomType = getRandomType;
+			Genes = new WaypointParams[size.x][][];
+			this.randomSystem = randomSystem;
+			this.randomFast = randomFast;
 			this.fitnessFunction = fitnessFunction;;
 			this.typeParams = typeParams;
 
-			sizeDNA = new Vector3Int(size.x + 2, size.y + 2, size.z + 2);
-			phenotype = new Phenotype();
-			typeMatrix = new Matrix<Double>[sizeDNA.y];
+			sizeDNAx_wtBorder = size.x-1;
+			sizeDNAy_wtBorder = size.y-1;
+			sizeDNAz_wtBorder = size.z-1;
 
 			if (cluster != null)
 			{
 				Genes = cluster.GetWaypointsParams();
-				phenotype = IA.GetPhenotype(sizeDNA, Genes, typeParams);
+			}
+		}
 
-				for (int y = 0; y < sizeDNA.y; y++)
+		public List<int> ExistingTypes()
+        {
+			List<int> differentTypes = new List<int>();
+
+			for (int x = 1; x < sizeDNAx_wtBorder; x++)
+			{
+				for (int y = 1; y < sizeDNAy_wtBorder; y++)
 				{
-					Matrix<Double> subTypeMatrix = Matrix<Double>.Build.Random(sizeDNA.x, sizeDNA.z);
-					for (int x = 0; x < sizeDNA.x; x++)
+					for (int z = 1; z < sizeDNAz_wtBorder; z++)
 					{
-						for (int z = 0; z < sizeDNA.z; z++)
-						{
-							subTypeMatrix.At(x, z, Genes[x][y][z].type);
-						}
+						if(!differentTypes.Contains(Genes[x][y][z].type))
+							differentTypes.Add(Genes[x][y][z].type);
 					}
-					typeMatrix[y] = subTypeMatrix;
 				}
 			}
 
-			/*Debug.Log("Walls X: " + phenotype.walls_x.Count);
-			Debug.Log("Walls Z: " + phenotype.walls_z.Count);
-			Debug.Log("Blocks Solo: " + phenotype.blocksSolo.Count);*/
+			return differentTypes;
 		}
 
 		public float CalculateFitness(int index)
 		{
+			phenotype = IA.GetPhenotype(sizeDNAx_wtBorder, sizeDNAx_wtBorder, sizeDNAx_wtBorder, Genes, typeParams);
 			Fitness = fitnessFunction(index);
 			return Fitness;
 		}
 
-		public void Crossover(DNA otherParent)
+		public void Crossover(DNA parent1, DNA parent2)
 		{
-			for (int x = 1; x < sizeDNA.x - 1; x++)
+			int sizeDNAx_Minus2 = sizeDNAx_wtBorder - 1;
+			int sizeDNAz_Minus2 = sizeDNAz_wtBorder - 1;
+
+			for (int x = 1; x < sizeDNAx_Minus2; x += 2)
 			{
-				for (int y = 1; y < sizeDNA.y- 1; y++)
+				for (int y = 1; y < sizeDNAy_wtBorder; y++)
 				{
-					for (int z = 1; z < sizeDNA.z - 1; z++)
+					for (int z = 1; z < sizeDNAz_Minus2; z += 2)
 					{
-						typeMatrix[y].At(x, z, otherParent.Genes[x][y][z].type);
-						Genes[x][y][z].type = otherParent.Genes[x][y][z].type;
-						Genes[x][y][z].rotation = otherParent.Genes[x][y][z].rotation;
-						Genes[x][y][z].basePos = otherParent.Genes[x][y][z].basePos;
-						Genes[x][y][z].baseType = otherParent.Genes[x][y][z].baseType;
+						Genes[x][y][z].type = parent1.Genes[x][y][z].type;
+						Genes[x][y][z].rotation = parent1.Genes[x][y][z].rotation;
+
+						Genes[x+1][y][z+1].type = parent2.Genes[x+1][y][z+1].type;
+						Genes[x+1][y][z+1].rotation = parent2.Genes[x+1][y][z+1].rotation;
 					}
-				}
-			}
-
-			//phenotype = IA.GetPhenotype(Genes, typeParams);
-			
-			phenotype = new Phenotype();
-			phenotype.blocksSolo = new HashSet<Vector3Int>(otherParent.phenotype.blocksSolo); 
-			phenotype.walls_x = new HashSet<Wall>();
-
-			foreach(Wall wallX in otherParent.phenotype.walls_x)
-            {
-				Wall newWall = new Wall();
-				newWall.indexes = new HashSet<Vector3Int>(wallX.indexes);
-				newWall.position = wallX.position;
-				phenotype.walls_x.Add(newWall);
-			}
-
-			phenotype.walls_z = new HashSet<Wall>();
-
-			foreach (Wall wallZ in otherParent.phenotype.walls_z)
-			{
-				Wall newWall = new Wall();
-				newWall.indexes = new HashSet<Vector3Int>(wallZ.indexes);
-				newWall.position = wallZ.position;
-				phenotype.walls_z.Add(newWall);
-			}
-		}
-
-		public void Mutate(float mutationRate)
-		{
-			for (int x = 0; x < mutationRate * sizeDNA.x * sizeDNA.y * sizeDNA.z; x++)
-			{
-				Vector3Int index = new Vector3Int(random.Next(1, sizeDNA.x-1), random.Next(1, sizeDNA.y-1), random.Next(1, sizeDNA.z-1));
-				//int type = getRandomType();
-				int type = 8; //random.Next(2) == 0 ? 0:8;
-				Vector3 rotation = new Vector3(0, 0, 0);
-
-				if (type > 0)
-				{
-					if (CanAddTypeHere(index, typeParams[type].size, rotation))
-					{
-						SetTypeAround(rotation, type, index);
-						IA.SetWalls(ref phenotype.blocksSolo, ref phenotype.walls_x, ref phenotype.walls_z, Genes, typeParams, index);
-					}
-				}
-				else
-				{
-					RemoveTypeAround(index);
-					IA.UnsetWalls(ref phenotype.blocksSolo, ref phenotype.walls_x, ref phenotype.walls_z, Genes, typeParams, index);
 				}
 			}
 		}
 
-		private void SetTypeAround(Vector3 rotation, int type, Vector3Int index)
+		public void Copy(DNA parent)
 		{
-			if (typeParams[type].size.x != 1 && typeParams[type].size.y != 1 && typeParams[type].size.z != 1)
+			for (int x = 1; x < sizeDNAx_wtBorder; x++)
 			{
-				Vector3Int lowerBound = default;
-				Vector3Int upperBound = default;
-				SetBounds(ref lowerBound, ref upperBound, index, typeParams[type].size, rotation);
-
-				for (int i = lowerBound.x; i <= upperBound.x; i++)
+				for (int y = 1; y < sizeDNAy_wtBorder; y++)
 				{
-					for (int j = lowerBound.y; j <= upperBound.y; j++)
+					for (int z = 1; z < sizeDNAz_wtBorder; z++)
 					{
-						for (int k = lowerBound.z; k <= upperBound.z; k++)
+						Genes[x][y][z].type = parent.Genes[x][y][z].type;
+						Genes[x][y][z].rotation = parent.Genes[x][y][z].rotation;
+					}
+				}
+			}
+		}
+
+		public void Mutate(float mutationNumber, List<int> existingTypes)
+		{
+			for (int x = 0; x < mutationNumber; x++)
+			{
+				int mutationIndex_x = randomFast.Next(1, sizeDNAx_wtBorder);
+				int mutationIndex_y = randomFast.Next(1, sizeDNAy_wtBorder);
+				int mutationIndex_z = randomFast.Next(1, sizeDNAz_wtBorder);
+				//int type = existingTypes[randomFast.Next(existingTypes.Count)];
+				int mutationType = randomFast.Next(3);
+				
+				if (mutationType == 0)
+					Extend(mutationIndex_x, mutationIndex_y, mutationIndex_z);
+				else if(mutationType == 1)
+					Swap(mutationIndex_x, mutationIndex_y, mutationIndex_z);
+				else if (mutationType == 1)
+					Erase(mutationIndex_x, mutationIndex_y, mutationIndex_z);
+			}
+		}
+
+		//Fill the cell with the same type as a neighbor 
+		public void Extend(int x, int y, int z)
+		{
+			int[] typesAround = new int[typeParams.Length];
+			int newType = 0;
+			for (int i = -1; i < 2; i++)
+			{
+				for (int j = -1; j < 2; j++)
+				{
+					for (int k = -1; k < 2; k++)
+					{
+						if (Genes[x + i][y + j][z + k].type > 0)
 						{
-							Genes[i][j][k].type = type;
-							Genes[i][j][k].rotation = new Vector3(0, 0, 0);
-							Genes[i][j][k].basePos = index;
-							Genes[i][j][k].baseType = false;
-						}
-					}
-				}
-				Genes[index.x][index.y][index.z].baseType = true;
-			}
-			else
-			{
-				Genes[index.x][index.y][index.z].type = type;
-				Genes[index.x][index.y][index.z].rotation = new Vector3(0, 0, 0);
-				Genes[index.x][index.y][index.z].basePos = index;
-				Genes[index.x][index.y][index.z].baseType = true;
-			}
-		
-		}
-
-		private void RemoveTypeAround(Vector3Int index)
-		{
-			Vector3Int lowerBound = default(Vector3Int);
-			Vector3Int upperBound = default(Vector3Int);
-			Vector3Int basePos = Genes[index.x][index.y][index.z].basePos;
-			WaypointParams baseWaypoint = Genes[basePos.x][basePos.y][basePos.z];
-
-			if (baseWaypoint.type > 0)
-			{
-				SetBounds(ref lowerBound, ref upperBound, basePos, typeParams[baseWaypoint.type].size, baseWaypoint.rotation);
-
-				for (int i = lowerBound.x; i <= upperBound.x; i++)
-				{
-					for (int j = lowerBound.y; j <= upperBound.y; j++)
-					{
-						for (int k = lowerBound.z; k <= upperBound.z; k++)
-						{
-							if (InputInGridBoundaries(i,j,k))
-							{
-								Genes[i][j][k].type = 0;
-								Genes[i][j][k].rotation = new Vector3(0, 0, 0);
-								Genes[i][j][k].basePos = index;
-								Genes[i][j][k].baseType = false;
-							}
+							typesAround[Genes[x + i][y + j][z + k].type]++;
+							if (typesAround[Genes[x + i][y + j][z + k].type] > typesAround[newType])
+								newType = Genes[x + i][y + j][z + k].type;
 						}
 					}
 				}
 			}
+
+			if(typesAround[newType] > 0 && newType != Genes[x][y][z].type)
+				Genes[x][y][z].type = newType;
 		}
 
-		private bool CanAddTypeHere(Vector3Int index, Vector3Int size, Vector3 rotation)
+		//Swap the cell with a random other cell
+		public void Swap(int x, int y, int z)
 		{
-			if (size.x == 1 && size.y == 1 && size.z == 1)
-				if (Genes[index.x][index.y][index.z].type != 0)
-					return false;
-				else
-					return true;
+			int swap_x = randomFast.Next(1, sizeDNAx_wtBorder);
+			int swap_y = randomFast.Next(1, sizeDNAy_wtBorder);
+			int swap_z = randomFast.Next(1, sizeDNAz_wtBorder);
 
-			Vector3Int lowerBound = default(Vector3Int);
-			Vector3Int upperBound = default(Vector3Int);
-			SetBounds(ref lowerBound, ref upperBound, index, size, rotation);
-
-			for (int i = lowerBound.x; i <= upperBound.x; i++)
-			{
-				for (int j = lowerBound.y; j <= upperBound.y; j++)
-				{
-					for (int k = lowerBound.z; k <= upperBound.z; k++)
-					{
-						if (!InputInGridBoundaries(i,j,k) || Genes[i][j][k].type > 0)
-							return false;
-					}
-				}
-			}
-
-			return true;
+			int type = Genes[x][y][z].type;
+			Genes[x][y][z].type = Genes[swap_x][swap_y][swap_z].type;
+			Genes[swap_x][swap_y][swap_z].type = type;
 		}
 
-		private bool InputInGridBoundaries(int i, int j, int k)
+		//Erase the cell
+		public void Erase(int x, int y, int z)
 		{
-			bool inBoundaries = true;
-
-			if (i < 0 || j < 0 || k < 0 || i > sizeDNA.x - 1 || j > sizeDNA.y - 1 || k > sizeDNA.z - 1)
-				inBoundaries = false;
-
-			return inBoundaries;
-		}
-
-		private void SetBounds(ref Vector3Int lowerBound, ref Vector3Int upperBound, Vector3Int index, Vector3Int size, Vector3 rotation)
-		{
-			Vector3Int newSize = default(Vector3Int);
-			newSize.x = (int)Mathf.Cos(rotation.y * Mathf.Deg2Rad) * size.x + (int)Mathf.Sin(rotation.x * Mathf.Deg2Rad) * (int)Mathf.Sin(rotation.y * Mathf.Deg2Rad) * size.y + (int)Mathf.Sin(rotation.y * Mathf.Deg2Rad) * (int)Mathf.Cos(rotation.x * Mathf.Deg2Rad) * size.z;
-			newSize.y = (int)Mathf.Cos(rotation.x * Mathf.Deg2Rad) * size.y - (int)Mathf.Sin(rotation.x * Mathf.Deg2Rad) * size.z;
-			newSize.z = -(int)Mathf.Sin(rotation.y * Mathf.Deg2Rad) * size.x + (int)Mathf.Cos(rotation.y * Mathf.Deg2Rad) * (int)Mathf.Sin(rotation.x * Mathf.Deg2Rad) * size.y + (int)Mathf.Cos(rotation.y * Mathf.Deg2Rad) * (int)Mathf.Cos(rotation.x * Mathf.Deg2Rad) * size.z;
-
-			lowerBound.x = newSize.x < 0 ? index.x + newSize.x + 1 : index.x;
-			lowerBound.y = newSize.y < 0 ? index.y + newSize.y + 1 : index.y;
-			lowerBound.z = newSize.z < 0 ? index.z + newSize.z + 1 : index.z;
-
-			upperBound.x = newSize.x > 0 ? index.x + newSize.x - 1 : index.x;
-			upperBound.y = newSize.y > 0 ? index.y + newSize.y - 1 : index.y;
-			upperBound.z = newSize.z > 0 ? index.z + newSize.z - 1 : index.z;
+			Genes[x][y][z].type = 0;
 		}
 	}
 }

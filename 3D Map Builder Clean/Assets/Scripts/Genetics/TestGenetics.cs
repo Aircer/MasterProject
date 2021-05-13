@@ -6,45 +6,44 @@ using MathNet.Numerics.LinearAlgebra;
 
 namespace MapTileGridCreator.Core
 {
-	public class TestGenetics 
+	public class TestGenetics
 	{
-		public int populationSize = 20;
-		public float mutationRate = 0.01f;
-		public int elitism = 5;
-
+		public EvolutionaryAlgoParams algoParams;
 		public GeneticAlgorithm ga;
-		private System.Random random;
+
+		private SharpNeatLib.Maths.FastRandom randomFast;
+		private System.Random randomSystem;
 		private int numberTypeCells;
-		private float numberCells;
-		private Vector3Int sizeGrid;
+		private Vector3Int sizeDNA;
 		private TypeParams[] typeParams;
-		private List<CellInformation> cellsInfos;
-		public void StartGenetics(Vector3Int size_grid, WaypointCluster cluster)
+		private CellInformation[] cellsInfos;
+
+		public void StartGenetics(WaypointCluster cluster, EvolutionaryAlgoParams algoParams)
 		{
-			numberCells = size_grid.x * size_grid.y * size_grid.z;
-			sizeGrid = new Vector3Int(size_grid.x+2, size_grid.y+2, size_grid.z+2);
-			random = new System.Random();
+			// Size of the DNA is size + 2 to have empty borders
+			sizeDNA = new Vector3Int(cluster.size.x+2, cluster.size.y+2, cluster.size.z+2);
+			randomFast = new SharpNeatLib.Maths.FastRandom();
+			randomSystem = new System.Random();
 			numberTypeCells = cluster.cellInfos.Count;
+			cellsInfos = cluster.cellInfos.ToArray();
 			typeParams = new TypeParams[numberTypeCells + 1];
+			this.algoParams = algoParams;
 
-			typeParams[0].ground = false;
-			typeParams[0].size = new Vector3Int(1,1,1);
-			typeParams[0].blockPath = false;
-			typeParams[0].wall = false;
-			typeParams[0].floor = false;
+			SetTypeCellParams(cluster);
 
-			for (int i=0; i < numberTypeCells; i++)
-			{
-				typeParams[i + 1].ground = cluster.cellInfos[i].ground;
-				typeParams[i + 1].size = cluster.cellInfos[i].size;
-				typeParams[i + 1].blockPath = cluster.cellInfos[i].blockPath;
-				typeParams[i + 1].wall = cluster.cellInfos[i].wall;
-				typeParams[i + 1].floor = cluster.cellInfos[i].floor;
-			}
-			this.cellsInfos = cluster.cellInfos;
-
-			ga = new GeneticAlgorithm(populationSize, size_grid, random, GetRandomType, FitnessFunction, elitism, cluster, typeParams, mutationRate);
+			ga = new GeneticAlgorithm(algoParams, sizeDNA, randomSystem, randomFast, FitnessFunction, cluster, typeParams);
 		}
+
+		private void SetTypeCellParams(WaypointCluster cluster)
+		{
+			typeParams[0] = new TypeParams();
+
+			for (int i = 0; i < numberTypeCells; i++)
+			{
+				typeParams[i + 1] = cluster.cellInfos[i].typeParams;
+			}
+		}
+
 
 		public void UpdateGenetics()
 		{
@@ -65,57 +64,32 @@ namespace MapTileGridCreator.Core
 				if (j == ga.oldPopulation.Length)
 					j = ga.oldPopulation.Length - 1;
 
-				//UnityEngine.Debug.Log(ga.oldPopulation[j].Fitness + "  " +  j);
-				bestClusters.Add(new WaypointCluster(ga.oldPopulation[j].sizeDNA, ga.oldPopulation[j].Genes, cellsInfos));
+				bestClusters.Add(new WaypointCluster(new Vector3Int(ga.oldPopulation[j].sizeDNAx_wtBorder+1, ga.oldPopulation[j].sizeDNAy_wtBorder+1,
+																	ga.oldPopulation[j].sizeDNAz_wtBorder+1), ga.oldPopulation[j].Genes, cellsInfos));
 				j++;
 			}
-			
-			Debug.Log("Walls X: " + ga.oldPopulation[0].phenotype.walls_x.Count);
-			Debug.Log("Walls Z: " + ga.oldPopulation[0].phenotype.walls_z.Count);
-			Debug.Log("Blocks Solo: " + ga.oldPopulation[0].phenotype.blocksSolo.Count);
-			//Debug.Log("Layer Types: " + ga.oldPopulation[0].typeMatrix[1]);
-
-			var m = ga.oldPopulation[0].typeMatrix[1];
-			var m_twist = Matrix<double>.Build.Random(sizeGrid.x, sizeGrid.z);
-
-			int xBis = sizeGrid.x - 1;
-			for (int x = 0; x < sizeGrid.x/2; x++, xBis--)
-			{
-				m_twist.SetRow(x, m.Row(xBis));
-				m_twist.SetRow(xBis, m.Row(x));
-			}
-
-			if(sizeGrid.x % 2 == 1)
-				m_twist.SetRow(sizeGrid.x/2, m.Row(sizeGrid.x / 2));
-
-			m_twist = m_twist.PointwiseDivide(m);
-
-			UnityEngine.Debug.Log(m_twist);
 
 			return bestClusters;
-		}
-
-		private int GetRandomType()
-		{
-			return random.Next(numberTypeCells);
 		}
 
 		private float FitnessFunction(int index)
 		{
 			float finalScore = 0;
-			float scoreX = 0f; float symTotalX = sizeGrid.x*sizeGrid.y*sizeGrid.z/2;
+			float scoreX = 0f; float symTotal = sizeDNA.x*sizeDNA.y*sizeDNA.z/2;
 			DNA dna = ga.oldPopulation[index];
+			Phenotype phenotype = ga.oldPopulation[index].phenotype;
 
-			//Debug.Log(dna.phenotype.walls_x.Count);
-			
-			for (int l = 1; l < sizeGrid.y-1; l++)
+			int sizeDNAx_minus = sizeDNA.x - 1; int sizeDNAy_minus = sizeDNA.y - 1; int sizeDNAz_minus = sizeDNA.z - 1;
+			int sizeDNAx_half = sizeDNA.x / 2; int sizeDNAz_half = sizeDNA.z / 2;
+
+			for (int l = 1; l < sizeDNAy_minus; l++)
 			{
-				int k = sizeGrid.x - 1;
-				for (int i = 0; i < sizeGrid.x / 2; i++, k--)
+				int k = sizeDNAx_minus;
+				for (int i = 0; i < sizeDNAx_half; i++, k--)
 				{
-					for (int j = 1; j < sizeGrid.z-1; j++)
+					for (int j = 1; j < sizeDNAz_minus; j++)
 					{
-						if (dna.Genes[i][l][j].type == dna.Genes[k][l][j].type)
+						if (dna.Genes[i][l][j].type != 0 && (dna.Genes[i][l][j].type == dna.Genes[k][l][j].type))
 						{
 								scoreX += 1;
 						}
@@ -123,19 +97,18 @@ namespace MapTileGridCreator.Core
 				}
 			}
 
-			scoreX /= symTotalX;
-			//scoreX = Mathf.Pow(2, scoreX) - 1;
+			scoreX /= symTotal;
 
-			float scoreZ = 0f; int symTotalZ = sizeGrid.x * sizeGrid.y * sizeGrid.z/2;
+			float scoreZ = 0f; 
 
-			for (int l = 1; l < sizeGrid.y-1; l++)
+			for (int l = 1; l < sizeDNAy_minus; l++)
 			{
-				int k = sizeGrid.z - 1;
-				for (int i = 1; i < sizeGrid.z / 2; i++, k--)
+				int k = sizeDNA.z - 1;
+				for (int i = 1; i < sizeDNAz_half; i++, k--)
 				{
-					for (int j = 1; j < sizeGrid.x-1; j++)
+					for (int j = 1; j < sizeDNAx_minus; j++)
 					{
-						if (dna.Genes[j][l][i].type == dna.Genes[j][l][k].type)
+						if (dna.Genes[i][l][j].type != 0 && (dna.Genes[j][l][i].type == dna.Genes[j][l][k].type))
 						{
 								scoreZ += 1;
 						}
@@ -143,27 +116,34 @@ namespace MapTileGridCreator.Core
 				}
 			}
 
-			scoreZ /= symTotalZ;
-			//scoreZ = Mathf.Pow(2, scoreZ) - 1;
+			scoreZ /= symTotal;
 
-			finalScore = Mathf.Pow(2, (scoreX + scoreZ) / 2) - 1;
+			int scoreWall = 0;
 
-			
-			int nbWalls = dna.phenotype.walls_x.Count + dna.phenotype.walls_z.Count;
-			int bigWalls = 0;
+			for(int z = 0; z < phenotype.walls_x.Length; z++)
+            {
+				if (phenotype.walls_x[z] < 4)
+					scoreWall--;
 
-			foreach (Wall wallX in dna.phenotype.walls_x)
-			{
-				if (wallX.indexes.Count > 3) bigWalls++;
+				if (phenotype.walls_x[z] > 3)
+					scoreWall++;
 			}
 
-			foreach (Wall wallZ in dna.phenotype.walls_z)
+			for (int x = 0; x < phenotype.walls_z.Length; x++)
 			{
-				if (wallZ.indexes.Count > 3) bigWalls++;
+				if (phenotype.walls_z[x] < 4)
+					scoreWall--;
+
+				if (phenotype.walls_z[x] > 3)
+					scoreWall++;
 			}
-			
-			if (nbWalls > 4)
-				finalScore = finalScore/2;
+			if (scoreWall < 0) scoreWall = 0;
+
+			if (scoreWall > (phenotype.walls_x.Length + phenotype.walls_z.Length) / 2)
+				finalScore = Mathf.Pow(2, (scoreX + scoreZ + scoreWall) / 3) - 1;
+			else
+				finalScore = 0;
+			//finalScore = Mathf.Pow(2, (scoreWall) / 1) - 1;
 
 			return finalScore;
 		}

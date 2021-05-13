@@ -9,9 +9,6 @@ using UnityEngine;
 using System.Reflection;
 using System.Threading;
 using System.Diagnostics;
-using System.Linq;
-using NumSharp;
-//using Numpy;
 
 /// <summary>
 /// Main window class.
@@ -256,9 +253,9 @@ public class MapTileGridCreatorWindow : EditorWindow
 					ChangeBrushPallet();
 					Vector3Int input = Vector3Int.RoundToInt(GetGridPositionInput(0.5f));
 
-					if(FuncMain.CanPaintHere(_size_grid , input, _cellTypes[_cellTypes_index].size, _cells, _rotationCell))
+					if(FuncMain.CanPaintHere(_size_grid , input, _cellTypes[_cellTypes_index].typeParams.size, _cells, _rotationCell))
                     {
-						if (_cellTypes[_cellTypes_index].size == Vector3Int.one)
+						if (_cellTypes[_cellTypes_index].typeParams.size == Vector3Int.one)
 							AddInputArea(input);
 						else
 							AddInputSolo(input);
@@ -679,9 +676,9 @@ public class MapTileGridCreatorWindow : EditorWindow
 		FuncMain.DrawUILine(Color.gray);
 
 		if (GUILayout.Button("New"))
-		{
-			if (_size_grid != _old_size_grid || _cells == null)
-			{
+		{	/*
+			if (_size_grid != _old_size_grid || _cells == null || !_grid.gameObject)
+			{*/
 				RefreshPallet();
 
 				//Create Visualization object (Coordinates, Brush and ToolManager) if it doesn't exist
@@ -726,7 +723,8 @@ public class MapTileGridCreatorWindow : EditorWindow
 				}
 
 				_old_size_grid = _size_grid;
-			}
+			//}
+			/*
 			else
 			{
 				FuncMain.ResetCells(ref _cells, _old_size_grid);
@@ -741,6 +739,22 @@ public class MapTileGridCreatorWindow : EditorWindow
 						FuncMain.TransformCellsFromWaypoints(_suggestionsCell[i], _cluster.GetWaypoints());
 					}
 				}
+			}*/
+		}
+
+		if (GUILayout.Button("Refresh Suggestions"))
+		{
+			if (newSuggestionsClustersThread != null)
+				newSuggestionsClustersThread.Abort();
+
+			suggWindow = (SuggestionsEditor[])Resources.FindObjectsOfTypeAll(typeof(SuggestionsEditor));
+			if (suggWindow.Length != 0)
+			{
+				suggWindow[0].NewSuggestionsClusters();
+				newSuggestionsClustersThread = new Thread(NewSuggestionsIA);
+				newSuggestionsClustersThread.Priority = System.Threading.ThreadPriority.Highest;
+				newSuggestionsClustersThread.Start();
+				newSuggestionsDone = false;
 			}
 		}
 

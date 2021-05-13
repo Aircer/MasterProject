@@ -101,12 +101,15 @@ namespace MapTileGridCreator.Core
 				typeDicoCell[type].transform.Find(activeElement).gameObject.SetActive(true);
 				typeDicoCell[type].transform.localEulerAngles = rotation;*/
 
-				foreach (Transform child in transform.GetChild(0))
-				{
-					child.gameObject.SetActive(false);
+				if(transform.GetChild(0).transform.Find(activeElement))
+                {
+					foreach (Transform child in transform.GetChild(0))
+					{
+						child.gameObject.SetActive(false);
+					}
+					transform.GetChild(0).transform.Find(activeElement).gameObject.SetActive(true);
+					transform.GetChild(0).transform.localEulerAngles = rotation;
 				}
-				transform.GetChild(0).transform.Find(activeElement).gameObject.SetActive(true);
-				transform.GetChild(0).transform.localEulerAngles = rotation;
 			}
 		}
 

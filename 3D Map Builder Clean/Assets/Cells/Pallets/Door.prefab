@@ -137,6 +137,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 315e6ca8b97649c4d875962900b543f6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  size: {x: 1, y: 2, z: 1}
-  ground: 0
-  blockPath: 0
+  typeParams:
+    size: {x: 1, y: 2, z: 1}
+    ground: 0
+    blockPath: 0
+    wall: 0
+    floor: 0

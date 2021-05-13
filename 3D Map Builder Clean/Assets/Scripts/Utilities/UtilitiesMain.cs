@@ -349,37 +349,29 @@ namespace MapTileGridCreator.UtilitiesMain
 		/// /// <param name="waypoints"> Waypoints used to get info for transform Cells</param>
 		public static void TransformCellsFromWaypoints(Cell[,,] cells, Waypoint[,,] waypoints)
 		{
-			for (int i = 0; i < waypoints.GetLength(0); i++)
-			{
-				for (int j = 0; j < waypoints.GetLength(1); j++)
-				{
-					for (int k = 0; k < waypoints.GetLength(2); k++)
-					{
-						//cells[i, j, k].Inactive();
-						if (!waypoints[i, j, k].baseType && cells[i, j, k].baseType)
-						{
-							cells[i, j, k].Inactive();
-						}
+			int size_x = waypoints.GetLength(0); int size_y = waypoints.GetLength(1); int size_z = waypoints.GetLength(2);
 
+			for (int i = 0; i < size_x; i++)
+			{
+				for (int j = 0; j < size_y; j++)
+				{
+					for (int k = 0; k < size_z; k++)
+					{
 						if (waypoints[i, j, k].type == null && cells[i, j, k].type != null)
 						{
 							cells[i, j, k].Inactive();
 						}
 
-						if (waypoints[i, j, k].type != null && waypoints[i, j, k].baseType)
+						if (waypoints[i, j, k].type != null && (cells[i, j, k].type == null || waypoints[i, j, k].type != cells[i, j, k].type))
 						{
+							cells[i, j, k].Inactive();
 							cells[i, j, k].Painted(waypoints[i, j, k].type, waypoints[i, j, k].rotation);
 							cells[i, j, k].Active();
 
-							FuncVisual.UpdateCellsAroundVisual(cells, waypoints, new Vector3Int(i,j,k), waypoints[i, j, k].type);
+							FuncVisual.UpdateCellsAroundVisual(cells, waypoints, new Vector3Int(i, j, k), waypoints[i, j, k].type);
 
 							if (!waypoints[i, j, k].show)
 								cells[i, j, k].Sleep();
-						}
-
-						if (waypoints[i, j, k].type != null && !waypoints[i, j, k].baseType && cells[i, j, k].type != waypoints[i, j, k].type)
-						{
-							cells[i, j, k].Erased();
 						}
 
 						if (waypoints[i, j, k].type != null && !waypoints[i, j, k].show)
@@ -534,7 +526,7 @@ namespace MapTileGridCreator.UtilitiesMain
 			Vector3Int size_grid = new Vector3Int(cells.GetLength(0), cells.GetLength(1), cells.GetLength(2));
 			Vector3Int lowerBound = default(Vector3Int);
 			Vector3Int upperBound = default(Vector3Int);
-			SetBounds(ref lowerBound, ref upperBound, index, type.size, rotation);
+			SetBounds(ref lowerBound, ref upperBound, index, type.typeParams.size, rotation);
 
 			for (int i = lowerBound.x; i <= upperBound.x; i++)
 			{
@@ -556,12 +548,15 @@ namespace MapTileGridCreator.UtilitiesMain
 
 		public static void EraseCell(Cell[,,] cells, WaypointCluster cluster, Vector3Int index, CellInformation type, Vector3 rotation)
 		{
+			cells[index.x, index.y, index.z].Erased();
+
+			/*
 			//All the cells that will be occupied by the activated object in the index cells will be set to Erased state (which activate their collider)
 			Vector3Int size_grid = new Vector3Int(cells.GetLength(0), cells.GetLength(1), cells.GetLength(2));
 			Vector3Int lowerBound = default(Vector3Int);
 			Vector3Int upperBound = default(Vector3Int);
 
-			SetBounds(ref lowerBound, ref upperBound, cluster.GetWaypoints()[index.x, index.y, index.z].basePos, type.size, rotation);
+			SetBounds(ref lowerBound, ref upperBound, cluster.GetWaypoints()[index.x, index.y, index.z].basePos, type.typeParams.size, rotation);
 
 			for (int i = lowerBound.x; i <= upperBound.x; i++)
 			{
@@ -575,11 +570,14 @@ namespace MapTileGridCreator.UtilitiesMain
 						}
 					}
 				}
-			}
+			}*/
 		}
 
 		public static void DesactivateCell(Cell[,,] cells, WaypointCluster cluster, Vector3Int index, CellInformation type, Vector3 rotation)
 		{
+			cells[index.x, index.y, index.z].Inactive();
+
+			/*
 			Vector3Int size_grid = new Vector3Int(cells.GetLength(0), cells.GetLength(1), cells.GetLength(2));
 			Vector3Int lowerBound = default(Vector3Int);
 			Vector3Int upperBound = default(Vector3Int);
@@ -588,7 +586,7 @@ namespace MapTileGridCreator.UtilitiesMain
 
 			if (baseWaypoint != null && baseWaypoint.type != null)
 			{
-				SetBounds(ref lowerBound, ref upperBound, basePos, baseWaypoint.type.size, baseWaypoint.rotation);
+				SetBounds(ref lowerBound, ref upperBound, basePos, baseWaypoint.type.typeParams.size, baseWaypoint.rotation);
 
 				for (int i = lowerBound.x; i <= upperBound.x; i++)
 				{
@@ -603,7 +601,7 @@ namespace MapTileGridCreator.UtilitiesMain
 						}
 					}
 				}
-			}
+			}*/
 		}
 
 		public static IEnumerator CoroutineTransformCellsFromWaypoints(Cell[,,] cells, Waypoint[,,] waypoints)
@@ -616,18 +614,12 @@ namespace MapTileGridCreator.UtilitiesMain
 				{
 					for (int k = 0; k < waypoints.GetLength(2); k++)
 					{
-						//cells[i, j, k].Inactive();
-						if (!waypoints[i, j, k].baseType && cells[i, j, k].baseType)
-						{
-							cells[i, j, k].Inactive();
-						}
-
 						if (waypoints[i, j, k].type == null && cells[i, j, k].type != null)
 						{
 							cells[i, j, k].Inactive();
 						}
 
-						if (waypoints[i, j, k].type != null && waypoints[i, j, k].baseType)
+						if (waypoints[i, j, k].type != null)
 						{
 							cells[i, j, k].Painted(waypoints[i, j, k].type, waypoints[i, j, k].rotation);
 							cells[i, j, k].Active();
@@ -636,11 +628,6 @@ namespace MapTileGridCreator.UtilitiesMain
 
 							if (!waypoints[i, j, k].show)
 								cells[i, j, k].Sleep();
-						}
-
-						if (waypoints[i, j, k].type != null && !waypoints[i, j, k].baseType && cells[i, j, k].type != waypoints[i, j, k].type)
-						{
-							cells[i, j, k].Erased();
 						}
 
 						if (waypoints[i, j, k].type != null && !waypoints[i, j, k].show)

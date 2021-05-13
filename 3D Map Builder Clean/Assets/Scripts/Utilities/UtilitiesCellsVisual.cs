@@ -10,7 +10,7 @@ namespace MapTileGridCreator.UtilitiesVisual
 	{
 		public static void UpdateCellsAroundVisual(Cell[,,] cells, Waypoint[,,] waypoints, Vector3Int newIndex, CellInformation type)
 		{
-			if (type != null && type.wall)
+			if (type != null && type.typeParams.wall)
 			{
 				WallTransform(cells, waypoints, new Vector3Int(newIndex.x, newIndex.y, newIndex.z));
 				if (newIndex.x > 0)
@@ -28,28 +28,28 @@ namespace MapTileGridCreator.UtilitiesVisual
 
 		public static void WallTransform(Cell[,,] cells, Waypoint[,,] waypoints, Vector3Int index)
 		{
-			if (cells[index.x, index.y, index.z].type && cells[index.x, index.y, index.z].type.wall)
+			if (cells[index.x, index.y, index.z].type && cells[index.x, index.y, index.z].type.typeParams.wall)
 			{
 				bool[] neighbordsWalls = new bool[4];
 				Vector3 rotation = new Vector3(0, 0, 0);
 				string subType = "";
 
-				if (index.x > 0 && waypoints[index.x - 1, index.y, index.z].type != null && waypoints[index.x - 1, index.y, index.z].type.wall)
+				if (index.x > 0 && waypoints[index.x - 1, index.y, index.z].type != null && waypoints[index.x - 1, index.y, index.z].type.typeParams.wall)
 					neighbordsWalls[0] = true;
 				else
 					neighbordsWalls[0] = false;
 
-				if (index.x < waypoints.GetLength(0) - 1 && waypoints[index.x + 1, index.y, index.z].type != null && waypoints[index.x + 1, index.y, index.z].type.wall)
+				if (index.x < waypoints.GetLength(0) - 1 && waypoints[index.x + 1, index.y, index.z].type != null && waypoints[index.x + 1, index.y, index.z].type.typeParams.wall)
 					neighbordsWalls[1] = true;
 				else
 					neighbordsWalls[1] = false;
 
-				if (index.z > 0 && waypoints[index.x, index.y, index.z - 1].type != null && waypoints[index.x, index.y, index.z - 1].type.wall)
+				if (index.z > 0 && waypoints[index.x, index.y, index.z - 1].type != null && waypoints[index.x, index.y, index.z - 1].type.typeParams.wall)
 					neighbordsWalls[2] = true;
 				else
 					neighbordsWalls[2] = false;
 
-				if (index.z < waypoints.GetLength(2) - 1 && waypoints[index.x, index.y, index.z + 1].type != null && waypoints[index.x, index.y, index.z + 1].type.wall)
+				if (index.z < waypoints.GetLength(2) - 1 && waypoints[index.x, index.y, index.z + 1].type != null && waypoints[index.x, index.y, index.z + 1].type.typeParams.wall)
 					neighbordsWalls[3] = true;
 				else
 					neighbordsWalls[3] = false;

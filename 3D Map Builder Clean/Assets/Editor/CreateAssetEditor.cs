@@ -107,10 +107,10 @@ public class CreateAssetEditor : EditorWindow
             EditorGUILayout.LabelField("Properties Editor: ", EditorStyles.boldLabel);
             EditorGUI.BeginChangeCheck();
             newCell.name = EditorGUILayout.TextField("Name : ", newCell.name);
-            newCellInformation.size = EditorGUILayout.Vector3IntField("Size: ", newCellInformation.size);
+            newCellInformation.typeParams.size = EditorGUILayout.Vector3IntField("Size: ", newCellInformation.typeParams.size);
             if (EditorGUI.EndChangeCheck()) UpdateDefaultMeshes(); 
-            newCellInformation.ground = EditorGUILayout.Toggle("Ground: ", newCellInformation.ground);
-            newCellInformation.blockPath = EditorGUILayout.Toggle("Block Path: ", newCellInformation.blockPath);
+            newCellInformation.typeParams.ground = EditorGUILayout.Toggle("Ground: ", newCellInformation.typeParams.ground);
+            newCellInformation.typeParams.blockPath = EditorGUILayout.Toggle("Block Path: ", newCellInformation.typeParams.blockPath);
             FuncMain.DrawUILine(Color.gray);
           
             if (GUILayout.Button("Save"))
@@ -171,13 +171,13 @@ public class CreateAssetEditor : EditorWindow
         defaultMeshes.name = "defaultMeshes";
         defaultMeshes.transform.parent = newCell.transform;
         defaultMeshes.transform.localPosition = new Vector3(0, 0, 0);
-        GameObject[,,] defaultMesh = new GameObject[newCellInformation.size.x, newCellInformation.size.y, newCellInformation.size.z];
+        GameObject[,,] defaultMesh = new GameObject[newCellInformation.typeParams.size.x, newCellInformation.typeParams.size.y, newCellInformation.typeParams.size.z];
 
-        for (int i=0; i < newCellInformation.size.x; i++)
+        for (int i=0; i < newCellInformation.typeParams.size.x; i++)
         {
-            for (int j = 0; j < newCellInformation.size.y; j++)
+            for (int j = 0; j < newCellInformation.typeParams.size.y; j++)
             {
-                for (int k = 0; k < newCellInformation.size.z; k++)
+                for (int k = 0; k < newCellInformation.typeParams.size.z; k++)
                 {
                     defaultMesh[i,j,k] = AssetDatabase.LoadAssetAtPath(_path_defaultMeshAsset, typeof(GameObject)) as GameObject;
                     defaultMesh[i, j, k] = PrefabUtility.InstantiatePrefab(defaultMesh[i, j, k]) as GameObject;

@@ -30,7 +30,6 @@ public struct EvolutionaryAlgoParams
     public int population;
     public int generations;
 	public int elitism;
-	public int skipMutations;
 }
 
 public struct WaypointParams
@@ -41,7 +40,8 @@ public struct WaypointParams
 	public bool baseType;
 }
 
-public struct TypeParams
+[System.Serializable]
+public class TypeParams
 {
 	public Vector3Int size;
 	public bool ground;
@@ -52,13 +52,7 @@ public struct TypeParams
 
 public struct Phenotype
 {
-	public HashSet<Wall> walls_x;
-	public HashSet<Wall> walls_z;
-	public HashSet<Vector3Int> blocksSolo; 
+	public int[] walls_x;
+	public int[] walls_z;
 }
 
-public struct Wall
-{
-	public HashSet<Vector3Int> indexes;
-	public int position; 
-}

@@ -44,11 +44,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 315e6ca8b97649c4d875962900b543f6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  size: {x: 1, y: 1, z: 1}
-  ground: 0
-  blockPath: 1
-  wall: 0
-  floor: 0
+  typeParams:
+    size: {x: 1, y: 1, z: 1}
+    ground: 0
+    blockPath: 1
+    wall: 0
+    floor: 0
 --- !u!1 &3696398640345298378
 GameObject:
   m_ObjectHideFlags: 0

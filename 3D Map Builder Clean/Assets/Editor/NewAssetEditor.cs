@@ -52,9 +52,9 @@ public class NewAssetEditor : EditorWindow
 
         newCell.name = EditorGUILayout.TextField("Name : ", newCell.name);
         FuncMain.DrawUILine(Color.gray);
-        newCellInformation.size = EditorGUILayout.Vector3IntField("Size: ", newCellInformation.size);
-        newCellInformation.ground = EditorGUILayout.Toggle("Ground: ", newCellInformation.ground);
-        newCellInformation.blockPath = EditorGUILayout.Toggle("Block Path: ", newCellInformation.blockPath);
+        newCellInformation.typeParams.size = EditorGUILayout.Vector3IntField("Size: ", newCellInformation.typeParams.size);
+        newCellInformation.typeParams.ground = EditorGUILayout.Toggle("Ground: ", newCellInformation.typeParams.ground);
+        newCellInformation.typeParams.blockPath = EditorGUILayout.Toggle("Block Path: ", newCellInformation.typeParams.blockPath);
         FuncMain.DrawUILine(Color.gray);
 
         GUILayout.BeginHorizontal();

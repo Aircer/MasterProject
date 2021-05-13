@@ -88,7 +88,7 @@ namespace MapTileGridCreator.Core
 
                 foreach (Waypoint neighbour in currentNode.GetNeighbors())
                 {
-                    if (!neighbour.type.blockPath || closedSet.Contains(neighbour) || !NeighbourReachable(neighbour, currentNode, maxJump)) continue;
+                    if (!neighbour.type.typeParams.blockPath || closedSet.Contains(neighbour) || !NeighbourReachable(neighbour, currentNode, maxJump)) continue;
                     float newMovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode, neighbour);
                     //Debug.Log(currentNode.name + " --> " + neighbour.name + " =" + GetDistance(currentNode, neighbour));
                     if (newMovementCostToNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
@@ -138,7 +138,7 @@ namespace MapTileGridCreator.Core
 
                 foreach (Waypoint neighbour in currentNode.GetNeighbors())
                 {
-                    if ((neighbour.type != null && neighbour.type.blockPath) || closedSet.Contains(neighbour) || !NeighbourReachable(neighbour, currentNode, maxJump)) continue;
+                    if ((neighbour.type != null && neighbour.type.typeParams.blockPath) || closedSet.Contains(neighbour) || !NeighbourReachable(neighbour, currentNode, maxJump)) continue;
 
                     float newMovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode, neighbour);
                     if (newMovementCostToNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
@@ -202,7 +202,7 @@ namespace MapTileGridCreator.Core
 
                 foreach (Waypoint neighbour in currentNode.GetNeighbors())
                 {
-                    if ((neighbour.type != null && neighbour.type.blockPath) || closedSet.Contains(neighbour) || !NeighbourReachable(neighbour, currentNode, maxJump)) continue;
+                    if ((neighbour.type != null && neighbour.type.typeParams.blockPath) || closedSet.Contains(neighbour) || !NeighbourReachable(neighbour, currentNode, maxJump)) continue;
 
                     float newMovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode, neighbour);
                     if (newMovementCostToNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
@@ -291,7 +291,7 @@ namespace MapTileGridCreator.Core
 
         private static bool InAir(Waypoint w)
         {
-            if (w.GetUpNeighbor() != null && w.GetDownNeighbor() != null && w.GetDownNeighbor().type && w.GetDownNeighbor().type.ground)
+            if (w.GetUpNeighbor() != null && w.GetDownNeighbor() != null && w.GetDownNeighbor().type && w.GetDownNeighbor().type.typeParams.ground)
                 return false;
             else
                 return true;
