@@ -21,31 +21,33 @@ namespace MapTileGridCreator.Core
         public static Phenotype GetPhenotype(int sizeX, int sizeY, int sizeZ, WaypointParams[][][] Genes, TypeParams[] typeParams)
         {
             Phenotype newPhenotype = new Phenotype();
-            newPhenotype.walls_x = new int[sizeZ];
-            newPhenotype.walls_z = new int[sizeX];
-
+            newPhenotype.cellsWalls = new int();
+            newPhenotype.cellsWallsSolo = new int();
+            newPhenotype.cellsWallsCrowded = new int();
+            
             for (int x = 1; x < sizeX; x++)
             {
                 for (int y = 1; y < sizeY; y++)
                 {
                     for (int z = 1; z < sizeZ; z++)
                     {
-                        if (typeParams[Genes[x][y][z].type].wall
-                            && typeParams[Genes[x][y][z - 1].type].wall || typeParams[Genes[x][y][z + 1].type].wall
-                            && !typeParams[Genes[x - 1][y][z].type].wall && !typeParams[Genes[x + 1][y][z].type].wall
-                            && !typeParams[Genes[x - 1][y - 1][z].type].wall && !typeParams[Genes[x + 1][y - 1][z].type].wall
-                            && !typeParams[Genes[x - 1][y + 1][z].type].wall && !typeParams[Genes[x + 1][y + 1][z].type].wall)
+                        if (typeParams[Genes[x][y][z].type].wall)
                         {
-                            newPhenotype.walls_z[x]++;
-                        }
+                            if (!typeParams[Genes[x - 1][y][z].type].wall && !typeParams[Genes[x + 1][y][z].type].wall
+                             && !typeParams[Genes[x][y][z - 1].type].wall && !typeParams[Genes[x][y][z + 1].type].wall)
+                            {
+                                newPhenotype.cellsWallsSolo++;
+                            }
 
-                        if (typeParams[Genes[x][y][z].type].wall
-                            && typeParams[Genes[x - 1][y][z].type].wall || typeParams[Genes[x + 1][y][z].type].wall
-                            && !typeParams[Genes[x][y][z - 1].type].wall && !typeParams[Genes[x][y][z + 1].type].wall
-                            && !typeParams[Genes[x][y - 1][z - 1].type].wall && !typeParams[Genes[x][y - 1][z - 1].type].wall
-                            && !typeParams[Genes[x][y + 1][z + 1].type].wall && !typeParams[Genes[x][y + 1][z + 1].type].wall)
-                        {
-                            newPhenotype.walls_x[z]++;
+                            if ((typeParams[Genes[x - 1][y][z].type].wall && typeParams[Genes[x - 1][y][z - 1].type].wall && typeParams[Genes[x][y][z - 1].type].wall)
+                             || (typeParams[Genes[x - 1][y][z].type].wall && typeParams[Genes[x - 1][y][z + 1].type].wall && typeParams[Genes[x][y][z + 1].type].wall)
+                             || (typeParams[Genes[x + 1][y][z].type].wall && typeParams[Genes[x + 1][y][z - 1].type].wall && typeParams[Genes[x][y][z - 1].type].wall)
+                             || (typeParams[Genes[x + 1][y][z].type].wall && typeParams[Genes[x + 1][y][z + 1].type].wall && typeParams[Genes[x][y][z + 1].type].wall))
+                            {
+                                newPhenotype.cellsWallsCrowded++;
+                            }
+
+                            newPhenotype.cellsWalls++;
                         }
                     }
                 }

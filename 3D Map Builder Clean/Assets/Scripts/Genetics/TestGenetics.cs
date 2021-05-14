@@ -1,8 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using NumSharp;
-using MathNet.Numerics.LinearAlgebra;
 
 namespace MapTileGridCreator.Core
 {
@@ -79,6 +77,9 @@ namespace MapTileGridCreator.Core
 			DNA dna = ga.oldPopulation[index];
 			Phenotype phenotype = ga.oldPopulation[index].phenotype;
 
+			if (dna.phenotype.cellsWalls == 0)
+				return 0;
+
 			int sizeDNAx_minus = sizeDNA.x - 1; int sizeDNAy_minus = sizeDNA.y - 1; int sizeDNAz_minus = sizeDNA.z - 1;
 			int sizeDNAx_half = sizeDNA.x / 2; int sizeDNAz_half = sizeDNA.z / 2;
 
@@ -91,13 +92,13 @@ namespace MapTileGridCreator.Core
 					{
 						if (dna.Genes[i][l][j].type != 0 && (dna.Genes[i][l][j].type == dna.Genes[k][l][j].type))
 						{
-								scoreX += 1;
+								scoreX += 2;
 						}
 					}
 				}
 			}
 
-			scoreX /= symTotal;
+			scoreX /= dna.phenotype.cellsWalls;
 
 			float scoreZ = 0f; 
 
@@ -110,40 +111,21 @@ namespace MapTileGridCreator.Core
 					{
 						if (dna.Genes[i][l][j].type != 0 && (dna.Genes[j][l][i].type == dna.Genes[j][l][k].type))
 						{
-								scoreZ += 1;
+								scoreZ += 2;
 						}
 					}
 				}
 			}
 
-			scoreZ /= symTotal;
+			scoreZ /= dna.phenotype.cellsWalls;
 
-			int scoreWall = 0;
+			int goodWallCells = dna.phenotype.cellsWalls - (dna.phenotype.cellsWallsCrowded + dna.phenotype.cellsWallsSolo);
+			float goodWallCellsRatio = goodWallCells / dna.phenotype.cellsWalls;
 
-			for(int z = 0; z < phenotype.walls_x.Length; z++)
-            {
-				if (phenotype.walls_x[z] < 4)
-					scoreWall--;
-
-				if (phenotype.walls_x[z] > 3)
-					scoreWall++;
-			}
-
-			for (int x = 0; x < phenotype.walls_z.Length; x++)
-			{
-				if (phenotype.walls_z[x] < 4)
-					scoreWall--;
-
-				if (phenotype.walls_z[x] > 3)
-					scoreWall++;
-			}
-			if (scoreWall < 0) scoreWall = 0;
-
-			if (scoreWall > (phenotype.walls_x.Length + phenotype.walls_z.Length) / 2)
-				finalScore = Mathf.Pow(2, (scoreX + scoreZ + scoreWall) / 3) - 1;
-			else
+			if (goodWallCellsRatio < 0.9f)
 				finalScore = 0;
-			//finalScore = Mathf.Pow(2, (scoreWall) / 1) - 1;
+			else
+				finalScore = Mathf.Pow(2, (scoreX + scoreZ) / 2) - 1;
 
 			return finalScore;
 		}

@@ -48,6 +48,13 @@ namespace MapTileGridCreator.Core
 		{
 			ClassifyPopulation();
 
+			if (generation == 1)
+			{
+				UnityEngine.Debug.Log("Cells walls: " + oldPopulation[0].phenotype.cellsWalls);
+				UnityEngine.Debug.Log("Cells walls solo: " + oldPopulation[0].phenotype.cellsWallsSolo);
+				UnityEngine.Debug.Log("Cells walls crowded: " + oldPopulation[0].phenotype.cellsWallsCrowded);
+			}
+
 			for (int i = 0; i < populationSize; i++)
 			{
 				if (i < elitism && generation > 1)

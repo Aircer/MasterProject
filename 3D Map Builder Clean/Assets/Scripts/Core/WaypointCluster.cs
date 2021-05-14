@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using MapTileGridCreator.UtilitiesMain;
 using UnityEditor;
-using NumSharp;
 
 namespace MapTileGridCreator.Core
 {

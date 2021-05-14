@@ -62,7 +62,7 @@ namespace MapTileGridCreator.Core
 
 		public float CalculateFitness(int index)
 		{
-			phenotype = IA.GetPhenotype(sizeDNAx_wtBorder, sizeDNAx_wtBorder, sizeDNAx_wtBorder, Genes, typeParams);
+			phenotype = IA.GetPhenotype(sizeDNAx_wtBorder, sizeDNAy_wtBorder, sizeDNAz_wtBorder, Genes, typeParams);
 			Fitness = fitnessFunction(index);
 			return Fitness;
 		}
@@ -111,14 +111,20 @@ namespace MapTileGridCreator.Core
 				int mutationIndex_y = randomFast.Next(1, sizeDNAy_wtBorder);
 				int mutationIndex_z = randomFast.Next(1, sizeDNAz_wtBorder);
 				//int type = existingTypes[randomFast.Next(existingTypes.Count)];
-				int mutationType = randomFast.Next(3);
-				
+				int mutationType = randomFast.Next(2);
+
+				if(mutationType == 0)
+					Genes[mutationIndex_x][mutationIndex_y][mutationIndex_z].type = 0;
+				else
+					Genes[mutationIndex_x][mutationIndex_y][mutationIndex_z].type = 9;
+
+				/*
 				if (mutationType == 0)
 					Extend(mutationIndex_x, mutationIndex_y, mutationIndex_z);
 				else if(mutationType == 1)
 					Swap(mutationIndex_x, mutationIndex_y, mutationIndex_z);
-				else if (mutationType == 1)
-					Erase(mutationIndex_x, mutationIndex_y, mutationIndex_z);
+				else if (mutationType == 2)
+					Erase(mutationIndex_x, mutationIndex_y, mutationIndex_z);*/
 			}
 		}
 

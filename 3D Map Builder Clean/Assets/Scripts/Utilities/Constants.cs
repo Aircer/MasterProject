@@ -52,7 +52,8 @@ public class TypeParams
 
 public struct Phenotype
 {
-	public int[] walls_x;
-	public int[] walls_z;
+	public int cellsWalls;
+	public int cellsWallsSolo;
+	public int cellsWallsCrowded;
 }
 
