@@ -621,6 +621,7 @@ namespace MapTileGridCreator.UtilitiesMain
 
 						if (waypoints[i, j, k].type != null)
 						{
+							cells[i, j, k].Inactive();
 							cells[i, j, k].Painted(waypoints[i, j, k].type, waypoints[i, j, k].rotation);
 							cells[i, j, k].Active();
 

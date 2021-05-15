@@ -67,6 +67,11 @@ namespace MapTileGridCreator.Core
 				j++;
 			}
 
+			//float goodWallCells = ga.oldPopulation[j].phenotype.cellsWalls - (ga.oldPopulation[j].phenotype.cellsWallsCrowded + ga.oldPopulation[j].phenotype.cellsWallsSolo);
+			//float goodWallCellsRatio = goodWallCells / ga.oldPopulation[j].phenotype.cellsWalls;
+			UnityEngine.Debug.Log(ga.oldPopulation[0].Fitness);
+			//UnityEngine.Debug.Log(goodWallCellsRatio);
+
 			return bestClusters;
 		}
 
@@ -75,24 +80,20 @@ namespace MapTileGridCreator.Core
 			float finalScore = 0;
 			float scoreX = 0f; float symTotal = sizeDNA.x*sizeDNA.y*sizeDNA.z/2;
 			DNA dna = ga.oldPopulation[index];
-			Phenotype phenotype = ga.oldPopulation[index].phenotype;
 
 			if (dna.phenotype.cellsWalls == 0)
 				return 0;
 
-			int sizeDNAx_minus = sizeDNA.x - 1; int sizeDNAy_minus = sizeDNA.y - 1; int sizeDNAz_minus = sizeDNA.z - 1;
-			int sizeDNAx_half = sizeDNA.x / 2; int sizeDNAz_half = sizeDNA.z / 2;
-
-			for (int l = 1; l < sizeDNAy_minus; l++)
+			int l = sizeDNA.x -2;
+			for (int i = 1; i < sizeDNA.x - 1; i++, l--)
 			{
-				int k = sizeDNAx_minus;
-				for (int i = 0; i < sizeDNAx_half; i++, k--)
+				for (int j = 1; j < sizeDNA.y - 1; j++)
 				{
-					for (int j = 1; j < sizeDNAz_minus; j++)
+					for (int k = 1; k < sizeDNA.z - 1; k++)
 					{
-						if (dna.Genes[i][l][j].type != 0 && (dna.Genes[i][l][j].type == dna.Genes[k][l][j].type))
+						if (dna.Genes[i][j][k].type != 0 && (dna.Genes[i][j][k].type == dna.Genes[l][j][k].type))
 						{
-								scoreX += 2;
+								scoreX++;
 						}
 					}
 				}
@@ -100,18 +101,18 @@ namespace MapTileGridCreator.Core
 
 			scoreX /= dna.phenotype.cellsWalls;
 
-			float scoreZ = 0f; 
+			float scoreZ = 0f;
 
-			for (int l = 1; l < sizeDNAy_minus; l++)
+			l = sizeDNA.z - 2;
+			for (int i = 1; i < sizeDNA.x - 1; i++, l--)
 			{
-				int k = sizeDNA.z - 1;
-				for (int i = 1; i < sizeDNAz_half; i++, k--)
+				for (int j = 1; j < sizeDNA.y - 1; j++)
 				{
-					for (int j = 1; j < sizeDNAx_minus; j++)
+					for (int k = 1; k < sizeDNA.z - 1; k++)
 					{
-						if (dna.Genes[i][l][j].type != 0 && (dna.Genes[j][l][i].type == dna.Genes[j][l][k].type))
+						if (dna.Genes[i][j][k].type != 0 && (dna.Genes[i][j][k].type == dna.Genes[i][j][l].type))
 						{
-								scoreZ += 2;
+							scoreZ++;
 						}
 					}
 				}
@@ -119,15 +120,17 @@ namespace MapTileGridCreator.Core
 
 			scoreZ /= dna.phenotype.cellsWalls;
 
-			int goodWallCells = dna.phenotype.cellsWalls - (dna.phenotype.cellsWallsCrowded + dna.phenotype.cellsWallsSolo);
+			float sim = scoreX > scoreZ ? scoreX : scoreZ;
+			//float sim = scoreX*scoreZ;
+			float goodWallCells = dna.phenotype.cellsWalls - (dna.phenotype.cellsWallsCrowded + dna.phenotype.cellsWallsSolo);
 			float goodWallCellsRatio = goodWallCells / dna.phenotype.cellsWalls;
 
-			if (goodWallCellsRatio < 0.9f)
-				finalScore = 0;
-			else
-				finalScore = Mathf.Pow(2, (scoreX + scoreZ) / 2) - 1;
 
-			return finalScore;
+			//finalScore = Mathf.Pow(2, Mathf.Pow(goodWallCellsRatio, 2) * sim) - 1;
+
+			//finalScore = Mathf.Pow(2, sim) - 1;
+
+			return sim;
 		}
 	}
 }

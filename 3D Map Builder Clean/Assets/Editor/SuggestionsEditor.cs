@@ -38,9 +38,9 @@ public class SuggestionsEditor : EditorWindow
             mapWindow = (MapTileGridCreatorWindow)Resources.FindObjectsOfTypeAll(typeof(MapTileGridCreatorWindow))[0];
 
         window = GetWindow(typeof(SuggestionsEditor));
-        evolAlgoParams.population = 50;
-        evolAlgoParams.elitism = 20;
-        evolAlgoParams.generations = 1000;
+        evolAlgoParams.population = 4;
+        evolAlgoParams.elitism = 4;
+        evolAlgoParams.generations = 2;
         evolAlgoParams.mutationRate = 0.01f;
     }
     

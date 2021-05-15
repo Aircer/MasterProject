@@ -20,6 +20,7 @@ namespace MapTileGridCreator.Core
 
 		public Phenotype phenotype;
 		public int sizeDNAx_wtBorder; public int sizeDNAy_wtBorder; public int sizeDNAz_wtBorder;
+		private Vector3Int sizeDNA_wtBorder;
 
 		public DNA(Vector3Int size, System.Random randomSystem, SharpNeatLib.Maths.FastRandom randomFast, Func<int, float> fitnessFunction,
 			TypeParams[] typeParams, WaypointCluster cluster = null)
@@ -34,6 +35,7 @@ namespace MapTileGridCreator.Core
 			sizeDNAx_wtBorder = size.x-1;
 			sizeDNAy_wtBorder = size.y-1;
 			sizeDNAz_wtBorder = size.z-1;
+			sizeDNA_wtBorder = new Vector3Int(sizeDNAx_wtBorder, sizeDNAy_wtBorder, sizeDNAz_wtBorder);
 
 			if (cluster != null)
 			{
@@ -69,20 +71,39 @@ namespace MapTileGridCreator.Core
 
 		public void Crossover(DNA parent1, DNA parent2)
 		{
-			int sizeDNAx_Minus2 = sizeDNAx_wtBorder - 1;
-			int sizeDNAz_Minus2 = sizeDNAz_wtBorder - 1;
+			int XorY = randomFast.Next(2);
+			int sizeDNAx;
+			int sizeDNAz;
 
-			for (int x = 1; x < sizeDNAx_Minus2; x += 2)
+			if (XorY == 0)
+			{
+				sizeDNAx = (int)(sizeDNAx_wtBorder*0.6f);
+				sizeDNAz = sizeDNAz_wtBorder;
+			}
+			else
+            {
+				sizeDNAx = sizeDNAx_wtBorder;
+				sizeDNAz = (int)(sizeDNAz_wtBorder * 0.6f);
+			}
+
+			for (int x = 1; x < sizeDNAx; x++)
 			{
 				for (int y = 1; y < sizeDNAy_wtBorder; y++)
 				{
-					for (int z = 1; z < sizeDNAz_Minus2; z += 2)
+					for (int z = 1; z < sizeDNAz; z++)
 					{
 						Genes[x][y][z].type = parent1.Genes[x][y][z].type;
-						Genes[x][y][z].rotation = parent1.Genes[x][y][z].rotation;
+					}
+				}
+			}
 
-						Genes[x+1][y][z+1].type = parent2.Genes[x+1][y][z+1].type;
-						Genes[x+1][y][z+1].rotation = parent2.Genes[x+1][y][z+1].rotation;
+			for (int x = sizeDNAx; x < sizeDNAx_wtBorder; x++)
+			{
+				for (int y = 1; y < sizeDNAy_wtBorder; y++)
+				{
+					for (int z = sizeDNAz; z < sizeDNAz_wtBorder; z++)
+					{
+						Genes[x][y][z].type = parent2.Genes[x][y][z].type;
 					}
 				}
 			}
@@ -110,21 +131,13 @@ namespace MapTileGridCreator.Core
 				int mutationIndex_x = randomFast.Next(1, sizeDNAx_wtBorder);
 				int mutationIndex_y = randomFast.Next(1, sizeDNAy_wtBorder);
 				int mutationIndex_z = randomFast.Next(1, sizeDNAz_wtBorder);
-				//int type = existingTypes[randomFast.Next(existingTypes.Count)];
-				int mutationType = randomFast.Next(2);
+				int type = existingTypes[randomFast.Next(existingTypes.Count)];
+				int mutationType = randomFast.Next(3);
 
-				if(mutationType == 0)
-					Genes[mutationIndex_x][mutationIndex_y][mutationIndex_z].type = 0;
-				else
-					Genes[mutationIndex_x][mutationIndex_y][mutationIndex_z].type = 9;
+                //Genes = IA.FloodFill(sizeDNA_wtBorder, Genes, new Vector3Int(2, 1, 2), 3);
 
-				/*
-				if (mutationType == 0)
-					Extend(mutationIndex_x, mutationIndex_y, mutationIndex_z);
-				else if(mutationType == 1)
-					Swap(mutationIndex_x, mutationIndex_y, mutationIndex_z);
-				else if (mutationType == 2)
-					Erase(mutationIndex_x, mutationIndex_y, mutationIndex_z);*/
+				Vector3Int input = new Vector3Int(mutationIndex_x, mutationIndex_y, mutationIndex_z);
+				Genes = IA.MutationTranslateWall(sizeDNA_wtBorder, Genes, input, typeParams, randomFast);
 			}
 		}
 

@@ -53,11 +53,11 @@ namespace MapTileGridCreator.Core
 				UnityEngine.Debug.Log("Cells walls: " + oldPopulation[0].phenotype.cellsWalls);
 				UnityEngine.Debug.Log("Cells walls solo: " + oldPopulation[0].phenotype.cellsWallsSolo);
 				UnityEngine.Debug.Log("Cells walls crowded: " + oldPopulation[0].phenotype.cellsWallsCrowded);
-			}
+            }
 
 			for (int i = 0; i < populationSize; i++)
 			{
-				if (i < elitism && generation > 1)
+				if (i < elitism)
 				{
 					newPopulation[i].Copy(oldPopulation[i]);
 				}
@@ -66,6 +66,8 @@ namespace MapTileGridCreator.Core
 					DNA parent1 = ChooseParent();
 					DNA parent2 = ChooseParent();
 					newPopulation[i].Crossover(parent1, parent2);
+
+					newPopulation[i].Copy(oldPopulation[i]);
 					newPopulation[i].Mutate(mutationNumber, existingTypes);
 				}
 			}
