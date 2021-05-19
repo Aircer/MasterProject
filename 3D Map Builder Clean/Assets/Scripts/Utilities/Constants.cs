@@ -48,6 +48,7 @@ public class TypeParams
 	public bool blockPath;
 	public bool wall;
 	public bool floor;
+	public bool door;
 }
 
 public struct Phenotype

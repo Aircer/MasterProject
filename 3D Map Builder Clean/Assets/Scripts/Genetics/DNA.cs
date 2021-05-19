@@ -132,12 +132,28 @@ namespace MapTileGridCreator.Core
 				int mutationIndex_y = randomFast.Next(1, sizeDNAy_wtBorder);
 				int mutationIndex_z = randomFast.Next(1, sizeDNAz_wtBorder);
 				int type = existingTypes[randomFast.Next(existingTypes.Count)];
-				int mutationType = randomFast.Next(3);
-
-                //Genes = IA.FloodFill(sizeDNA_wtBorder, Genes, new Vector3Int(2, 1, 2), 3);
+				int mutationType = randomFast.Next(9);
 
 				Vector3Int input = new Vector3Int(mutationIndex_x, mutationIndex_y, mutationIndex_z);
-				Genes = IA.MutationTranslateWall(sizeDNA_wtBorder, Genes, input, typeParams, randomFast);
+				
+				if(mutationType < 2)
+					Genes = IA.MutationWall(sizeDNA_wtBorder, Genes, input, typeParams, randomFast);
+				if (mutationType == 1)
+					Genes = IA.DeleteWallZ(sizeDNA_wtBorder, Genes, input, typeParams);
+				if (mutationType == 2)
+					Genes = IA.DeleteWallX(sizeDNA_wtBorder, Genes, input, typeParams);
+				if (mutationType == 3)
+					Genes = IA.FillWallX(sizeDNA_wtBorder, Genes, input, 1, typeParams);
+				if (mutationType == 4)
+					Genes = IA.FillWallZ(sizeDNA_wtBorder, Genes, input, 1, typeParams);
+				if(mutationType == 5)
+					Genes = IA.FillFloor(sizeDNA_wtBorder, Genes, new Vector3Int(mutationIndex_x, 1, mutationIndex_z), 4, typeParams);
+				if (mutationType == 6)
+					Genes = IA.TranslateDoor(sizeDNA_wtBorder, Genes, input, typeParams, randomFast);
+				if (mutationType == 7)
+					Genes = IA.CreateDoor(sizeDNA_wtBorder, Genes, input, typeParams, randomFast, 3);
+				if (mutationType == 8)
+					Genes = IA.CollapseDoor(sizeDNA_wtBorder, Genes, input, typeParams, randomFast);
 			}
 		}
 

@@ -368,8 +368,6 @@ namespace MapTileGridCreator.UtilitiesMain
 							cells[i, j, k].Painted(waypoints[i, j, k].type, waypoints[i, j, k].rotation);
 							cells[i, j, k].Active();
 
-							FuncVisual.UpdateCellsAroundVisual(cells, waypoints, new Vector3Int(i, j, k), waypoints[i, j, k].type);
-
 							if (!waypoints[i, j, k].show)
 								cells[i, j, k].Sleep();
 						}
@@ -378,6 +376,17 @@ namespace MapTileGridCreator.UtilitiesMain
 						{
 							cells[i, j, k].Sleep();
 						}
+					}
+				}
+			}
+
+			for (int i = 0; i < size_x; i++)
+			{
+				for (int j = 0; j < size_y; j++)
+				{
+					for (int k = 0; k < size_z; k++)
+					{
+						FuncVisual.UpdateCellsAroundVisual(cells, waypoints, new Vector3Int(i, j, k), waypoints[i,j,k].type);
 					}
 				}
 			}
@@ -635,6 +644,18 @@ namespace MapTileGridCreator.UtilitiesMain
 						{
 							cells[i, j, k].Sleep();
 						}
+					}
+					yield return null;
+				}
+			}
+
+			for (int i = 0; i < waypoints.GetLength(0); i++)
+			{
+				for (int j = 0; j < waypoints.GetLength(1); j++)
+				{
+					for (int k = 0; k < waypoints.GetLength(2); k++)
+					{
+						FuncVisual.UpdateCellsAroundVisual(cells, waypoints, new Vector3Int(i, j, k), waypoints[i, j, k].type);
 					}
 					yield return null;
 				}

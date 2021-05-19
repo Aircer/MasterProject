@@ -39,7 +39,7 @@ public class SuggestionsEditor : EditorWindow
 
         window = GetWindow(typeof(SuggestionsEditor));
         evolAlgoParams.population = 4;
-        evolAlgoParams.elitism = 4;
+        evolAlgoParams.elitism = 0;
         evolAlgoParams.generations = 2;
         evolAlgoParams.mutationRate = 0.01f;
     }
@@ -141,7 +141,8 @@ public class SuggestionsEditor : EditorWindow
         //Create GameObject from the newly created clusters and create editors 
         for (int i = 0; i < numberSuggestions; i++)
         {
-            FuncMain.EditorCoroutines.Execute(FuncMain.CoroutineTransformCellsFromWaypoints(mapSuggestionCells[i], suggestionsClusters[i].GetWaypoints()));
+            //FuncMain.EditorCoroutines.Execute(FuncMain.CoroutineTransformCellsFromWaypoints(mapSuggestionCells[i], suggestionsClusters[i].GetWaypoints()));
+            FuncMain.TransformCellsFromWaypoints(mapSuggestionCells[i], suggestionsClusters[i].GetWaypoints());
         }
     }
 }

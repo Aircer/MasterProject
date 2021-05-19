@@ -255,10 +255,10 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 					if(FuncMain.CanPaintHere(_size_grid , input, _cellTypes[_cellTypes_index].typeParams.size, _cells, _rotationCell))
                     {
-						if (_cellTypes[_cellTypes_index].typeParams.size == Vector3Int.one)
+						if (!_cellTypes[_cellTypes_index].typeParams.door)
 							AddInputArea(input);
 						else
-							AddInputSolo(input);
+							AddDoor(input);
 					}
 
 					SetBrushPosition(input);
@@ -424,6 +424,33 @@ public class MapTileGridCreatorWindow : EditorWindow
 			_indexToPaint.Add(input);
 			FuncMain.PaintCell(_cells, input, _cellTypes[_cellTypes_index], _rotationCell);
 			_cluster.SetTypeAndRotationAround(_size_grid, _rotationCell, _cellTypes[_cellTypes_index], input);
+
+			FuncVisual.UpdateCellsAroundVisual(_cells, _cluster.GetWaypoints(), input, _cellTypes[_cellTypes_index]);
+		}
+	}
+
+	private void AddDoor(Vector3Int input)
+	{
+		//Set starting index of paint/erase
+		if (!_painting && Event.current.type == EventType.MouseDown && Event.current.button == 0)
+		{
+			_indexToPaint.Clear();
+			_painting = true;
+
+			_indexToPaint.Add(input);
+			FuncMain.PaintCell(_cells, input, _cellTypes[_cellTypes_index], _rotationCell);
+			_cluster.SetTypeAndRotationAround(_size_grid, _rotationCell, _cellTypes[_cellTypes_index], input);
+			FuncVisual.UpdateCellsAroundVisual(_cells, _cluster.GetWaypoints(), input, _cellTypes[_cellTypes_index]);
+
+			if (input.y + 1 < _size_grid.y)
+			{
+				Vector3Int upInput = new Vector3Int(input.x, input.y + 1, input.z);
+
+				_indexToPaint.Add(upInput);
+				FuncMain.PaintCell(_cells, upInput, _cellTypes[_cellTypes_index], _rotationCell);
+				_cluster.SetTypeAndRotationAround(_size_grid, _rotationCell, _cellTypes[_cellTypes_index], upInput);
+				FuncVisual.UpdateCellsAroundVisual(_cells, _cluster.GetWaypoints(), upInput, _cellTypes[_cellTypes_index]);
+			}
 		}
 	}
 

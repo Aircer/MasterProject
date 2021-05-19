@@ -55,12 +55,12 @@ namespace MapTileGridCreator.Core
 			ga.ClassifyPopulation();
 			for (int i = 0; i < nbSuggestions; i++)
 			{
-				if (j > 0)
+				/*if (j > 0)
 					while (j < ga.oldPopulation.Length && ga.oldPopulation[j].Fitness == ga.oldPopulation[j - 1].Fitness)
 						j++;
 
 				if (j == ga.oldPopulation.Length)
-					j = ga.oldPopulation.Length - 1;
+					j = ga.oldPopulation.Length - 1;*/
 
 				bestClusters.Add(new WaypointCluster(new Vector3Int(ga.oldPopulation[j].sizeDNAx_wtBorder+1, ga.oldPopulation[j].sizeDNAy_wtBorder+1,
 																	ga.oldPopulation[j].sizeDNAz_wtBorder+1), ga.oldPopulation[j].Genes, cellsInfos));
@@ -69,7 +69,6 @@ namespace MapTileGridCreator.Core
 
 			//float goodWallCells = ga.oldPopulation[j].phenotype.cellsWalls - (ga.oldPopulation[j].phenotype.cellsWallsCrowded + ga.oldPopulation[j].phenotype.cellsWallsSolo);
 			//float goodWallCellsRatio = goodWallCells / ga.oldPopulation[j].phenotype.cellsWalls;
-			UnityEngine.Debug.Log(ga.oldPopulation[0].Fitness);
 			//UnityEngine.Debug.Log(goodWallCellsRatio);
 
 			return bestClusters;
@@ -130,7 +129,7 @@ namespace MapTileGridCreator.Core
 
 			//finalScore = Mathf.Pow(2, sim) - 1;
 
-			return sim;
+			return 0;
 		}
 	}
 }

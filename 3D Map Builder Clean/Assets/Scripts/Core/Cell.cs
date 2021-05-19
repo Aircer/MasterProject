@@ -36,6 +36,7 @@ namespace MapTileGridCreator.Core
 
 		public bool baseType;
 		public Dictionary<CellInformation, GameObject> typeDicoCell = new Dictionary<CellInformation, GameObject>();
+		public Vector3 rotation;
 
 		public void OnEnable()
         {
@@ -108,8 +109,9 @@ namespace MapTileGridCreator.Core
 						child.gameObject.SetActive(false);
 					}
 					transform.GetChild(0).transform.Find(activeElement).gameObject.SetActive(true);
-					transform.GetChild(0).transform.localEulerAngles = rotation;
 				}
+
+				transform.GetChild(0).transform.localEulerAngles = rotation;
 			}
 		}
 
