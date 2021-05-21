@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using MapTileGridCreator.UtilitiesMain;
 using UnityEditor;
+using UtilitiesGenetic;
 
 namespace MapTileGridCreator.Core
 {
@@ -39,8 +40,7 @@ namespace MapTileGridCreator.Core
 							newWaypoint.type = cellInfos[newWaypointsParams[x][y][z].type - 1];
 						else
 							newWaypoint.type = null;
-						newWaypoint.rotation = newWaypointsParams[x][y][z].rotation;
-						newWaypoint.basePos = newWaypointsParams[x][y][z].basePos - Vector3Int.one;
+
 						newWaypoint.baseType = newWaypointsParams[x][y][z].baseType;
 						waypoints[x-1, y-1, z-1] = newWaypoint;
 					}
@@ -78,12 +78,10 @@ namespace MapTileGridCreator.Core
 						if (x == 0 || y == 0 || z == 0 || x == size.x + 1 || y == size.y + 1 || z == size.z + 1)
 						{
 							waypointsParamsZ[z].type = 0;
-							waypointsParamsZ[z].rotation = new Vector3(0, 0, 0);
 						}
 						else
 						{
 							waypointsParamsZ[z].type = cellInfos.IndexOf(waypoints[x - 1, y - 1, z - 1].type)+1;
-							waypointsParamsZ[z].rotation = waypoints[x - 1, y - 1, z - 1].rotation;
 						}
 					}
 					waypointsParamsYZ[y] = waypointsParamsZ;
@@ -201,27 +199,10 @@ namespace MapTileGridCreator.Core
 
 		private void SetTypeAround(Vector3Int size_grid, Vector3 rotation, CellInformation type, Vector3Int index)
 		{
-			if (type != null && FuncMain.CanAddTypeHere(size_grid, index, type.typeParams.size, this, rotation))
+			if (type != null)
 			{
-				Vector3Int lowerBound = default;
-				Vector3Int upperBound = default;
-				FuncMain.SetBounds(ref lowerBound, ref upperBound, index, type.typeParams.size, rotation);
-
-				for (int i = lowerBound.x; i <= upperBound.x; i++)
-				{
-					for (int j = lowerBound.y; j <= upperBound.y; j++)
-					{
-						for (int k = lowerBound.z; k <= upperBound.z; k++)
-						{
-							if (FuncMain.InputInGridBoundaries(new Vector3Int(i, j, k), size_grid))
-							{
-								waypoints[i, j, k].SetType(type);
-								waypoints[i, j, k].SetBasePos(index);
-							}
-						}
-					}
-				}
-
+				waypoints[index.x, index.y, index.z].SetType(type);
+				waypoints[index.x, index.y, index.z].SetBasePos(index);
 				waypoints[index.x, index.y, index.z].SetBase(true);
 				SetBase(index, type, rotation);
 				//Debug.Log(minSize + " -- " + maxSize);

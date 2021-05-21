@@ -2,6 +2,7 @@
 using UnityEditor;
 using System.Diagnostics;
 using System;
+using UtilitiesGenetic;
 
 public class test : EditorWindow
 {
@@ -9,7 +10,7 @@ public class test : EditorWindow
 
     private int numberTypes = 5;
     private int numberIterations = 1000;
-    private Vector3Int sizeGrid = new Vector3Int(12,8,10);
+    private UnityEngine.Vector3Int sizeGrid = new UnityEngine.Vector3Int(12,8,10);
     private System.Random rand;
     private SharpNeatLib.Maths.FastRandom fastRand;
 
@@ -382,7 +383,6 @@ public class test : EditorWindow
         fastRand = new SharpNeatLib.Maths.FastRandom();
 
         typeTable[0] = new TypeParams();
-        typeTable[0].size = new Vector3Int(1, 1, 1);
         typeTable[0].ground = false;
         typeTable[0].blockPath = false;
         typeTable[0].wall = false;
@@ -391,7 +391,6 @@ public class test : EditorWindow
         for (int i = 1; i < numberTypes + 1; i++)
         {
             typeTable[i] = new TypeParams();
-            typeTable[i].size = new Vector3Int(rand.Next(3), rand.Next(3), rand.Next(3));
             typeTable[i].ground = rand.Next(2) == 0 ? true : false;
             typeTable[i].blockPath = rand.Next(2) == 0 ? true : false;
             typeTable[i].wall = rand.Next(2) == 0 ? true : false;
@@ -419,7 +418,6 @@ public class test : EditorWindow
                         gridArrayInt[x, y, z] = 0;
 
                         gridTypeZ[z] = new TypeParams();
-                        gridTypeZ[z].size = new Vector3Int(1, 1, 1);
                         gridTypeZ[z].ground = false;
                         gridTypeZ[z].blockPath = false;
                         gridTypeZ[z].wall = false;
@@ -432,7 +430,6 @@ public class test : EditorWindow
                         gridArrayInt[x, y, z] = rand.Next(numberTypes);
 
                         gridTypeZ[z] = new TypeParams();
-                        gridTypeZ[z].size = new Vector3Int(rand.Next(2), rand.Next(2), rand.Next(2));
                         gridTypeZ[z].ground = rand.Next(2) == 0 ? true : false;
                         gridTypeZ[z].blockPath = rand.Next(2) == 0 ? true : false;
                         gridTypeZ[z].wall = rand.Next(2) == 0 ? true : false;

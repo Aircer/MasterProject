@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 using System.Linq;
+using UtilitiesGenetic;
+using mVectors;
 
 namespace MapTileGridCreator.Core
 {
@@ -23,7 +24,7 @@ namespace MapTileGridCreator.Core
 		private Vector3Int sizeDNA_wtBorder;
 
 		public DNA(Vector3Int size, System.Random randomSystem, SharpNeatLib.Maths.FastRandom randomFast, Func<int, float> fitnessFunction,
-			TypeParams[] typeParams, WaypointCluster cluster = null)
+			TypeParams[] typeParams, WaypointParams[][][] waypointParams = null)
 		{
 			//Genes are bigger than cluster to have empty borders thus it is easier to get neighbors  
 			Genes = new WaypointParams[size.x][][];
@@ -37,9 +38,22 @@ namespace MapTileGridCreator.Core
 			sizeDNAz_wtBorder = size.z-1;
 			sizeDNA_wtBorder = new Vector3Int(sizeDNAx_wtBorder, sizeDNAy_wtBorder, sizeDNAz_wtBorder);
 
-			if (cluster != null)
+			if (waypointParams != null)
 			{
-				Genes = cluster.GetWaypointsParams();
+				for (int x = 0; x < size.x; x++)
+				{
+					WaypointParams[][] waypointsParamsYZ = new WaypointParams[size.y][];
+					for (int y = 0; y < size.y; y++)
+					{
+						WaypointParams[] waypointsParamsZ = new WaypointParams[size.z];
+						for (int z = 0; z < size.z; z++)
+						{
+							waypointsParamsZ[z].type = waypointParams[x][y][z].type;
+						}
+						waypointsParamsYZ[y] = waypointsParamsZ;
+					}
+					Genes[x] = waypointsParamsYZ;
+				}
 			}
 		}
 
@@ -65,6 +79,7 @@ namespace MapTileGridCreator.Core
 		public float CalculateFitness(int index)
 		{
 			phenotype = IA.GetPhenotype(sizeDNAx_wtBorder, sizeDNAy_wtBorder, sizeDNAz_wtBorder, Genes, typeParams);
+
 			Fitness = fitnessFunction(index);
 			return Fitness;
 		}
@@ -118,7 +133,6 @@ namespace MapTileGridCreator.Core
 					for (int z = 1; z < sizeDNAz_wtBorder; z++)
 					{
 						Genes[x][y][z].type = parent.Genes[x][y][z].type;
-						Genes[x][y][z].rotation = parent.Genes[x][y][z].rotation;
 					}
 				}
 			}
@@ -132,72 +146,23 @@ namespace MapTileGridCreator.Core
 				int mutationIndex_y = randomFast.Next(1, sizeDNAy_wtBorder);
 				int mutationIndex_z = randomFast.Next(1, sizeDNAz_wtBorder);
 				int type = existingTypes[randomFast.Next(existingTypes.Count)];
-				int mutationType = randomFast.Next(9);
+				int mutationType = randomFast.Next(6);
 
 				Vector3Int input = new Vector3Int(mutationIndex_x, mutationIndex_y, mutationIndex_z);
-				
-				if(mutationType < 2)
-					Genes = IA.MutationWall(sizeDNA_wtBorder, Genes, input, typeParams, randomFast);
+
+				if(mutationType == 0)
+					Genes = IA.TranslationWall(sizeDNA_wtBorder, Genes, input, typeParams, randomFast);
 				if (mutationType == 1)
-					Genes = IA.DeleteWallZ(sizeDNA_wtBorder, Genes, input, typeParams);
+					Genes = IA.RotationWall(sizeDNA_wtBorder, Genes, input, typeParams, randomFast);
 				if (mutationType == 2)
-					Genes = IA.DeleteWallX(sizeDNA_wtBorder, Genes, input, typeParams);
+					Genes = IA.DeleteWallZ(sizeDNA_wtBorder, Genes, input, typeParams);
 				if (mutationType == 3)
-					Genes = IA.FillWallX(sizeDNA_wtBorder, Genes, input, 1, typeParams);
+					Genes = IA.DeleteWallX(sizeDNA_wtBorder, Genes, input, typeParams);
 				if (mutationType == 4)
+					Genes = IA.FillWallX(sizeDNA_wtBorder, Genes, input, 1, typeParams);
+				if (mutationType == 5)
 					Genes = IA.FillWallZ(sizeDNA_wtBorder, Genes, input, 1, typeParams);
-				if(mutationType == 5)
-					Genes = IA.FillFloor(sizeDNA_wtBorder, Genes, new Vector3Int(mutationIndex_x, 1, mutationIndex_z), 4, typeParams);
-				if (mutationType == 6)
-					Genes = IA.TranslateDoor(sizeDNA_wtBorder, Genes, input, typeParams, randomFast);
-				if (mutationType == 7)
-					Genes = IA.CreateDoor(sizeDNA_wtBorder, Genes, input, typeParams, randomFast, 3);
-				if (mutationType == 8)
-					Genes = IA.CollapseDoor(sizeDNA_wtBorder, Genes, input, typeParams, randomFast);
 			}
-		}
-
-		//Fill the cell with the same type as a neighbor 
-		public void Extend(int x, int y, int z)
-		{
-			int[] typesAround = new int[typeParams.Length];
-			int newType = 0;
-			for (int i = -1; i < 2; i++)
-			{
-				for (int j = -1; j < 2; j++)
-				{
-					for (int k = -1; k < 2; k++)
-					{
-						if (Genes[x + i][y + j][z + k].type > 0)
-						{
-							typesAround[Genes[x + i][y + j][z + k].type]++;
-							if (typesAround[Genes[x + i][y + j][z + k].type] > typesAround[newType])
-								newType = Genes[x + i][y + j][z + k].type;
-						}
-					}
-				}
-			}
-
-			if(typesAround[newType] > 0 && newType != Genes[x][y][z].type)
-				Genes[x][y][z].type = newType;
-		}
-
-		//Swap the cell with a random other cell
-		public void Swap(int x, int y, int z)
-		{
-			int swap_x = randomFast.Next(1, sizeDNAx_wtBorder);
-			int swap_y = randomFast.Next(1, sizeDNAy_wtBorder);
-			int swap_z = randomFast.Next(1, sizeDNAz_wtBorder);
-
-			int type = Genes[x][y][z].type;
-			Genes[x][y][z].type = Genes[swap_x][swap_y][swap_z].type;
-			Genes[swap_x][swap_y][swap_z].type = type;
-		}
-
-		//Erase the cell
-		public void Erase(int x, int y, int z)
-		{
-			Genes[x][y][z].type = 0;
 		}
 	}
 }

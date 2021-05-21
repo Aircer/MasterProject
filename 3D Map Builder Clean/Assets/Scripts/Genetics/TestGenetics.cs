@@ -1,6 +1,7 @@
 using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
+using System;
+using UtilitiesGenetic;
+using mVectors;
 
 namespace MapTileGridCreator.Core
 {
@@ -14,31 +15,34 @@ namespace MapTileGridCreator.Core
 		private int numberTypeCells;
 		private Vector3Int sizeDNA;
 		private TypeParams[] typeParams;
-		private CellInformation[] cellsInfos;
+		private TypeParams[] cellsInfos;
+		private int fitnessType;
+		private int numberBlocks;
 
-		public void StartGenetics(WaypointCluster cluster, EvolutionaryAlgoParams algoParams)
+		public void StartGenetics(Vector3Int size, TypeParams[] cellsInfos, WaypointParams[][][] waypointParams, EvolutionaryAlgoParams algoParams, int fitnessType)
 		{
-			// Size of the DNA is size + 2 to have empty borders
-			sizeDNA = new Vector3Int(cluster.size.x+2, cluster.size.y+2, cluster.size.z+2);
+			sizeDNA = size;
 			randomFast = new SharpNeatLib.Maths.FastRandom();
 			randomSystem = new System.Random();
-			numberTypeCells = cluster.cellInfos.Count;
-			cellsInfos = cluster.cellInfos.ToArray();
+			numberTypeCells = cellsInfos.Length;
+			this.cellsInfos = cellsInfos;
 			typeParams = new TypeParams[numberTypeCells + 1];
 			this.algoParams = algoParams;
+			this.fitnessType = fitnessType;
+			numberBlocks = (size.x - 2)* (size.y - 2) * (size.z - 2);
 
-			SetTypeCellParams(cluster);
+			SetTypeCellParams(cellsInfos);
 
-			ga = new GeneticAlgorithm(algoParams, sizeDNA, randomSystem, randomFast, FitnessFunction, cluster, typeParams);
+			ga = new GeneticAlgorithm(algoParams, sizeDNA, randomSystem, randomFast, FitnessFunction, waypointParams, typeParams);
 		}
 
-		private void SetTypeCellParams(WaypointCluster cluster)
+		private void SetTypeCellParams(TypeParams[] cellsInfos)
 		{
 			typeParams[0] = new TypeParams();
 
 			for (int i = 0; i < numberTypeCells; i++)
 			{
-				typeParams[i + 1] = cluster.cellInfos[i].typeParams;
+				typeParams[i + 1] = cellsInfos[i];
 			}
 		}
 
@@ -48,88 +52,52 @@ namespace MapTileGridCreator.Core
 			ga.NewGeneration();
 		}
 
-		public List<WaypointCluster> GetBestClusters(int nbSuggestions)
+		public WaypointParams[][][] GetBestClusters()
         {
-			List<WaypointCluster> bestClusters = new List<WaypointCluster>();
-			int j = 0;
 			ga.ClassifyPopulation();
-			for (int i = 0; i < nbSuggestions; i++)
-			{
-				/*if (j > 0)
-					while (j < ga.oldPopulation.Length && ga.oldPopulation[j].Fitness == ga.oldPopulation[j - 1].Fitness)
-						j++;
 
-				if (j == ga.oldPopulation.Length)
-					j = ga.oldPopulation.Length - 1;*/
-
-				bestClusters.Add(new WaypointCluster(new Vector3Int(ga.oldPopulation[j].sizeDNAx_wtBorder+1, ga.oldPopulation[j].sizeDNAy_wtBorder+1,
-																	ga.oldPopulation[j].sizeDNAz_wtBorder+1), ga.oldPopulation[j].Genes, cellsInfos));
-				j++;
-			}
-
-			//float goodWallCells = ga.oldPopulation[j].phenotype.cellsWalls - (ga.oldPopulation[j].phenotype.cellsWallsCrowded + ga.oldPopulation[j].phenotype.cellsWallsSolo);
-			//float goodWallCellsRatio = goodWallCells / ga.oldPopulation[j].phenotype.cellsWalls;
-			//UnityEngine.Debug.Log(goodWallCellsRatio);
-
-			return bestClusters;
+			return ga.oldPopulation[0].Genes;
 		}
 
 		private float FitnessFunction(int index)
 		{
-			float finalScore = 0;
-			float scoreX = 0f; float symTotal = sizeDNA.x*sizeDNA.y*sizeDNA.z/2;
-			DNA dna = ga.oldPopulation[index];
+			float finalScore = 0; float nbCuboidsCorrectSize = 0; float nbCuboids = 0;
+			float ratioGoodCuboids = 0;  float sizeMin = 0; float nbCuboidsPossible;
+			Phenotype phenotype = ga.oldPopulation[index].phenotype;
 
-			if (dna.phenotype.cellsWalls == 0)
-				return 0;
-
-			int l = sizeDNA.x -2;
-			for (int i = 1; i < sizeDNA.x - 1; i++, l--)
-			{
-				for (int j = 1; j < sizeDNA.y - 1; j++)
-				{
-					for (int k = 1; k < sizeDNA.z - 1; k++)
-					{
-						if (dna.Genes[i][j][k].type != 0 && (dna.Genes[i][j][k].type == dna.Genes[l][j][k].type))
-						{
-								scoreX++;
-						}
-					}
-				}
+			switch(fitnessType)
+            {
+				case 0:
+					sizeMin = 3; 
+					break;
+				case 1:
+					sizeMin = 12;
+					break;
+				case 2:
+					sizeMin = 24;
+					break;
+				case 3:
+					sizeMin = 48;
+					break;
 			}
 
-			scoreX /= dna.phenotype.cellsWalls;
+			nbCuboidsPossible = numberBlocks / sizeMin;
 
-			float scoreZ = 0f;
-
-			l = sizeDNA.z - 2;
-			for (int i = 1; i < sizeDNA.x - 1; i++, l--)
+			foreach (Cuboid cuboid in phenotype.cuboids)
 			{
-				for (int j = 1; j < sizeDNA.y - 1; j++)
-				{
-					for (int k = 1; k < sizeDNA.z - 1; k++)
-					{
-						if (dna.Genes[i][j][k].type != 0 && (dna.Genes[i][j][k].type == dna.Genes[i][j][l].type))
-						{
-							scoreZ++;
-						}
-					}
-				}
+				if (cuboid.cells.Count > sizeMin)
+					nbCuboidsCorrectSize++;
+				nbCuboids++;
 			}
 
-			scoreZ /= dna.phenotype.cellsWalls;
+			if (nbCuboids > 0)
+				ratioGoodCuboids = nbCuboidsCorrectSize / nbCuboidsPossible;
+			else
+				ratioGoodCuboids = 0;
 
-			float sim = scoreX > scoreZ ? scoreX : scoreZ;
-			//float sim = scoreX*scoreZ;
-			float goodWallCells = dna.phenotype.cellsWalls - (dna.phenotype.cellsWallsCrowded + dna.phenotype.cellsWallsSolo);
-			float goodWallCellsRatio = goodWallCells / dna.phenotype.cellsWalls;
+			finalScore = ratioGoodCuboids; //Mathf.Pow(2, ratioGoodCuboids) - 1;
 
-
-			//finalScore = Mathf.Pow(2, Mathf.Pow(goodWallCellsRatio, 2) * sim) - 1;
-
-			//finalScore = Mathf.Pow(2, sim) - 1;
-
-			return 0;
+			return finalScore;
 		}
 	}
 }

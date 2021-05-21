@@ -5,6 +5,7 @@ using UnityEngine;
 using MapTileGridCreator.UtilitiesMain;
 using System.Collections;
 //using EditorCoroutines.Editor;
+using UtilitiesGenetic;
 
 [CanEditMultipleObjects]
 public class SuggestionsEditor : EditorWindow
@@ -38,10 +39,10 @@ public class SuggestionsEditor : EditorWindow
             mapWindow = (MapTileGridCreatorWindow)Resources.FindObjectsOfTypeAll(typeof(MapTileGridCreatorWindow))[0];
 
         window = GetWindow(typeof(SuggestionsEditor));
-        evolAlgoParams.population = 4;
-        evolAlgoParams.elitism = 0;
-        evolAlgoParams.generations = 2;
-        evolAlgoParams.mutationRate = 0.01f;
+        evolAlgoParams.population = 20;
+        evolAlgoParams.elitism = 5;
+        evolAlgoParams.generations = 100;
+        evolAlgoParams.mutationRate = 0.005f;
     }
     
     private void OnGUI()
@@ -133,7 +134,23 @@ public class SuggestionsEditor : EditorWindow
     public void NewSuggestionsIA()
     {
         //Create new clusters from the current sketch 
-        suggestionsClusters = IA.GetSuggestionsClusters(mapCluster, numberSuggestions, evolAlgoParams);
+        WaypointParams[][][] wp =  mapCluster.GetWaypointsParams();
+        int sizeDNDA_X = mapCluster.size.x + 2; int sizeDNDA_Y = mapCluster.size.y + 2; int sizeDNDA_Z = mapCluster.size.z + 2;
+        TypeParams[] typeParams = new TypeParams[mapCluster.cellInfos.Count];
+
+        for (int i = 0; i < typeParams.Length; i++)
+        {
+            typeParams[i] = mapCluster.cellInfos[i].typeParams;
+        }
+
+        List<WaypointParams[][][]> newWpList = IA.GetSuggestionsClusters(sizeDNDA_X, sizeDNDA_Y, sizeDNDA_Z, typeParams, wp, numberSuggestions, evolAlgoParams);
+        List<WaypointCluster> newSuggestionClusters = new List<WaypointCluster>();
+        for (int i = 0; i < numberSuggestions; i++)
+        {
+            newSuggestionClusters.Add(new WaypointCluster(mapCluster.size + UnityEngine.Vector3Int.one*2, newWpList[i], mapCluster.cellInfos.ToArray()));
+        }
+
+        suggestionsClusters = newSuggestionClusters; 
     }
 
     public void NewSuggestionsCells()

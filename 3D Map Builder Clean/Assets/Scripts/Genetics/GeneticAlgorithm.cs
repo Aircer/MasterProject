@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using UnityEngine;
+using UtilitiesGenetic;
+using mVectors;
 
 namespace MapTileGridCreator.Core
 {
@@ -19,8 +19,9 @@ namespace MapTileGridCreator.Core
 		private SharpNeatLib.Maths.FastRandom randomFast;
 		private System.Random randomSystem;
 		private List<int> existingTypes;
+
 		public GeneticAlgorithm(EvolutionaryAlgoParams algoParams, Vector3Int dnaSize, System.Random randomSystem, SharpNeatLib.Maths.FastRandom randomFast, Func<int, float> fitnessFunction,
-			WaypointCluster cluster, TypeParams[] typeParams)
+			WaypointParams[][][] waypointParams, TypeParams[] typeParams)
 		{
 			generation = 1;
 			elitism = algoParams.elitism;
@@ -35,9 +36,9 @@ namespace MapTileGridCreator.Core
 
 			for (int i = 0; i < populationSize; i++)
 			{
-				DNA newPop = new DNA(dnaSize, randomSystem, randomFast, fitnessFunction, typeParams, cluster);
+				DNA newPop = new DNA(dnaSize, randomSystem, randomFast, fitnessFunction, typeParams, waypointParams);
 				oldPopulation[i] = newPop;
-				DNA newPop2 = new DNA(dnaSize, randomSystem, randomFast, fitnessFunction, typeParams, cluster);
+				DNA newPop2 = new DNA(dnaSize, randomSystem, randomFast, fitnessFunction, typeParams, waypointParams);
 				newPopulation[i] = newPop2;
 			}
 
@@ -47,7 +48,7 @@ namespace MapTileGridCreator.Core
 		public void NewGeneration()
 		{
 			ClassifyPopulation();
-
+			
 			for (int i = 0; i < populationSize; i++)
 			{
 				if (i < elitism)
@@ -56,9 +57,9 @@ namespace MapTileGridCreator.Core
 				}
 				else 
 				{
-					DNA parent1 = ChooseParent();
-					DNA parent2 = ChooseParent();
-					newPopulation[i].Crossover(parent1, parent2);
+					//DNA parent1 = ChooseParent();
+					//DNA parent2 = ChooseParent();
+					//newPopulation[i].Crossover(parent1, parent2);
 
 					newPopulation[i].Copy(oldPopulation[i]);
 					newPopulation[i].Mutate(mutationNumber, existingTypes);

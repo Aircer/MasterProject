@@ -461,32 +461,6 @@ namespace MapTileGridCreator.UtilitiesMain
 			return true;
 		}
 
-		/// <summary>
-		/// Check if there is enough room to paint the new asset
-		///</summary>
-		public static bool CanAddTypeHere(Vector3Int size_grid, Vector3Int index, Vector3Int size, WaypointCluster cluster, Vector3 rotation)
-		{
-
-			Vector3Int lowerBound = default(Vector3Int);
-			Vector3Int upperBound = default(Vector3Int);
-			SetBounds(ref lowerBound, ref upperBound, index, size, rotation);
-
-			for (int i = lowerBound.x; i <= upperBound.x; i++)
-			{
-				for (int j = lowerBound.y; j <= upperBound.y; j++)
-				{
-					for (int k = lowerBound.z; k <= upperBound.z; k++)
-					{
-						//if (!InputInGridBoundaries(new Vector3Int(i, j, k), size_grid) || !(cells[i, j, k].state == CellState.Inactive || cells[i, j, k].state == CellState.Painted))
-						if (!InputInGridBoundaries(new Vector3Int(i, j, k), size_grid) || cluster.GetWaypoints()[i, j, k].type != null)
-							return false;
-					}
-				}
-			}
-
-			return true;
-		}
-
 		public static void SetBounds(ref Vector3Int lowerBound, ref Vector3Int upperBound, Vector3Int index, Vector3Int size, Vector3 rotation)
 		{
 			Vector3Int newSize = default(Vector3Int);
@@ -530,29 +504,6 @@ namespace MapTileGridCreator.UtilitiesMain
 		{
 			//Active the cell at the index position 
 			cells[index.x, index.y, index.z].Painted(type, rotation);
-
-			//All the cells that will be occupied by the activated object in the index cells will be set to Erased state (which activate their collider)
-			Vector3Int size_grid = new Vector3Int(cells.GetLength(0), cells.GetLength(1), cells.GetLength(2));
-			Vector3Int lowerBound = default(Vector3Int);
-			Vector3Int upperBound = default(Vector3Int);
-			SetBounds(ref lowerBound, ref upperBound, index, type.typeParams.size, rotation);
-
-			for (int i = lowerBound.x; i <= upperBound.x; i++)
-			{
-				for (int j = lowerBound.y; j <= upperBound.y; j++)
-				{
-					for (int k = lowerBound.z; k <= upperBound.z; k++)
-					{
-						if (InputInGridBoundaries(new Vector3Int(i, j, k), size_grid))
-						{
-							if (index.x != i || index.y != j || index.z != k)
-							{
-								cells[i, j, k].Erased();
-							}
-						}
-					}
-				}
-			}
 		}
 
 		public static void EraseCell(Cell[,,] cells, WaypointCluster cluster, Vector3Int index, CellInformation type, Vector3 rotation)

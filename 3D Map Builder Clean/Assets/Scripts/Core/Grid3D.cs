@@ -280,7 +280,7 @@ namespace MapTileGridCreator.Core
 		/// Get the position of a cell.
 		/// </summary>
 		/// <param name="index">The index cell</param>
-		public Vector3 GetPositionCell(Vector3Int index)
+		public Vector3 GetPositionCell(UnityEngine.Vector3Int index)
 		{
 			return Origin + GetLocalPositionCell(index);
 		}
