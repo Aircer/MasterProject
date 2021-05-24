@@ -49,6 +49,16 @@ namespace MapTileGridCreator.Core
 		{
 			ClassifyPopulation();
 			
+			if(generation == 1)
+            {
+				Phenotype p = oldPopulation[0].phenotype;
+
+				foreach (Cuboid c in p.cuboids)
+				{
+					UnityEngine.Debug.Log(c.cells.Count);
+				}
+            }
+
 			for (int i = 0; i < populationSize; i++)
 			{
 				if (i < elitism)

@@ -80,21 +80,108 @@ namespace MapTileGridCreator.Core
             Vector3Int max = new Vector3Int(size.x, size.y, size.z);
             Vector3Int min = new Vector3Int(0, 0, 0);
             HashSet<Vector3Int> cellsCuboid = new HashSet<Vector3Int>();
-
+            bool firstBlockDiago = true;
             for (int x = input.x; x < max.x; x++)
             {
                 for (int y = input.y; y < max.y; y++)
                 {
                     for (int z = input.z; z < max.z; z++)
                     {
-                        if (CellIsStruct(x, y, z, Genes, typeParams))
-                            max.z = z;
+                        if (CellIsStruct(x, y, z+1, Genes, typeParams) || cellsPicked.Contains(new Vector3Int(x, y, z+1)))
+                            max.z = z+1;
 
-                        if (z < max.z && CellIsStruct(x, y + 1, z, Genes, typeParams))
+                        if (z < max.z && CellIsStruct(x, y + 1, z, Genes, typeParams) || cellsPicked.Contains(new Vector3Int(x, y + 1, z)))
                             max.y = y + 1;
 
-                        if (z < max.z && y < max.y && CellIsStruct(x + 1, y, z, Genes, typeParams))
-                            max.x = x + 1;
+                        if (z < max.z && y < max.y && CellIsStruct(x+1, y, z, Genes, typeParams) || cellsPicked.Contains(new Vector3Int(x+1, y, z)))
+                        {
+                            if (firstBlockDiago)
+                            {
+                                if (x + 1 != input.x)
+                                {
+                                    if (x + 1 - input.x < z - input.z)
+                                    {
+                                        max.z = z;
+                                    }
+                                    else
+                                    {
+                                        max.x = x + 1;
+                                    }
+                                }
+                                else
+                                    max.x = x + 1;
+
+                                firstBlockDiago = false;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (max.x < size.x)
+            {
+                int holeMaxX = 0;
+                for (int z = input.z; z < max.z; z++)
+                {
+                    if (!CellIsStruct(max.x, input.y, z, Genes, typeParams))
+                        holeMaxX++;
+                    else
+                        holeMaxX = 0;
+
+                    if (holeMaxX >= max.x - input.x + 1 && max.z > z - holeMaxX + 1)
+                    {
+                        max.z = z - holeMaxX + 1;
+                    }
+                }
+            }
+
+            if (input.x > 1)
+            {
+                int holeMinX = 0;
+                for (int z = input.z; z < max.z; z++)
+                {
+                    if (!CellIsStruct(input.x - 1, input.y, z, Genes, typeParams))
+                        holeMinX++;
+                    else
+                        holeMinX = 0;
+
+                    if (holeMinX >= max.x - input.x + 1 && max.z > z - holeMinX + 1)
+                    {
+                        max.z = z - holeMinX + 1;
+                    }
+                }
+            }
+
+            if (max.z < size.z)
+            {
+                int holeMaxZ = 0;
+                for (int x = input.x; x < max.x; x++)
+                {
+                    if (!CellIsStruct(x, input.y, max.z, Genes, typeParams))
+                        holeMaxZ++;
+                    else
+                        holeMaxZ = 0;
+
+                    if (holeMaxZ >= max.z - input.z + 1 && max.x > x - holeMaxZ + 1)
+                    {
+                        max.x = x - holeMaxZ + 1;
+                    }
+                }
+            }
+            
+            if (input.z > 1)
+            {
+                int holeMinZ = 0;
+                for (int x = input.x; x < max.x; x++)
+                {
+                    if (!CellIsStruct(x, input.y, input.z - 1, Genes, typeParams))
+                        holeMinZ++;
+                    else
+                        holeMinZ = 0;
+
+                    if (holeMinZ >= max.z - input.z + 1 && max.x > x - holeMinZ + 1)
+                    {
+                        max.x = x - holeMinZ + 1;
                     }
                 }
             }

@@ -253,7 +253,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 					ChangeBrushPallet();
 					Vector3Int input = Vector3Int.RoundToInt(GetGridPositionInput(0.5f));
 
-					if (input.x >= 0 && input.y >= 0 && input.z >= 0 && input.x <= _size_grid.x && input.y <= _size_grid.y && input.z <= _size_grid.z)
+					if (input.x >= 0 && input.y >= 0 && input.z >= 0 && input.x < _size_grid.x && input.y < _size_grid.y && input.z < _size_grid.z)
 					{
 						if (!_cellTypes[_cellTypes_index].typeParams.door)
 							AddInputArea(input);
