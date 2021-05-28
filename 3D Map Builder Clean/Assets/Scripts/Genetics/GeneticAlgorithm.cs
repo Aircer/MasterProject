@@ -3,25 +3,24 @@ using System.Collections.Generic;
 using UtilitiesGenetic;
 using mVectors;
 
-namespace MapTileGridCreator.Core
+namespace Genetics
 {
 	public class GeneticAlgorithm
 	{
 		public DNA[] oldPopulation { get; private set; }
 		public DNA[] newPopulation { get; private set; }
-		public int generation { get; private set; }
 
-		public int elitism;
-		public int populationSize;
-		public float mutationNumber;
+		private int generation;
+		private int elitism;
+		private int populationSize;
+		private float mutationNumber;
 
 		private float fitnessSum;
 		private SharpNeatLib.Maths.FastRandom randomFast;
-		private System.Random randomSystem;
 		private List<int> existingTypes;
 
-		public GeneticAlgorithm(EvolutionaryAlgoParams algoParams, Vector3Int dnaSize, System.Random randomSystem, SharpNeatLib.Maths.FastRandom randomFast, Func<int, float> fitnessFunction,
-			WaypointParams[][][] waypointParams, TypeParams[] typeParams)
+		public GeneticAlgorithm(EvolutionaryAlgoParams algoParams, Vector3Int dnaSize, Func<int, float> fitnessFunction,
+			int[][][] waypointParams, TypeParams[] typeParams)
 		{
 			generation = 1;
 			elitism = algoParams.elitism;
@@ -31,14 +30,13 @@ namespace MapTileGridCreator.Core
 			oldPopulation = new DNA[populationSize];
 			newPopulation = new DNA[populationSize];
 
-			this.randomSystem = randomSystem;
-			this.randomFast = randomFast;
+			randomFast = new SharpNeatLib.Maths.FastRandom();
 
 			for (int i = 0; i < populationSize; i++)
 			{
-				DNA newPop = new DNA(dnaSize, randomSystem, randomFast, fitnessFunction, typeParams, waypointParams);
+				DNA newPop = new DNA(dnaSize, fitnessFunction, typeParams, waypointParams);
 				oldPopulation[i] = newPop;
-				DNA newPop2 = new DNA(dnaSize, randomSystem, randomFast, fitnessFunction, typeParams, waypointParams);
+				DNA newPop2 = new DNA(dnaSize, fitnessFunction, typeParams, waypointParams);
 				newPopulation[i] = newPop2;
 			}
 
@@ -48,16 +46,6 @@ namespace MapTileGridCreator.Core
 		public void NewGeneration()
 		{
 			ClassifyPopulation();
-			
-			if(generation == 1)
-            {
-				Phenotype p = oldPopulation[0].phenotype;
-
-				foreach (Cuboid c in p.cuboids)
-				{
-					UnityEngine.Debug.Log(c.cells.Count);
-				}
-            }
 
 			for (int i = 0; i < populationSize; i++)
 			{
@@ -67,11 +55,10 @@ namespace MapTileGridCreator.Core
 				}
 				else 
 				{
-					//DNA parent1 = ChooseParent();
-					//DNA parent2 = ChooseParent();
-					//newPopulation[i].Crossover(parent1, parent2);
+					DNA parent1 = ChooseParent();
+					DNA parent2 = ChooseParent();
+					newPopulation[i].Crossover(parent1, parent2);
 
-					newPopulation[i].Copy(oldPopulation[i]);
 					newPopulation[i].Mutate(mutationNumber, existingTypes);
 				}
 			}

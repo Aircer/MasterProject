@@ -154,7 +154,7 @@ namespace MapTileGridCreator.Core
 					Genes = IA.TranslationWall(sizeDNA_wtBorder, Genes, input, typeParams, randomFast);
 				if (mutationType == 1)
 					Genes = IA.RotationWall(sizeDNA_wtBorder, Genes, input, typeParams, randomFast);
-				if (mutationType == 2)
+				if (mutationType == -1)
 					Genes = IA.DeleteWallZ(sizeDNA_wtBorder, Genes, input, typeParams);
 				if (mutationType == 3)
 					Genes = IA.DeleteWallX(sizeDNA_wtBorder, Genes, input, typeParams);

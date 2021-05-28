@@ -6,6 +6,7 @@ using MapTileGridCreator.UtilitiesMain;
 using System.Collections;
 //using EditorCoroutines.Editor;
 using UtilitiesGenetic;
+using Genetics;
 
 [CanEditMultipleObjects]
 public class SuggestionsEditor : EditorWindow
@@ -134,7 +135,7 @@ public class SuggestionsEditor : EditorWindow
     public void NewSuggestionsIA()
     {
         //Create new clusters from the current sketch 
-        WaypointParams[][][] wp =  mapCluster.GetWaypointsParams();
+        int[][][] wp =  mapCluster.GetWaypointsParams();
         int sizeDNDA_X = mapCluster.size.x + 2; int sizeDNDA_Y = mapCluster.size.y + 2; int sizeDNDA_Z = mapCluster.size.z + 2;
         TypeParams[] typeParams = new TypeParams[mapCluster.cellInfos.Count];
 
@@ -143,7 +144,7 @@ public class SuggestionsEditor : EditorWindow
             typeParams[i] = mapCluster.cellInfos[i].typeParams;
         }
 
-        List<WaypointParams[][][]> newWpList = IA.GetSuggestionsClusters(sizeDNDA_X, sizeDNDA_Y, sizeDNDA_Z, typeParams, wp, numberSuggestions, evolAlgoParams);
+        List<int[][][]> newWpList = Init.GetSuggestionsClusters(sizeDNDA_X, sizeDNDA_Y, sizeDNDA_Z, typeParams, wp, numberSuggestions, evolAlgoParams);
         List<WaypointCluster> newSuggestionClusters = new List<WaypointCluster>();
         for (int i = 0; i < numberSuggestions; i++)
         {

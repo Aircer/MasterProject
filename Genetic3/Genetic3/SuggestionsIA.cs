@@ -32,13 +32,13 @@ namespace MapTileGridCreator.Core
         public static Phenotype GetPhenotype(int sizeX, int sizeY, int sizeZ, WaypointParams[][][] Genes, TypeParams[] typeParams)
         {
             Vector3Int size = new Vector3Int(sizeX, sizeY, sizeZ);
-            Vector3Int max = new Vector3Int(sizeX, 1, sizeZ);
+            Vector3Int max = new Vector3Int(sizeX, sizeY, sizeZ);
             Vector3Int min = new Vector3Int(1, 1, 1);
             HashSet<Vector3Int> cellsPicked = new HashSet<Vector3Int>(); 
             Phenotype newPhenotype = new Phenotype();
             newPhenotype.cuboids = new HashSet<Cuboid>();
 
-            
+            /*
             for (int x = 1; x < sizeX; x++)
             {
                 for (int y = 1; y < sizeY; y++)
@@ -52,11 +52,11 @@ namespace MapTileGridCreator.Core
                         }
                     }
                 }
-            }
+            }*/
 
-            for (int x = min.x; x < max.x; x++)
+            for (int y = min.y; y < max.y; y++)
             {
-                for (int y = min.y; y < max.y; y++)
+                for (int x = min.x; x < max.x; x++)
                 {
                     for (int z = min.z; z < max.z; z++)
                     {
@@ -80,21 +80,140 @@ namespace MapTileGridCreator.Core
             Vector3Int max = new Vector3Int(size.x, size.y, size.z);
             Vector3Int min = new Vector3Int(0, 0, 0);
             HashSet<Vector3Int> cellsCuboid = new HashSet<Vector3Int>();
-
-            for (int x = input.x; x < max.x; x++)
+            bool firstBlockDiago = true;
+            for (int y = input.y; y < max.y; y++)
             {
-                for (int y = input.y; y < max.y; y++)
+                for (int x = input.x; x < max.x; x++)
                 {
                     for (int z = input.z; z < max.z; z++)
                     {
-                        if (CellIsStruct(x, y, z, Genes, typeParams))
-                            max.z = z;
+                        if (x < max.x && y < max.y && CellIsStruct(x, y, z+1, Genes, typeParams) || cellsPicked.Contains(new Vector3Int(x, y, z+1)))
+                            max.z = z+1;
 
-                        if (z < max.z && CellIsStruct(x, y + 1, z, Genes, typeParams))
+                        if (z < max.z && x < max.x && CellIsStruct(x, y + 1, z, Genes, typeParams) || cellsPicked.Contains(new Vector3Int(x, y + 1, z)))
                             max.y = y + 1;
 
-                        if (z < max.z && y < max.y && CellIsStruct(x + 1, y, z, Genes, typeParams))
-                            max.x = x + 1;
+                        if (z < max.z && y < max.y && CellIsStruct(x+1, y, z, Genes, typeParams) || cellsPicked.Contains(new Vector3Int(x+1, y, z)))
+                        {
+                            if (firstBlockDiago)
+                            {
+                                if (x + 1 != input.x)
+                                {
+                                    if (x + 1 - input.x < z - input.z)
+                                    {
+                                        max.z = z;
+                                    }
+                                    else
+                                    {
+                                        max.x = x + 1;
+                                    }
+                                }
+                                else
+                                    max.x = x + 1;
+
+                                firstBlockDiago = false;
+                            }
+                        }
+                    }
+                }
+            }
+
+            int oldNumberEmpty = 999999;
+            int numberEmpty = 0;
+
+            for (int y = input.y; y < max.y; y++)
+            { 
+                for (int x = input.x; x < max.x; x++)
+                {
+                    if (max.z < size.z && !CellIsStruct(x, y, max.z, Genes, typeParams))
+                        numberEmpty++;
+
+                    if (input.z > 1 && !CellIsStruct(x, y, input.z - 1, Genes, typeParams))
+                        numberEmpty++;
+                }
+
+                for (int z = input.z; z < max.z; z++)
+                {
+                    if (max.x < size.x && !CellIsStruct(max.x, y, z, Genes, typeParams))
+                        numberEmpty++;
+
+                    if (input.x > 1 && !CellIsStruct(input.x - 1, y, z, Genes, typeParams))
+                        numberEmpty++;
+                }
+
+                if (numberEmpty > oldNumberEmpty && max.y > y)
+                {
+                    max.y = y;
+                }
+
+                oldNumberEmpty = numberEmpty;
+                numberEmpty = 0;
+            }
+            
+            if (max.x < size.x)
+            {
+                int holeMaxX = 0;
+                for (int z = input.z; z < max.z; z++)
+                {
+                    if (!CellIsStruct(max.x, input.y, z, Genes, typeParams) && !cellsPicked.Contains(new Vector3Int(max.x, input.y, z)))
+                        holeMaxX++;
+                    else
+                        holeMaxX = 0;
+
+                    if (holeMaxX >= max.x - input.x + 1 && max.z > z - holeMaxX + 1)
+                    {
+                        max.z = z - holeMaxX + 1;
+                    }
+                }
+            }
+
+            if (input.x > 1)
+            {
+                int holeMinX = 0;
+                for (int z = input.z; z < max.z; z++)
+                {
+                    if (!CellIsStruct(input.x - 1, input.y, z, Genes, typeParams) && !cellsPicked.Contains(new Vector3Int(input.x - 1, input.y, z)))
+                        holeMinX++;
+                    else
+                        holeMinX = 0;
+
+                    if (holeMinX >= max.x - input.x + 1 && max.z > z - holeMinX + 1)
+                    {
+                        max.z = z - holeMinX + 1;
+                    }
+                }
+            }
+            
+            if (max.z < size.z)
+            {
+                int holeMaxZ = 0;
+                for (int x = input.x; x < max.x; x++)
+                {
+                    if (!CellIsStruct(x, input.y, max.z, Genes, typeParams) && !cellsPicked.Contains(new Vector3Int(x, input.y, max.z)))
+                        holeMaxZ++;
+                    else
+                        holeMaxZ = 0;
+
+                    if (holeMaxZ >= max.z - input.z + 1 && max.x > x - holeMaxZ + 1)
+                    {
+                        max.x = x - holeMaxZ + 1;
+                    }
+                }
+            }
+            
+            if (input.z > 1)
+            {
+                int holeMinZ = 0;
+                for (int x = input.x; x < max.x; x++)
+                {
+                    if (!CellIsStruct(x, input.y, input.z - 1, Genes, typeParams) && !cellsPicked.Contains(new Vector3Int(x, input.y, input.z - 1)))
+                        holeMinZ++;
+                    else
+                        holeMinZ = 0;
+
+                    if (holeMinZ >= max.z - input.z + 1 && max.x > x - holeMinZ + 1)
+                    {
+                        max.x = x - holeMinZ + 1;
                     }
                 }
             }
@@ -863,9 +982,13 @@ namespace MapTileGridCreator.Core
                 if(index.x != pivot)
                 {
                     newZ = (index.x - pivot) + input.z;
-                    temp = Genes[index.x][index.y][index.z].type; 
-                    Genes[index.x][index.y][index.z].type = Genes[pivot][index.y][newZ].type;
-                    Genes[pivot][index.y][newZ].type = temp;
+
+                    if (newZ > 1 && newZ < size.z && pivot < size.x && pivot > 1)
+                    {
+                        temp = Genes[index.x][index.y][index.z].type;
+                        Genes[index.x][index.y][index.z].type = Genes[pivot][index.y][newZ].type;
+                        Genes[pivot][index.y][newZ].type = temp;
+                    }
                 }
             }
 
@@ -911,9 +1034,13 @@ namespace MapTileGridCreator.Core
                 if (index.z != pivot)
                 {
                     newX = (index.z - pivot) + input.x;
-                    temp = Genes[index.x][index.y][index.z].type;
-                    Genes[index.x][index.y][index.z].type = Genes[newX][index.y][pivot].type;
-                    Genes[newX][index.y][pivot].type = temp;
+
+                    if (newX > 1 && newX < size.x && pivot < size.z && pivot > 1)
+                    {
+                        temp = Genes[index.x][index.y][index.z].type;
+                        Genes[index.x][index.y][index.z].type = Genes[newX][index.y][pivot].type;
+                        Genes[newX][index.y][pivot].type = temp;
+                    }
                 }
             }
 

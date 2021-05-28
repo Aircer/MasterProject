@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UtilitiesGenetic;
 using mVectors;
+using System.IO;
 
 namespace MapTileGridCreator.Core
 {
@@ -19,6 +20,7 @@ namespace MapTileGridCreator.Core
 		private SharpNeatLib.Maths.FastRandom randomFast;
 		private System.Random randomSystem;
 		private List<int> existingTypes;
+		string path = "D:\\MasterProject\\Genetic3\\Data\\DataFitData.csv";
 
 		public GeneticAlgorithm(EvolutionaryAlgoParams algoParams, Vector3Int dnaSize, System.Random randomSystem, SharpNeatLib.Maths.FastRandom randomFast, Func<int, float> fitnessFunction,
 			WaypointParams[][][] waypointParams, TypeParams[] typeParams)
@@ -61,7 +63,7 @@ namespace MapTileGridCreator.Core
 					//DNA parent2 = ChooseParent();
 					//newPopulation[i].Crossover(parent1, parent2);
 
-					newPopulation[i].Copy(oldPopulation[i]);
+					newPopulation[i].Copy(ChooseParent());
 					newPopulation[i].Mutate(mutationNumber, existingTypes);
 				}
 			}
@@ -94,6 +96,18 @@ namespace MapTileGridCreator.Core
 							oldPopulation[j] = temp;
 						}
 					}
+				}
+				
+				using (var w = new StreamWriter(path, true))
+				{
+					w.Write(oldPopulation[0].Fitness);
+					for (int i = 1; i < populationSize; i++)
+					{
+						w.Write(";");
+						w.Write(oldPopulation[i].Fitness);
+					}
+					w.WriteLine();
+					w.Flush();
 				}
 			}
 		}

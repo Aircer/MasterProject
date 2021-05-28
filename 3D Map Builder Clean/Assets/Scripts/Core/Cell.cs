@@ -102,8 +102,8 @@ namespace MapTileGridCreator.Core
 				typeDicoCell[type].transform.Find(activeElement).gameObject.SetActive(true);
 				typeDicoCell[type].transform.localEulerAngles = rotation;*/
 
-				if(transform.GetChild(0).transform.Find(activeElement))
-                {
+				if (transform.GetChild(0).transform.Find(activeElement))
+				{
 					foreach (Transform child in transform.GetChild(0))
 					{
 						child.gameObject.SetActive(false);
@@ -112,6 +112,31 @@ namespace MapTileGridCreator.Core
 				}
 
 				transform.GetChild(0).transform.localEulerAngles = rotation;
+			}
+		}
+
+		public void TransformVisualFloor(List<string> activeElements)
+		{
+			if (type != null)
+			{
+				/*foreach (Transform child in typeDicoCell[type].transform)
+				{
+					child.gameObject.SetActive(false);
+				}
+				typeDicoCell[type].transform.Find(activeElement).gameObject.SetActive(true);
+				typeDicoCell[type].transform.localEulerAngles = rotation;*/
+
+				foreach (Transform child in transform.GetChild(0))
+				{
+					child.gameObject.SetActive(false);
+				}
+
+				transform.GetChild(0).Find("Floor").gameObject.SetActive(true);
+
+				foreach (string elem in activeElements)
+				{
+					transform.GetChild(0).transform.Find(elem).gameObject.SetActive(true);
+				}
 			}
 		}
 

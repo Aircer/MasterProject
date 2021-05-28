@@ -16,7 +16,7 @@ namespace MapTileGridCreator.Core
 			this.size = size;
 		}
 
-		public WaypointCluster(Vector3Int sizeDNA, WaypointParams[][][] newWaypointsParams, CellInformation[] cellsInfos)
+		public WaypointCluster(Vector3Int sizeDNA, int[][][] newWaypointsParams, CellInformation[] cellsInfos)
 		{
 			pathfindingWaypoints = new List<Waypoint>();
 			waypoints = new Waypoint[sizeDNA.x-2, sizeDNA.y-2, sizeDNA.z-2];
@@ -36,12 +36,11 @@ namespace MapTileGridCreator.Core
 					{
 						Waypoint newWaypoint = new Waypoint();
 						newWaypoint.Initialize(sizeDNA, new Vector3Int(x-1, y-1, z-1), this);
-						if (newWaypointsParams[x][y][z].type > 0)
-							newWaypoint.type = cellInfos[newWaypointsParams[x][y][z].type - 1];
+						if (newWaypointsParams[x][y][z] > 0)
+							newWaypoint.type = cellInfos[newWaypointsParams[x][y][z] - 1];
 						else
 							newWaypoint.type = null;
 
-						newWaypoint.baseType = newWaypointsParams[x][y][z].baseType;
 						waypoints[x-1, y-1, z-1] = newWaypoint;
 					}
 				}
@@ -61,27 +60,27 @@ namespace MapTileGridCreator.Core
 			return waypoints;
 		}
 
-		public WaypointParams[][][] GetWaypointsParams()
+		public int[][][] GetWaypointsParams()
 		{
 			Vector3Int size = new Vector3Int(waypoints.GetLength(0), waypoints.GetLength(1), waypoints.GetLength(2));
-			WaypointParams[][][] waypointsParamsXYZ = new WaypointParams[size.x + 2][][];
+			int[][][] waypointsParamsXYZ = new int[size.x + 2][][];
 
 			for (int x = 0; x < size.x+2; x++)
 			{
-				WaypointParams[][] waypointsParamsYZ = new WaypointParams[size.y + 2][];
+				int[][] waypointsParamsYZ = new int[size.y + 2][];
 				for (int y = 0; y < size.y+2; y++)
 				{
-					WaypointParams[] waypointsParamsZ = new WaypointParams[size.z + 2];
+					int[] waypointsParamsZ = new int[size.z + 2];
 					for (int z = 0; z < size.z+2; z++)
 					{
 						//Genes are bigger than cluster to have empty borders thus it is easier to get neighbors  
 						if (x == 0 || y == 0 || z == 0 || x == size.x + 1 || y == size.y + 1 || z == size.z + 1)
 						{
-							waypointsParamsZ[z].type = 0;
+							waypointsParamsZ[z] = 0;
 						}
 						else
 						{
-							waypointsParamsZ[z].type = cellInfos.IndexOf(waypoints[x - 1, y - 1, z - 1].type)+1;
+							waypointsParamsZ[z] = cellInfos.IndexOf(waypoints[x - 1, y - 1, z - 1].type)+1;
 						}
 					}
 					waypointsParamsYZ[y] = waypointsParamsZ;

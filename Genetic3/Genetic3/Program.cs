@@ -2,44 +2,33 @@
 using System.Collections.Generic;
 using MapTileGridCreator.Core;
 using UtilitiesGenetic;
-using mVectors; 
+using mVectors;
+using CsvHelper;
+using System.IO;
+using System.Globalization;
+
+
 namespace Genetic3
 {
     static class Program
     {
-        /// <summary>
-        /// The main entry point for the application.
-        /// </summary>
-        static void Main()
+		/// <summary>
+		/// The main entry point for the application.
+		/// </summary>
+		
+		static void Main()
         {
-            /*
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());*/
             Console.WriteLine("START");
-
 			Vector3Int size = new Vector3Int(7, 7, 7);
+			string path = "D:\\MasterProject\\Genetic3\\Data\\DataFitData.csv";
 
 			TypeParams[] cellsInfos = SetTypesParams();
-            EvolutionaryAlgoParams algoParams = SetAlgoParams();
+            EvolutionaryAlgoParams algoParams = SetAlgoParams(path);
             WaypointParams[][][] waypointParams = SetWaypointsParams(size);
 
-            List<WaypointParams[][][]> newWaypointsParams = IA.GetSuggestionsClusters(size.x, size.y, size.z, cellsInfos, waypointParams, 1, algoParams);
+			WriteData(path, size, algoParams);
 
-			WaypointParams[][][] nw = newWaypointsParams[0];
-
-			for (int y = 0; y < size.y; y++)
-			{
-				for (int x = 0; x < size.x; x++)
-				{
-					for (int z = 0; z < size.z; z++)
-					{
-						Console.Write(nw[x][y][z].type + " ");
-					}
-					Console.WriteLine();
-				}
-				Console.WriteLine("______________________________");
-			}
+			List<WaypointParams[][][]> newWaypointsParams = IA.GetSuggestionsClusters(size.x, size.y, size.z, cellsInfos, waypointParams, 1, algoParams);
 		}
 
 		public static TypeParams[] SetTypesParams()
@@ -56,14 +45,14 @@ namespace Genetic3
 			return newTypesParams;
 		}
 
-		public static EvolutionaryAlgoParams SetAlgoParams()
+		public static EvolutionaryAlgoParams SetAlgoParams(string path)
 		{
 			EvolutionaryAlgoParams algoParams = new EvolutionaryAlgoParams();
 
-			algoParams.population = 20;
-			algoParams.elitism = 5;
-			algoParams.generations = 200;
-			algoParams.mutationRate = 0.05f;
+			algoParams.population = 100;
+			algoParams.elitism = 0;
+			algoParams.generations = 100;
+			algoParams.mutationRate = 0.005f;
 
 			return algoParams;
 		}
@@ -88,6 +77,18 @@ namespace Genetic3
 			}
 
 			return waypointsParamsXYZ;
+		}
+
+		public static void WriteData(string path, Vector3Int size, EvolutionaryAlgoParams algoParams)
+		{
+			using (var w = new StreamWriter(path))
+			{
+				var line = string.Format("Size_x; Size_y; Size_z; Population; Elitism; Generations; MutationRate");
+				w.WriteLine(line);
+				line = string.Format(size.x + ";" + size.y + ";" + size.z + ";" + algoParams.population + ";" + algoParams.elitism + ";" + algoParams.generations + ";" + algoParams.mutationRate);
+				w.WriteLine(line);
+				w.Flush();
+			}
 		}
 	}
 }
