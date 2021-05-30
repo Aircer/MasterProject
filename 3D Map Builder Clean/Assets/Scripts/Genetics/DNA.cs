@@ -20,13 +20,13 @@ namespace Genetics
 		public Phenotype phenotype;
 		public Vector3Int limitDNA;
 
-		public DNA(Vector3Int size, Func<int, float> fitnessFunction, TypeParams[] typeParams, int[][][] waypointParams = null)
+		public DNA(Vector3Int size, Func<int, float> fitnessFunction, TypeParams[] typeParams, SharpNeatLib.Maths.FastRandom randomFast, int[][][] waypointParams = null)
 		{
 			//Genes are bigger than cluster to have empty borders thus it is easier to get neighbors  
 			Genes = new int[size.x][][];
 			limitDNA = new Vector3Int(size.x - 1, size.y - 1, size.z - 1);
-			this.randomFast = new SharpNeatLib.Maths.FastRandom();
-			this.fitnessFunction = fitnessFunction;;
+			this.randomFast = randomFast;
+			this.fitnessFunction = fitnessFunction;
 			this.typeParams = typeParams;
 
 			if (waypointParams != null)
@@ -134,12 +134,14 @@ namespace Genetics
 			for (int x = 0; x < mutationNumber; x++)
 			{
 				int mutationIndex_x = randomFast.Next(1, limitDNA.x);
-				int mutationIndex_y = randomFast.Next(1, limitDNA.y);
+				int mutationIndex_y = randomFast.Next(1, limitDNA.y-1);
 				int mutationIndex_z = randomFast.Next(1, limitDNA.z);
 				int type = existingTypes[randomFast.Next(existingTypes.Count)];
 
 				Vector3Int input = new Vector3Int(mutationIndex_x, mutationIndex_y, mutationIndex_z);
+				Genes = Mutations.FillStairXPos(limitDNA, Genes, input, 8, typeParams);
 
+				/*
 				if (typeParams[Genes[input.x][input.y][input.z]].floor)
 				{ 
 					Genes = Mutations.DeleteFloor(limitDNA, Genes, input, typeParams);
@@ -193,7 +195,7 @@ namespace Genetics
 						Genes = Mutations.FillFloor(limitDNA, Genes, input, 5, typeParams);
 					if (mutationType > 90)
 						Genes = Mutations.CreateLadder(limitDNA, Genes, input, 6, typeParams);
-				}
+				}*/
 			}
 		}
 	}

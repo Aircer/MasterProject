@@ -225,6 +225,47 @@ namespace Genetics
             return Genes;
         }
 
+        public static int[][][] FillStairXPos(Vector3Int size, int[][][] Genes, Vector3Int input, int newType, TypeParams[] typeParams)
+        {
+            if (Genes[input.x][input.y][input.z] > 0 && !typeParams[Genes[input.x][input.y][input.z]].floor)
+                return Genes;
+
+            int xMin = input.x;
+            int yMin = input.y;
+            int z = input.z;
+
+            while (xMin > 0 && yMin > 0 && !CellIsStruct(xMin, yMin, z, Genes, typeParams))
+            {
+                xMin--;
+                yMin--;
+            }
+            xMin++;
+            yMin++;
+
+            int xTemp = xMin;
+            int yTemp = yMin;
+
+            while (xTemp < size.x && yTemp < size.y && !CellIsStruct(xTemp, yTemp, z, Genes, typeParams))
+            {
+                Genes[xTemp][yTemp][z] = newType;
+                Genes[xTemp][yTemp + 1][z] = 0;
+                xTemp++;
+                yTemp++;
+            }
+
+            if (typeParams[Genes[xTemp][yTemp][z]].floor)
+            {
+                Genes[xTemp][yTemp][z] = newType;
+            }
+            else 
+            {
+                Genes[xTemp - 1][yTemp - 1][z] = 0;
+                Genes[xTemp - 1][yTemp - 2][z] = newType;
+            }
+
+            return Genes;
+        }
+
         public static int[][][] FillWallX(Vector3Int size, int[][][] Genes, Vector3Int input, int newType, TypeParams[] typeParams)
         {
             if (Genes[input.x][input.y][input.z] > 0 && !typeParams[Genes[input.x][input.y][input.z]].floor)

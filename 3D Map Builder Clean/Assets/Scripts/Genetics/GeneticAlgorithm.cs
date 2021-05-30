@@ -20,7 +20,7 @@ namespace Genetics
 		private List<int> existingTypes;
 
 		public GeneticAlgorithm(EvolutionaryAlgoParams algoParams, Vector3Int dnaSize, Func<int, float> fitnessFunction,
-			int[][][] waypointParams, TypeParams[] typeParams)
+			int[][][] waypointParams, TypeParams[] typeParams, SharpNeatLib.Maths.FastRandom randomFast)
 		{
 			generation = 1;
 			elitism = algoParams.elitism;
@@ -30,13 +30,13 @@ namespace Genetics
 			oldPopulation = new DNA[populationSize];
 			newPopulation = new DNA[populationSize];
 
-			randomFast = new SharpNeatLib.Maths.FastRandom();
+			this.randomFast = randomFast;
 
 			for (int i = 0; i < populationSize; i++)
 			{
-				DNA newPop = new DNA(dnaSize, fitnessFunction, typeParams, waypointParams);
+				DNA newPop = new DNA(dnaSize, fitnessFunction, typeParams, randomFast, waypointParams);
 				oldPopulation[i] = newPop;
-				DNA newPop2 = new DNA(dnaSize, fitnessFunction, typeParams, waypointParams);
+				DNA newPop2 = new DNA(dnaSize, fitnessFunction, typeParams, randomFast, waypointParams);
 				newPopulation[i] = newPop2;
 			}
 
@@ -59,6 +59,7 @@ namespace Genetics
 					DNA parent2 = ChooseParent();
 					newPopulation[i].Crossover(parent1, parent2);
 
+					newPopulation[i].Copy(parent1);
 					newPopulation[i].Mutate(mutationNumber, existingTypes);
 				}
 			}

@@ -12,7 +12,7 @@ namespace Genetics
 		private int fitnessType;
 		private int numberBlocks;
 
-		public void StartGenetics(Vector3Int size, TypeParams[] cellsInfos, int[][][] waypointParams, EvolutionaryAlgoParams algoParams, int fitnessType)
+		public void StartGenetics(Vector3Int size, TypeParams[] cellsInfos, int[][][] waypointParams, EvolutionaryAlgoParams algoParams, SharpNeatLib.Maths.FastRandom randomFast, int fitnessType)
 		{
 			this.fitnessType = fitnessType;
 			numberBlocks = (size.x - 2)* (size.y - 2) * (size.z - 2);
@@ -20,7 +20,7 @@ namespace Genetics
 			typeParams = new TypeParams[cellsInfos.Length + 1];
 			SetTypeCellParams(cellsInfos);
 
-			ga = new GeneticAlgorithm(algoParams, size, FitnessFunction, waypointParams, typeParams);
+			ga = new GeneticAlgorithm(algoParams, size, FitnessFunction, waypointParams, typeParams, randomFast);
 		}
 
 		private void SetTypeCellParams(TypeParams[] cellsInfos)
@@ -44,7 +44,9 @@ namespace Genetics
         {
 			ga.ClassifyPopulation();
 
-			UnityEngine.Debug.Log(ga.oldPopulation[0].phenotype.paths.Count);
+			UnityEngine.Debug.Log("Fitness Type: " + fitnessType 
+				+ "; Number walkable zones: " + ga.oldPopulation[0].phenotype.paths.Count 
+				+ "; Fitness: " + ga.oldPopulation[0].Fitness);
 
 			return ga.oldPopulation[0].Genes;
 		}

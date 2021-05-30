@@ -41,8 +41,8 @@ public class SuggestionsEditor : EditorWindow
 
         window = GetWindow(typeof(SuggestionsEditor));
         evolAlgoParams.population = 20;
-        evolAlgoParams.elitism = 5;
-        evolAlgoParams.generations = 100;
+        evolAlgoParams.elitism = 0;
+        evolAlgoParams.generations = 1;
         evolAlgoParams.mutationRate = 0.005f;
     }
     

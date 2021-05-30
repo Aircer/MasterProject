@@ -18,6 +18,8 @@ plot(x,bestFit)
 
 hold on 
 plot(x,meanFit)
-hold off
+xlabel('Number Generations') 
+ylabel('Fitness') 
+legend({'Maximum', 'Mean'},'Location','southwest')
 end
 

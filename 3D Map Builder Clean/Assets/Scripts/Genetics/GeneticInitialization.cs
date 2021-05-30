@@ -12,11 +12,12 @@ namespace Genetics
         {
             List<int[][][]> newWaypointsParams = new List<int[][][]>();
             Vector3Int size = new Vector3Int(sizeX, sizeY, sizeZ);
+            SharpNeatLib.Maths.FastRandom randomFast = new SharpNeatLib.Maths.FastRandom();
 
             for (int i = 0; i < nbSuggestions; i++)
             {
                 GeneticController newGenetic = new GeneticController();
-                newGenetic.StartGenetics(size, cellsInfos, waypointParams, algoParams, i);
+                newGenetic.StartGenetics(size, cellsInfos, waypointParams, algoParams, randomFast, i);
 
                 for (int j = 0; j < algoParams.generations; j++)
                 {
