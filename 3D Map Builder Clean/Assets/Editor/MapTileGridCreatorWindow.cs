@@ -703,7 +703,12 @@ public class MapTileGridCreatorWindow : EditorWindow
 		FuncMain.DrawUILine(Color.gray);
 
 		if (GUILayout.Button("New"))
-		{	
+		{
+			var assembly = Assembly.GetAssembly(typeof(UnityEditor.Editor));
+			var type = assembly.GetType("UnityEditor.LogEntries");
+			var method = type.GetMethod("Clear");
+			method.Invoke(new object(), null);
+
 			RefreshPallet();
 
 			//Create Visualization object (Coordinates, Brush and ToolManager) if it doesn't exist
@@ -758,6 +763,11 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 		if (GUILayout.Button("Refresh Suggestions"))
 		{
+			var assembly = Assembly.GetAssembly(typeof(UnityEditor.Editor));
+			var type = assembly.GetType("UnityEditor.LogEntries");
+			var method = type.GetMethod("Clear");
+			method.Invoke(new object(), null);
+
 			if (newSuggestionsClustersThread != null)
 				newSuggestionsClustersThread.Abort();
 

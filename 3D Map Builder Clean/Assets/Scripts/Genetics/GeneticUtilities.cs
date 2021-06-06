@@ -45,7 +45,9 @@ namespace mVectors
 {
 	public struct Phenotype
 	{
-		public HashSet<Cuboid> cuboids;
+		public HashSet<Cuboid> emptyCuboids;
+		public HashSet<Cuboid> walls;
+		public HashSet<WalkableArea> walkableArea;
 		public HashSet<Path> paths;
 	}
 
@@ -53,11 +55,27 @@ namespace mVectors
 	{
 		public Vector3Int min;
 		public Vector3Int max;
+		public HashSet<Vector3Int> cellsBorder;
+		public HashSet<Vector3Int> cells;
+		public HashSet<Cuboid> inCuboids;
+		public HashSet<Cuboid> outCuboids;
+	}
+
+	public struct WalkableArea
+	{
+		public int yPos;
+		public HashSet<Vector3Int> cells;
+		public HashSet<Vector3Int> paths;
+		public HashSet<WalkableArea> neighborsArea;
+		public HashSet<Path> neighborsPaths;
 	}
 
 	public struct Path
 	{
 		public HashSet<Vector3Int> cells;
+		public int type;
+		public HashSet<WalkableArea> neighborsConnected;
+		public HashSet<WalkableArea> neighbors;
 	}
 
 	public class Vector2Int

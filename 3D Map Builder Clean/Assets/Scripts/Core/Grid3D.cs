@@ -108,18 +108,7 @@ namespace MapTileGridCreator.Core
 		/// </summary>
 		private void AddChildrenCells()
 		{
-			foreach (Cell c in GetComponentsInChildren<Cell>())
-			{
-				try
-				{
-					AddCell(c.index, c);
-				}
-				catch (Exception e)
-				{
-					//Debug.LogError(e.Message);
-					//GameObject.DestroyImmediate(c.gameObject);
-				}
-			}
+
 		}
 
 		private void CheckIsInitialised()

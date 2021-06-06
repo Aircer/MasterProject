@@ -64,6 +64,9 @@ namespace MapTileGridCreator.UtilitiesVisual
 			if (type != null && type.typeParams.floor)
 			{
 				FloorTransform(cells, waypoints, new Vector3Int(newIndex.x, newIndex.y, newIndex.z));
+
+				if (CellIsWall(newIndex.x, newIndex.y - 1, newIndex.z, cells, waypoints))
+					WallTransform(cells, waypoints, new Vector3Int(newIndex.x, newIndex.y - 1, newIndex.z));
 			}
 
 			if (type != null && type.typeParams.ladder)
@@ -77,8 +80,6 @@ namespace MapTileGridCreator.UtilitiesVisual
 			if (cells[index.x, index.y, index.z].type && cells[index.x, index.y, index.z].type.typeParams.wall)
 			{
 				bool[] neighborsWalls = new bool[4];
-				bool neighborUpWalls;
-				bool neighborDownWalls;
 
 				Vector3 rotation = new Vector3(0, 0, 0);
 				string subType = "";
@@ -102,16 +103,6 @@ namespace MapTileGridCreator.UtilitiesVisual
 					neighborsWalls[3] = true;
 				else
 					neighborsWalls[3] = false;
-
-				if (index.y > 0 && waypoints[index.x, index.y - 1, index.z].type != null && waypoints[index.x, index.y - 1, index.z].type.typeParams.wall)
-					neighborDownWalls = true;
-				else
-					neighborDownWalls = false;
-
-				if (index.y < waypoints.GetLength(1) - 1 && waypoints[index.x, index.y + 1, index.z].type != null && waypoints[index.x, index.y + 1, index.z].type.typeParams.wall)
-					neighborUpWalls = true;
-				else
-					neighborUpWalls = false;
 
 				if (!neighborsWalls[0] && !neighborsWalls[1] && !neighborsWalls[2] && !neighborsWalls[3])
 				{
@@ -214,6 +205,11 @@ namespace MapTileGridCreator.UtilitiesVisual
 					rotation = new Vector3(0, 0, 0);
 				}*/
 
+				if (CellIsFloor(index.x, index.y + 1, index.z, cells, waypoints))
+				{
+					subType += "Up";
+				}
+
 				cells[index.x, index.y, index.z].rotation = rotation;
 				cells[index.x, index.y, index.z].TransformVisual(subType, rotation);
 			}
@@ -315,58 +311,145 @@ namespace MapTileGridCreator.UtilitiesVisual
 					{
 						for (int k = -1; k < 2; k++)
 						{
-							neighborsStairs[i + 1, j + 1, k + 1] = CellIsStair(index.x + i, index.y + j, index.z + k, cells, waypoints);
+							if (index.x + i >= 0 && index.x + i < cells.GetLength(0)
+							&& index.y + j >= 0 && index.y + j < cells.GetLength(1)
+							&& index.z + k >= 0 && index.z + k < cells.GetLength(2))
+								neighborsStairs[i + 1, j + 1, k + 1] = CellIsStair(index.x + i, index.y + j, index.z + k, cells, waypoints);
+							else
+								neighborsStairs[i + 1, j + 1, k + 1] = false;
 						}
 					}
 				}
 
 				subType = "StairsClassic";
-				int X_plus = 0; int X_minus = 0;
-				int Z_plus = 0; int Z_minus = 0;
+				int X_pos = 0; int X_neg = 0;
+				int Z_pos = 0; int Z_neg = 0;
 
 				if (neighborsStairs[2, 2, 1])
-					X_plus++;
+				{
+					X_neg -= 2;
+					X_pos += 2;
+				}
 				if (neighborsStairs[2, 1, 1])
-					X_plus++;
+				{
+					X_neg--;
+					X_pos++;
+				}
 				if (neighborsStairs[0, 0, 1])
-					X_plus++;
+				{
+					X_neg -= 2;
+					X_pos += 2;
+				}
 
 				if (neighborsStairs[0, 2, 1])
-					X_minus++;
+				{
+					X_neg += 2;
+					X_pos -= 2;
+				}
 				if (neighborsStairs[0, 1, 1])
-					X_minus++;
+				{
+					X_neg++;
+					X_pos--;
+				}
 				if (neighborsStairs[2, 0, 1])
-					X_minus++;
+				{
+					X_neg += 2;
+					X_pos -= 2;
+				}
+
 
 				if (neighborsStairs[1, 2, 2])
-					Z_plus++;
+				{
+					Z_pos += 2;
+					Z_neg -= 2;
+				}
 				if (neighborsStairs[1, 1, 2])
-					Z_plus++;
+				{
+					Z_pos++;
+					Z_neg--;
+				}
 				if (neighborsStairs[1, 0, 0])
-					Z_plus++;
+				{
+					Z_pos += 2;
+					Z_neg -= 2;
+				}
 
 				if (neighborsStairs[1, 2, 0])
-					Z_minus++;
+				{
+					Z_pos -= 2;
+					Z_neg += 2;
+				}
 				if (neighborsStairs[1, 1, 0])
-					Z_minus++;
+				{
+					Z_pos--;
+					Z_neg++;
+				}
 				if (neighborsStairs[1, 0, 2])
-					Z_minus++;
+				{
+					Z_pos -= 2;
+					Z_neg += 2;
+				}
 
-				if (X_plus > X_minus)
+				if (X_pos > X_neg)
 					rotation = new Vector3Int(0, 270, 0);
 				else
 					rotation = new Vector3Int(0, 90, 0);
 
-				if (Z_plus > 0 || Z_minus > 0)
+				if ((Z_pos > X_pos && Z_pos > X_neg) || (Z_neg > X_pos && Z_neg > X_neg))
 				{
-					if (Z_plus > Z_minus)
+					if (Z_pos > Z_neg)
 						rotation = new Vector3Int(0, 180, 0);
 					else
 						rotation = new Vector3Int(0, 0, 0);
 				}
 
-				if(neighborsStairs[1, 2, 1])
+				/*
+				if (!(X_neg > 2 || X_pos > 2 || Z_neg > 2 || Z_pos > 2)
+			     || (!neighborsStairs[3, 3, 2] && !neighborsStairs[1, 3, 2] && !neighborsStairs[2, 3, 3] && !neighborsStairs[2, 3, 1])
+				 || ())
+				{
+					if ((neighborsStairs[1, 2, 2] && neighborsStairs[0, 1, 2] && !neighborsStairs[3, 1, 2])
+					|| (neighborsStairs[3, 2, 2]  && neighborsStairs[4, 1, 2] && !neighborsStairs[1, 1, 2])
+					|| (neighborsStairs[2, 2, 1]  && neighborsStairs[2, 1, 0] && !neighborsStairs[2, 1, 3])
+					|| (neighborsStairs[2, 2, 3]  && neighborsStairs[2, 1, 4] && !neighborsStairs[2, 1, 1]))
+						subType = "StairsBlock";
+				}*/
+				/*
+				if ((neighborsStairs[1, 2, 2] || neighborsStairs[3, 2, 2] || neighborsStairs[2, 2, 1] || neighborsStairs[2, 2, 3])
+				 && (neighborsStairs[1, 3, 2] || neighborsStairs[3, 3, 2] || neighborsStairs[2, 3, 1] || neighborsStairs[2, 3, 3]))
 					subType = "StairsBlock";
+
+				if (!(X_neg > 2 || X_pos > 2 || Z_neg > 2 || Z_pos > 2)
+				&& (neighborsStairs[1, 2, 2] || neighborsStairs[3, 2, 2] || neighborsStairs[2, 2, 1] || neighborsStairs[2, 2, 3])
+				&& (!neighborsStairs[1, 3, 2] && !neighborsStairs[3, 3, 2] && !neighborsStairs[2, 3, 1] && !neighborsStairs[2, 3, 3])
+				&& (neighborsStairs[0, 1, 2] || neighborsStairs[4, 1, 2] || neighborsStairs[2, 1, 0] || neighborsStairs[2, 1, 4]))
+					subType = "StairsBlock";*/
+				/*
+				if (!(X_neg >= 3 || X_pos >= 3 || Z_neg >= 3 || Z_pos >= 3)
+				&&((neighborsStairs[0, 0, 1] || neighborsStairs[2, 0, 1]) && (neighborsStairs[1, 1, 0] || neighborsStairs[1, 1, 2])
+				||((neighborsStairs[1, 0, 0] || neighborsStairs[1, 0, 2]) && (neighborsStairs[0, 1, 1] || neighborsStairs[2, 1, 1]))))
+					subType = "StairsDown";
+
+				if (!(X_neg >= 3 || X_pos >= 3 || Z_neg >= 3 || Z_pos >= 3)
+				&& ((neighborsStairs[0, 2, 1] || neighborsStairs[2, 2, 1]) && (neighborsStairs[1, 1, 0] || neighborsStairs[1, 1, 2])
+				|| ((neighborsStairs[1, 2, 0] || neighborsStairs[1, 2, 2]) && (neighborsStairs[0, 1, 1] || neighborsStairs[2, 1, 1]))))
+					subType = "StairsUp";
+
+				
+				int nbNeighbors = 0;
+
+				if (neighborsStairs[1, 1, 0])
+						nbNeighbors++;
+				if (neighborsStairs[1, 1, 2])
+					nbNeighbors++;
+				if (neighborsStairs[0, 1, 1])
+					nbNeighbors++;
+				if (neighborsStairs[2, 1, 1])
+					nbNeighbors++;
+
+				
+				if (!(X_neg > 1 || X_pos > 1 || Z_neg > 1 || Z_pos > 1) && nbNeighbors > 1)
+					subType = "StairsUp";*/
 
 				cells[index.x, index.y, index.z].rotation = rotation;
 				cells[index.x, index.y, index.z].TransformVisual(subType, rotation);
@@ -392,6 +475,16 @@ namespace MapTileGridCreator.UtilitiesVisual
 			else
 				return false;
 		}
+
+		public static bool CellIsFloor(int x, int y, int z, Cell[,,] cells, Waypoint[,,] waypoints)
+		{
+			if (x >= 0 && y >= 0 && z >= 0
+				&& x < waypoints.GetLength(0) && y < waypoints.GetLength(1) && z < waypoints.GetLength(2)
+				&& waypoints[x, y, z].type != null && waypoints[x, y, z].type.typeParams.floor)
+				return true;
+			else
+				return false;
 		}
+	}
 }
 

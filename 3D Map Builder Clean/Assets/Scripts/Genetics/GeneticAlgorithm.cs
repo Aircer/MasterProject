@@ -19,7 +19,7 @@ namespace Genetics
 		private SharpNeatLib.Maths.FastRandom randomFast;
 		private List<int> existingTypes;
 
-		public GeneticAlgorithm(EvolutionaryAlgoParams algoParams, Vector3Int dnaSize, Func<int, float> fitnessFunction,
+		public GeneticAlgorithm(EvolutionaryAlgoParams algoParams, Vector3Int dnaSize, 
 			int[][][] waypointParams, TypeParams[] typeParams, SharpNeatLib.Maths.FastRandom randomFast)
 		{
 			generation = 1;
@@ -34,9 +34,9 @@ namespace Genetics
 
 			for (int i = 0; i < populationSize; i++)
 			{
-				DNA newPop = new DNA(dnaSize, fitnessFunction, typeParams, randomFast, waypointParams);
+				DNA newPop = new DNA(dnaSize, typeParams, randomFast, waypointParams);
 				oldPopulation[i] = newPop;
-				DNA newPop2 = new DNA(dnaSize, fitnessFunction, typeParams, randomFast, waypointParams);
+				DNA newPop2 = new DNA(dnaSize, typeParams, randomFast, waypointParams);
 				newPopulation[i] = newPop2;
 			}
 
@@ -46,6 +46,16 @@ namespace Genetics
 		public void NewGeneration()
 		{
 			ClassifyPopulation();
+			
+			if (generation == 1)
+			{
+				UnityEngine.Debug.Log(oldPopulation[0].phenotype.walls.Count);
+
+				foreach (Cuboid wall in oldPopulation[0].phenotype.walls)
+				{
+					UnityEngine.Debug.Log("Size Wall: "  + (wall.max.x - wall.min.x) + " " + (wall.max.y - wall.min.y) + " " + (wall.max.z - wall.min.z));
+				}
+			}
 
 			for (int i = 0; i < populationSize; i++)
 			{
@@ -84,7 +94,7 @@ namespace Genetics
 				{
 					for (int j = i + 1; j < populationSize; j++)
 					{
-						if (oldPopulation[i].Fitness < oldPopulation[j].Fitness)
+						if (oldPopulation[i].fitness < oldPopulation[j].fitness)
 						{
 
 							temp = oldPopulation[i];
@@ -101,7 +111,7 @@ namespace Genetics
 			fitnessSum = 0;
 			for (int i = 0; i < populationSize; i++)
 			{
-				fitnessSum += oldPopulation[i].CalculateFitness(i);
+				fitnessSum += oldPopulation[i].CalculateFitness();
 			}
 		}
 
@@ -111,12 +121,12 @@ namespace Genetics
 
 			for (int i = 0; i < populationSize; i++)
 			{
-				if (randomNumber < oldPopulation[i].Fitness)
+				if (randomNumber < oldPopulation[i].fitness)
 				{
 					return oldPopulation[i];
 				}
 
-				randomNumber -= oldPopulation[i].Fitness;
+				randomNumber -= oldPopulation[i].fitness;
 			}
 
 			return oldPopulation[0];

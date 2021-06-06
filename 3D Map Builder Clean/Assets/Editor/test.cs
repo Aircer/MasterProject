@@ -96,7 +96,9 @@ public class test : EditorWindow
                 {
                     for (int z = 0; z < sizeGrid.z + 2; z++)
                     {
+#pragma warning disable CS0219 // Variable is assigned but its value is never used
                         int u;
+#pragma warning restore CS0219 // Variable is assigned but its value is never used
                         if (gridType[2][2][2].blockPath)
                             u = 5;
                     }
@@ -117,7 +119,9 @@ public class test : EditorWindow
                 {
                     for (int z = 0; z < sizeGrid.z + 2; z++)
                     {
+#pragma warning disable CS0219 // Variable is assigned but its value is never used
                         int u;
+#pragma warning restore CS0219 // Variable is assigned but its value is never used
                         if (typeTable[gridInt[2][2][2]].blockPath)
                             u = 5;
                     }
