@@ -38,6 +38,10 @@ namespace UtilitiesGenetic
 		public int population;
 		public int generations;
 		public int elitism;
+
+		public float wEmptyCuboids;
+		public float wWallsCuboids;
+		public float wPathfinding;
 	}
 }
 
@@ -55,8 +59,14 @@ namespace mVectors
 	{
 		public Vector3Int min;
 		public Vector3Int max;
+
+		public int width;
+		public int length;
+		public int height;
+
 		public HashSet<Vector3Int> cellsBorder;
 		public HashSet<Vector3Int> cells;
+
 		public HashSet<Cuboid> inCuboids;
 		public HashSet<Cuboid> outCuboids;
 	}

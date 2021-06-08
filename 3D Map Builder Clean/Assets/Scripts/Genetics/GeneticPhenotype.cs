@@ -71,14 +71,26 @@ namespace Genetics
                 }
             }
 
-            foreach (Cuboid cuboidIn in newPhenotype.emptyCuboids)
+            foreach (Cuboid emptyIn in newPhenotype.emptyCuboids)
             {
-                foreach (Cuboid cuboidOut in newPhenotype.emptyCuboids)
+                foreach (Cuboid emptyOut in newPhenotype.emptyCuboids)
                 {
-                    if (cuboidIn.cells.Overlaps(cuboidOut.cellsBorder))
+                    if (emptyIn.cells.Overlaps(emptyOut.cellsBorder))
                     {
-                        cuboidIn.outCuboids.Add(cuboidOut);
-                        cuboidOut.inCuboids.Add(cuboidIn);
+                        emptyIn.outCuboids.Add(emptyOut);
+                        emptyOut.inCuboids.Add(emptyIn);
+                    }
+                }
+            }
+
+            foreach (Cuboid wallIn in newPhenotype.walls)
+            {
+                foreach (Cuboid wallOut in newPhenotype.walls)
+                {
+                    if (wallIn.cells.Overlaps(wallOut.cellsBorder))
+                    {
+                        wallIn.outCuboids.Add(wallOut);
+                        wallOut.inCuboids.Add(wallIn);
                     }
                 }
             }
@@ -114,173 +126,6 @@ namespace Genetics
             return newPhenotype;
         }
 
-        private static Cuboid GetCuboid(Vector3Int input, ref HashSet<Vector3Int> cellsInCuboids)
-        {
-            Cuboid newCuboid = new Cuboid();
-            Vector3Int max = new Vector3Int(size.x, size.y, size.z);
-            HashSet<Vector3Int> cellsCuboid = new HashSet<Vector3Int>();
-            HashSet<Vector3Int> cells = new HashSet<Vector3Int>();
-            bool firstBlockDiago = true;
-
-            for (int y = input.y; y < max.y; y++)
-            {
-                for (int x = input.x; x < max.x; x++)
-                {
-                    for (int z = input.z; z < max.z; z++)
-                    {
-                        if (x < max.x && y < max.y && CellIsStruct(x, y, z + 1) || cellsInCuboids.Contains(new Vector3Int(x, y, z + 1)))
-                            max.z = z + 1;
-
-                        if (z < max.z && x < max.x && CellIsStruct(x, y + 1, z) || cellsInCuboids.Contains(new Vector3Int(x, y + 1, z)))
-                            max.y = y + 1;
-
-                        if (z < max.z && y < max.y && CellIsStruct(x + 1, y, z) || cellsInCuboids.Contains(new Vector3Int(x + 1, y, z)))
-                        {
-                            if (firstBlockDiago)
-                            {
-                                if (x + 1 != input.x)
-                                {
-                                    if (x + 1 - input.x < z - input.z)
-                                    {
-                                        max.z = z;
-                                    }
-                                    else
-                                    {
-                                        max.x = x + 1;
-                                    }
-                                }
-                                else
-                                    max.x = x + 1;
-
-                                firstBlockDiago = false;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (max.x < size.x)
-            {
-                int holeMaxX = 0;
-                for (int z = input.z; z < max.z; z++)
-                {
-                    if (!CellIsStruct(max.x, input.y, z) && !cellsInCuboids.Contains(new Vector3Int(max.x, input.y, z)))
-                        holeMaxX++;
-                    else
-                        holeMaxX = 0;
-
-                    if (holeMaxX >= max.x - input.x + 1 && max.z > z - holeMaxX + 1)
-                    {
-                        max.z = z - holeMaxX + 1;
-                    }
-                }
-            }
-
-            if (input.x > 1)
-            {
-                int holeMinX = 0;
-                for (int z = input.z; z < max.z; z++)
-                {
-                    if (!CellIsStruct(input.x - 1, input.y, z) && !cellsInCuboids.Contains(new Vector3Int(input.x - 1, input.y, z)))
-                        holeMinX++;
-                    else
-                        holeMinX = 0;
-
-                    if (holeMinX >= max.x - input.x + 1 && max.z > z - holeMinX + 1)
-                    {
-                        max.z = z - holeMinX + 1;
-                    }
-                }
-            }
-
-            if (max.z < size.z)
-            {
-                int holeMaxZ = 0;
-                for (int x = input.x; x < max.x; x++)
-                {
-                    if (!CellIsStruct(x, input.y, max.z) && !cellsInCuboids.Contains(new Vector3Int(x, input.y, max.z)))
-                        holeMaxZ++;
-                    else
-                        holeMaxZ = 0;
-
-                    if (holeMaxZ >= max.z - input.z + 1 && max.x > x - holeMaxZ + 1)
-                    {
-                        max.x = x - holeMaxZ + 1;
-                    }
-                }
-            }
-
-            if (input.z > 1)
-            {
-                int holeMinZ = 0;
-                for (int x = input.x; x < max.x; x++)
-                {
-                    if (!CellIsStruct(x, input.y, input.z - 1) && !cellsInCuboids.Contains(new Vector3Int(x, input.y, input.z - 1)))
-                        holeMinZ++;
-                    else
-                        holeMinZ = 0;
-
-                    if (holeMinZ >= max.z - input.z + 1 && max.x > x - holeMinZ + 1)
-                    {
-                        max.x = x - holeMinZ + 1;
-                    }
-                }
-            }
-
-            int oldNumberEmpty = 999999;
-            int numberEmpty = 0;
-
-            for (int y = input.y; y < max.y; y++)
-            {
-                for (int x = input.x; x < max.x; x++)
-                {
-                    if (max.z < size.z && !CellIsStruct(x, y, max.z))
-                        numberEmpty++;
-
-                    if (input.z > 1 && !CellIsStruct(x, y, input.z - 1))
-                        numberEmpty++;
-                }
-
-                for (int z = input.z; z < max.z; z++)
-                {
-                    if (max.x < size.x && !CellIsStruct(max.x, y, z))
-                        numberEmpty++;
-
-                    if (input.x > 1 && !CellIsStruct(input.x - 1, y, z))
-                        numberEmpty++;
-                }
-
-                if (numberEmpty > oldNumberEmpty && max.y > y)
-                {
-                    max.y = y;
-                }
-
-                oldNumberEmpty = numberEmpty;
-                numberEmpty = 0;
-            }
-
-            for (int i = input.x; i < max.x; i++)
-            {
-                for (int j = input.y; j < max.y; j++)
-                {
-                    for (int k = input.z; k < max.z; k++)
-                    {
-                        cellsInCuboids.Add(new Vector3Int(i, j, k));
-                        cells.Add(new Vector3Int(i, j, k));
-                    }
-                }
-            }
-
-            newCuboid.min = input;
-            newCuboid.max = max;
-            newCuboid.cells = cells;
-            newCuboid.cellsBorder = ConnectCuboid(newCuboid);
-            newCuboid.inCuboids = new HashSet<Cuboid>();
-            newCuboid.outCuboids = new HashSet<Cuboid>();
-
-            return newCuboid;
-        }
-
         private static Cuboid GetCuboid(Vector3Int input, ref HashSet<Vector3Int> cellsAlreadyPicked, string type)
         {
             Cuboid newCuboid = new Cuboid();
@@ -298,8 +143,7 @@ namespace Genetics
 
                         for (int z = input.z; z < max.z; z++)
                         {
-                            if (((typeParams[Genes[max.x][y][z]].wall && type == "wall") || (!CellIsStruct(max.x, y, z) && type == "empty"))
-                                && !cellsAlreadyPicked.Contains(new Vector3Int(max.x, y, z)))
+                            if (!CellInCuboid(max.x, y, z, type) && !cellsAlreadyPicked.Contains(new Vector3Int(max.x, y, z)))
                                 holeMaxX++;
                             else
                             {
@@ -327,8 +171,7 @@ namespace Genetics
 
                         for (int x = input.x; x < max.x; x++)
                         {
-                            if (((typeParams[Genes[x][y][max.z]].wall && type == "wall") || (!CellIsStruct(x, y, max.z) && type == "empty"))
-                                && !cellsAlreadyPicked.Contains(new Vector3Int(x, y, max.z)))
+                            if (!CellInCuboid(x, y, max.z, type) && !cellsAlreadyPicked.Contains(new Vector3Int(x, y, max.z)))
                                 holeMaxZ++;
                             else
                             {
@@ -354,13 +197,13 @@ namespace Genetics
                 
                 for (int x = input.x; x < max.x; x++)
                 {
-                    if (max.z < size.z && ((typeParams[Genes[x][y][max.z]].wall && type == "wall") || (!CellIsStruct(x, y, max.z) && type == "empty")))
+                    if (max.z < size.z && CellInCuboid(x, y, max.z, type))
                         numberEmpty++;
                 }
                 
                 for (int z = input.z; z < max.z; z++)
                 {
-                    if (max.x < size.x && ((typeParams[Genes[max.x][y][z]].wall && type == "wall") || (!CellIsStruct(max.x, y, z) && type == "empty")))
+                    if (max.x < size.x && CellInCuboid(max.x, y, z, type))
                         numberEmpty++;
                 }
 
@@ -388,48 +231,25 @@ namespace Genetics
             newCuboid.min = input;
             newCuboid.max = max;
             newCuboid.cells = cells;
-            newCuboid.cellsBorder = ConnectCuboid(newCuboid);
+            newCuboid.cellsBorder = ConnectCuboid(newCuboid, type);
             newCuboid.inCuboids = new HashSet<Cuboid>();
             newCuboid.outCuboids = new HashSet<Cuboid>();
+
+            newCuboid.width = (newCuboid.max.x - newCuboid.min.x) > (newCuboid.max.z - newCuboid.min.z) ?
+                                    (newCuboid.max.z - newCuboid.min.z) : (newCuboid.max.x - newCuboid.min.x);
+            newCuboid.length = (newCuboid.max.x - newCuboid.min.x) < (newCuboid.max.z - newCuboid.min.z) ?
+                                    (newCuboid.max.z - newCuboid.min.z) : (newCuboid.max.x - newCuboid.min.x);
+            newCuboid.height = (newCuboid.max.y - newCuboid.min.y);
 
             return newCuboid;
         }
 
-        private static HashSet<Vector3Int> ConnectCuboid(Cuboid cuboid)
+        private static bool CellInCuboid(int x, int y, int z, string type)
         {
-
-            HashSet<Vector3Int> borderCells  = new HashSet<Vector3Int>();
-            borderCells.UnionWith(NewBorderCellsYPos(cuboid));
-            borderCells.UnionWith(NewBorderCellsYNeg(cuboid));
-            borderCells.UnionWith(NewBorderCellsXPos(cuboid));
-            borderCells.UnionWith(NewBorderCellsXNeg(cuboid));
-            borderCells.UnionWith(NewBorderCellsZPos(cuboid));
-            borderCells.UnionWith(NewBorderCellsZNeg(cuboid));
-
-            return borderCells;
-        }
-
-        private static HashSet<Vector3Int> NewBorderCellsYPos(Cuboid cuboid)
-        {
-            HashSet<Vector3Int> newBorderCells = new HashSet<Vector3Int>();
-
-            if (cuboid.max.y < size.y)
-            {
-                for (int x = cuboid.min.x; x < cuboid.max.x; x++)
-                {
-                    for (int z = cuboid.min.z; z < cuboid.max.z; z++)
-                    {
-                        if (!CellIsStruct(x, cuboid.max.y, z))
-                            newBorderCells.Add(new Vector3Int(x, cuboid.max.y, z));
-                        else
-                            return new HashSet<Vector3Int>();
-                    }
-                }
-
-                return newBorderCells;
-            }
-
-            return new HashSet<Vector3Int>();
+            if ((typeParams[Genes[x][y][z]].wall && type == "wall") || (!CellIsStruct(x, y, z) && type == "empty"))
+                return true;
+            else
+                return false;
         }
 
         private static Vector3Int Grow_ones(Vector3Int ll, HashSet<Vector3Int> cellsAlreadyPicked, string type)
@@ -438,18 +258,18 @@ namespace Genetics
             Vector3Int urUp = new Vector3Int(0, 0, 0);
             Vector3Int ur = new Vector3Int(0, 0, 0);
 
-            int x_max = size.x - 1; 
-            int z = ll.z - 1; 
+            int x_max = size.x - 1;
+            int z = ll.z - 1;
             int y = ll.y;
             int x;
 
-            while (z + 1 < size.z 
-                && ((typeParams[Genes[ll.x][y][z + 1]].wall && type == "wall") || (!CellIsStruct(ll.x, y, z + 1) && type == "empty"))
+            while (z + 1 < size.z
+                && CellInCuboid(ll.x, y, z + 1, type)
                 && !cellsAlreadyPicked.Contains(new Vector3Int(ll.x, y, z + 1)))
             {
                 z = z + 1; x = ll.x;
-                while (x + 1 <= x_max 
-                    && ((typeParams[Genes[x + 1][y][z]].wall && type == "wall") || (!CellIsStruct(x + 1, y, z) && type == "empty"))
+                while (x + 1 <= x_max
+                    && CellInCuboid(x + 1, y, z, type)
                     && !cellsAlreadyPicked.Contains(new Vector3Int(x + 1, y, z)))
                 {
                     x = x + 1;
@@ -477,13 +297,13 @@ namespace Genetics
             int thicknessUp = 0;
 
             if (urBot.x > 0)
-                thicknessBot = (urBot.x - ll.x) > (urBot.z - ll.z) ? (urBot.z - ll.z): (urBot.x - ll.x);
+                thicknessBot = (urBot.x - ll.x) > (urBot.z - ll.z) ? (urBot.z - ll.z) : (urBot.x - ll.x);
             if (urUp.x > 0)
                 thicknessUp = (urUp.x - ll.x) > (urUp.z - ll.z) ? (urUp.z - ll.z) : (urUp.x - ll.x);
 
             if (thicknessBot == thicknessUp)
             {
-                if(Volume(ll, urBot) > Volume(ll, urUp))
+                if (Volume(ll, urBot) > Volume(ll, urUp))
                     ur = urBot;
                 else
                     ur = urUp;
@@ -509,7 +329,7 @@ namespace Genetics
                 {
                     for (int z = ll.z; z < ur.z; z++)
                     {
-                        if (((!typeParams[Genes[x][y][z]].wall && type == "wall") || (CellIsStruct(x, y, z) && type == "empty"))
+                        if (!CellInCuboid(x, y, z, type)
                             || cellsAlreadyPicked.Contains(new Vector3Int(x, y, z)))
                             return y;
                     }
@@ -527,7 +347,44 @@ namespace Genetics
                 return 0;
         }
 
-        private static HashSet<Vector3Int> NewBorderCellsYNeg(Cuboid cuboid)
+        private static HashSet<Vector3Int> ConnectCuboid(Cuboid cuboid, string type)
+        {
+
+            HashSet<Vector3Int> borderCells  = new HashSet<Vector3Int>();
+            borderCells.UnionWith(NewBorderCellsYPos(cuboid, type));
+            borderCells.UnionWith(NewBorderCellsYNeg(cuboid, type));
+            borderCells.UnionWith(NewBorderCellsXPos(cuboid, type));
+            borderCells.UnionWith(NewBorderCellsXNeg(cuboid, type));
+            borderCells.UnionWith(NewBorderCellsZPos(cuboid, type));
+            borderCells.UnionWith(NewBorderCellsZNeg(cuboid, type));
+
+            return borderCells;
+        }
+
+        private static HashSet<Vector3Int> NewBorderCellsYPos(Cuboid cuboid, string type)
+        {
+            HashSet<Vector3Int> newBorderCells = new HashSet<Vector3Int>();
+
+            if (cuboid.max.y < size.y)
+            {
+                for (int x = cuboid.min.x; x < cuboid.max.x; x++)
+                {
+                    for (int z = cuboid.min.z; z < cuboid.max.z; z++)
+                    {
+                        if(CellInCuboid(x, cuboid.max.y, z, type))
+                            newBorderCells.Add(new Vector3Int(x, cuboid.max.y, z));
+                        else
+                            return new HashSet<Vector3Int>();
+                    }
+                }
+
+                return newBorderCells;
+            }
+
+            return new HashSet<Vector3Int>();
+        }
+
+        private static HashSet<Vector3Int> NewBorderCellsYNeg(Cuboid cuboid, string type)
         {
             HashSet<Vector3Int> newBorderCells = new HashSet<Vector3Int>();
 
@@ -537,7 +394,7 @@ namespace Genetics
                 {
                     for (int z = cuboid.min.z; z < cuboid.max.z; z++)
                     {
-                        if (!CellIsStruct(x, cuboid.min.y - 1, z))
+                        if (CellInCuboid(x, cuboid.min.y - 1, z, type))
                             newBorderCells.Add(new Vector3Int(x, cuboid.min.y - 1, z));
                         else
                             return new HashSet<Vector3Int>();
@@ -550,7 +407,7 @@ namespace Genetics
             return new HashSet<Vector3Int>();
         }
 
-        private static HashSet<Vector3Int> NewBorderCellsXPos(Cuboid cuboid)
+        private static HashSet<Vector3Int> NewBorderCellsXPos(Cuboid cuboid, string type)
         {
             HashSet<Vector3Int> newBorderCells = new HashSet<Vector3Int>();
 
@@ -560,7 +417,7 @@ namespace Genetics
                 {
                     for (int z = cuboid.min.z; z < cuboid.max.z; z++)
                     {
-                        if (!CellIsStruct(cuboid.max.x, y, z))
+                        if (CellInCuboid(cuboid.max.x, y, z, type))
                             newBorderCells.Add(new Vector3Int(cuboid.max.x, y, z));
                         else
                             return new HashSet<Vector3Int>();
@@ -573,7 +430,7 @@ namespace Genetics
             return new HashSet<Vector3Int>();
         }
 
-        private static HashSet<Vector3Int> NewBorderCellsXNeg(Cuboid cuboid)
+        private static HashSet<Vector3Int> NewBorderCellsXNeg(Cuboid cuboid, string type)
         {
             HashSet<Vector3Int> newBorderCells = new HashSet<Vector3Int>();
 
@@ -583,7 +440,7 @@ namespace Genetics
                 {
                     for (int z = cuboid.min.z; z < cuboid.max.z; z++)
                     {
-                        if (!CellIsStruct(cuboid.min.x - 1, y, z))
+                        if (CellInCuboid(cuboid.min.x - 1, y, z, type))
                             newBorderCells.Add(new Vector3Int(cuboid.min.x - 1, y, z));
                         else
                             return new HashSet<Vector3Int>();
@@ -596,7 +453,7 @@ namespace Genetics
             return new HashSet<Vector3Int>();
         }
 
-        private static HashSet<Vector3Int> NewBorderCellsZPos(Cuboid cuboid)
+        private static HashSet<Vector3Int> NewBorderCellsZPos(Cuboid cuboid, string type)
         {
             HashSet<Vector3Int> newBorderCells = new HashSet<Vector3Int>();
 
@@ -606,7 +463,7 @@ namespace Genetics
                 {
                     for (int y = cuboid.min.y; y < cuboid.max.y; y++)
                     {
-                        if (!CellIsStruct(x, y, cuboid.max.z))
+                        if (CellInCuboid(x, y, cuboid.max.z, type))
                             newBorderCells.Add(new Vector3Int(x, y, cuboid.max.z));
                         else
                             return new HashSet<Vector3Int>();
@@ -619,7 +476,7 @@ namespace Genetics
             return new HashSet<Vector3Int>();
         }
 
-        private static HashSet<Vector3Int> NewBorderCellsZNeg(Cuboid cuboid)
+        private static HashSet<Vector3Int> NewBorderCellsZNeg(Cuboid cuboid, string type)
         {
             HashSet<Vector3Int> newBorderCells = new HashSet<Vector3Int>();
 
@@ -629,7 +486,7 @@ namespace Genetics
                 {
                     for (int y = cuboid.min.y; y < cuboid.max.y; y++)
                     {
-                        if (!CellIsStruct(x,y, cuboid.min.z - 1))
+                        if (CellInCuboid(x, y, cuboid.min.z - 1, type))
                             newBorderCells.Add(new Vector3Int(x, y, cuboid.min.z - 1));
                         else
                             return new HashSet<Vector3Int>();
@@ -654,7 +511,7 @@ namespace Genetics
             HashSet<Vector3Int> path = new HashSet<Vector3Int>();
 
             openSet.Push(input);
-            if (CellIsPath(input.x, input.y, input.z))
+            if (CellIsPathWalkable(input.x, input.y, input.z))
                 path.Add(input);
 
             while (openSet.Count > 0)
@@ -667,32 +524,40 @@ namespace Genetics
                 {
                     if(CellIsWalkable(x - 1, y, z) && !cells.Contains(new Vector3Int(x - 1, y, z)))
                         openSet.Push(new Vector3Int(x - 1, y, z));
-                    if (CellIsPath(x - 1, y, z))
+                    if (CellIsPathWalkable(x - 1, y, z))
                         path.Add(new Vector3Int(x - 1, y, z));
+                    if (CellIsPathWalkable(x - 1, y - 1, z))
+                        path.Add(new Vector3Int(x - 1, y - 1, z));
                 }
 
                 if (x + 1 < size.x)
                 {
                     if (CellIsWalkable(x + 1, y, z) && !cells.Contains(new Vector3Int(x + 1, y, z)))
                         openSet.Push(new Vector3Int(x + 1, y, z));
-                    if (CellIsPath(x + 1, y, z))
+                    if (CellIsPathWalkable(x + 1, y, z))
                         path.Add(new Vector3Int(x + 1, y, z));
+                    if (CellIsPathWalkable(x + 1, y - 1, z))
+                        path.Add(new Vector3Int(x + 1, y - 1, z));
                 }
 
                 if (z - 1 > 0)
                 {
                     if (CellIsWalkable(x, y, z - 1) && !cells.Contains(new Vector3Int(x, y, z - 1)))
                         openSet.Push(new Vector3Int(x, y, z - 1));
-                    if (CellIsPath(x, y, z - 1))
+                    if (CellIsPathWalkable(x, y, z - 1))
                         path.Add(new Vector3Int(x, y, z - 1));
+                    if (CellIsPathWalkable(x, y - 1, z - 1))
+                        path.Add(new Vector3Int(x, y - 1, z - 1));
                 }
 
                 if (z + 1 < size.z)
                 {
                     if (CellIsWalkable(x, y, z + 1) && !cells.Contains(new Vector3Int(x, y, z + 1)))
                         openSet.Push(new Vector3Int(x, y, z + 1));
-                    if (CellIsPath(x, y, z + 1))
+                    if (CellIsPathWalkable(x, y, z + 1))
                         path.Add(new Vector3Int(x, y, z + 1));
+                    if (CellIsPathWalkable(x, y - 1, z + 1))
+                        path.Add(new Vector3Int(x, y - 1, z + 1));
                 }
 
             }
@@ -740,7 +605,7 @@ namespace Genetics
             HashSet<Vector3Int> cells = new HashSet<Vector3Int>();
 
             openSet.Push(input);
-
+            
             while (openSet.Count > 0)
             {
                 Vector3Int currentCell = openSet.Pop();
@@ -749,13 +614,13 @@ namespace Genetics
 
                 if (y - 1 > 0)
                 {
-                    if (Genes[x][y - 1][z] == newPath.type && CellIsPath(x, y - 1, z) && !cells.Contains(new Vector3Int(x, y - 1, z)))
+                    if (Genes[x][y - 1][z] == newPath.type && typeParams[Genes[x][y - 1][z]].ladder && !cells.Contains(new Vector3Int(x, y - 1, z)))
                         openSet.Push(new Vector3Int(x, y - 1, z));
                 }
 
                 if (y + 1 < size.y)
                 {
-                    if (Genes[x][y + 1][z] == newPath.type && CellIsPath(x, y + 1, z) && !cells.Contains(new Vector3Int(x, y + 1, z)))
+                    if (Genes[x][y + 1][z] == newPath.type && typeParams[Genes[x][y + 1][z]].ladder && !cells.Contains(new Vector3Int(x, y + 1, z)))
                         openSet.Push(new Vector3Int(x, y + 1, z));
                 }
 
@@ -782,12 +647,20 @@ namespace Genetics
                 return false;
         }
 
-        private static bool CellIsPath(int x, int y, int z)
+        private static bool CellIsPathWalkable(int x, int y, int z)
         {
             if ((Genes[x][y][z] == 0 && typeParams[Genes[x][y - 1][z]].stair)
               || (Genes[x][y + 1][z] == 0 && typeParams[Genes[x][y][z]].stair)
               || (typeParams[Genes[x][y][z]].ladder || typeParams[Genes[x][y - 1][z]].ladder)
               || (typeParams[Genes[x][y][z]].door && Genes[x][y - 1][z] > 0 && !typeParams[Genes[x][y - 1][z]].door))
+                return true;
+            else
+                return false;
+        }
+
+        private static bool CellIsPath(int x, int y, int z)
+        {
+            if (typeParams[Genes[x][y][z]].stair || typeParams[Genes[x][y][z]].ladder || (typeParams[Genes[x][y][z]].door && !typeParams[Genes[x][y - 1][z]].door))
                 return true;
             else
                 return false;

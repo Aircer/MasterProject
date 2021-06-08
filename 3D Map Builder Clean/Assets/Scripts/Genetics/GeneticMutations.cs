@@ -37,8 +37,11 @@ namespace Genetics
 			Vector3Int input = new Vector3Int(mutationIndex_x, mutationIndex_y, mutationIndex_z);
 			
 			if (typeParams[Genes[input.x][input.y][input.z]].floor)
-			{ 
-				Genes = MutationsFloor.DeleteFloor(Genes, input);
+			{
+				int mutationType = 0;  //random.Next(2);
+
+				if (mutationType == 0)
+					Genes = MutationsFloor.DeleteFloor(Genes, input);
 			}
 
 			if (typeParams[Genes[input.x][input.y][input.z]].ladder)
@@ -63,7 +66,7 @@ namespace Genetics
 			
 			if (typeParams[Genes[input.x][input.y][input.z]].wall)
 			{
-				int mutationType = random.Next(1);
+				int mutationType = random.Next(5);
 				
 				if (mutationType == 0)
 					Genes = MutationsWalls.TranslationWall(Genes, input);
@@ -89,18 +92,18 @@ namespace Genetics
 
 			if (Genes[input.x][input.y][input.z] == 0)
 			{
-				int mutationType = random.Next(60);
+				int mutationType = random.Next(100);
 
-				if (mutationType < 10)
+				if (mutationType < 5)
 					Genes = MutationsWalls.FillWallX(Genes, input, 11);
-				if (mutationType > 10 && mutationType < 20)
+				if (mutationType > 5 && mutationType < 10)
 					Genes = MutationsWalls.FillWallZ(Genes, input, 11);
-				if (mutationType > 20 && mutationType < 60)
+				if (mutationType > 10 && mutationType < 60)
 					Genes = MutationsFloor.FillFloor(Genes, input, 5);
-				if (mutationType > 60 && mutationType < 80)
+				if (mutationType > 60 && mutationType < 65)
 					Genes = MutationsLadders.CreateLadder(Genes, input, 6);
-				if(mutationType > 80)
-					Genes = MutationsStairs.CreateStair(Genes, input, 8);
+				if (mutationType > 65 && mutationType < 70)
+					Genes = MutationsStairs.CreateStair(Genes, new Vector3Int(input.x, input.y, input.z), 8);
 			}
 
 			return Genes;

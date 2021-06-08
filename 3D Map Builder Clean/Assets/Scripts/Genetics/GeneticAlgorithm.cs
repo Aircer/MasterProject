@@ -9,6 +9,7 @@ namespace Genetics
 	{
 		public DNA[] oldPopulation { get; private set; }
 		public DNA[] newPopulation { get; private set; }
+		public List<float[]> fitnessPopulation { get; private set; }
 
 		private int generation;
 		private int elitism;
@@ -41,19 +42,20 @@ namespace Genetics
 			}
 
 			existingTypes = oldPopulation[0].ExistingTypes();
+			fitnessPopulation = new List<float[]>();
 		}
 
 		public void NewGeneration()
 		{
-			ClassifyPopulation();
+			fitnessPopulation.Add(ClassifyPopulation());
 			
 			if (generation == 1)
 			{
-				UnityEngine.Debug.Log(oldPopulation[0].phenotype.walls.Count);
+				UnityEngine.Debug.Log("Fitness: " + oldPopulation[0].fitness + " ; Paths number: "  + oldPopulation[0].phenotype.paths.Count);
 
-				foreach (Cuboid wall in oldPopulation[0].phenotype.walls)
+				foreach (Path path in oldPopulation[0].phenotype.paths)
 				{
-					UnityEngine.Debug.Log("Size Wall: "  + (wall.max.x - wall.min.x) + " " + (wall.max.y - wall.min.y) + " " + (wall.max.z - wall.min.z));
+					UnityEngine.Debug.Log("Size path: "  + path.cells.Count);
 				}
 			}
 
@@ -81,16 +83,15 @@ namespace Genetics
 			generation++;
 		}
 
-		public void ClassifyPopulation()
+		public float[] ClassifyPopulation()
 		{
 			if (populationSize > 0)
 			{
-				CalculateFitness();
+				float[] fitnessPop = CalculateFitness();
 
 				DNA temp;
-				int populationSizeMinus = populationSize - 1;
 
-				for (int i = 0; i < populationSizeMinus; i++)
+				for (int i = 0; i < populationSize - 1; i++)
 				{
 					for (int j = i + 1; j < populationSize; j++)
 					{
@@ -103,16 +104,24 @@ namespace Genetics
 						}
 					}
 				}
+				return fitnessPop;
 			}
+
+			return null;
 		}
 
-		private void CalculateFitness()
+		private float[] CalculateFitness()
 		{
+			float[] fitnessPop = new float[populationSize];
+
 			fitnessSum = 0;
 			for (int i = 0; i < populationSize; i++)
 			{
 				fitnessSum += oldPopulation[i].CalculateFitness();
+				fitnessPop[i] = oldPopulation[i].fitness;
 			}
+
+			return fitnessPop;
 		}
 
 		private DNA ChooseParent()

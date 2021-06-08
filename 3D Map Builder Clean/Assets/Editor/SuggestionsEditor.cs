@@ -44,18 +44,31 @@ public class SuggestionsEditor : EditorWindow
         evolAlgoParams.elitism = 0;
         evolAlgoParams.generations = 1;
         evolAlgoParams.mutationRate = 0.005f;
+
+        evolAlgoParams.wEmptyCuboids = 1f;
+        evolAlgoParams.wWallsCuboids = 1f;
+        evolAlgoParams.wPathfinding = 1f;
     }
     
     private void OnGUI()
     {
+        EditorGUIUtility.labelWidth = 100;
         //Get parameters of Evolutionary the Algorithm
         GUILayout.BeginHorizontal();
-        evolAlgoParams.mutationRate = EditorGUILayout.FloatField("Mutation Rate ", evolAlgoParams.mutationRate);
-        evolAlgoParams.population = EditorGUILayout.IntField("Population ", evolAlgoParams.population);
+        evolAlgoParams.mutationRate = EditorGUILayout.FloatField("Mutation Rate ", evolAlgoParams.mutationRate, GUILayout.Width(0.5f * position.width));
+        evolAlgoParams.population = EditorGUILayout.IntField("Population ", evolAlgoParams.population, GUILayout.Width(0.5f * position.width));
         GUILayout.EndHorizontal();
+
         GUILayout.BeginHorizontal();
-        evolAlgoParams.generations = EditorGUILayout.IntField("Generations ", evolAlgoParams.generations);
-        evolAlgoParams.elitism = EditorGUILayout.IntField("Elitism ", evolAlgoParams.elitism);
+        evolAlgoParams.generations = EditorGUILayout.IntField("Generations ", evolAlgoParams.generations, GUILayout.Width(0.5f * position.width));
+        evolAlgoParams.elitism = EditorGUILayout.IntField("Elitism ", evolAlgoParams.elitism, GUILayout.Width(0.5f * position.width));
+        GUILayout.EndHorizontal();
+
+        EditorGUIUtility.labelWidth = 50;
+        GUILayout.BeginHorizontal();
+        evolAlgoParams.wEmptyCuboids = EditorGUILayout.FloatField("wEmpty ", evolAlgoParams.wEmptyCuboids, GUILayout.Width(0.3f * position.width));
+        evolAlgoParams.wWallsCuboids = EditorGUILayout.FloatField("wWalls", evolAlgoParams.wWallsCuboids, GUILayout.Width(0.3f * position.width));
+        evolAlgoParams.wPathfinding = EditorGUILayout.FloatField("wPath ", evolAlgoParams.wPathfinding, GUILayout.Width(0.3f * position.width));
         GUILayout.EndHorizontal();
 
         if (mapSuggestionGrid == null || mapSuggestionGrid.Count == 0 || mapSuggestionGrid[0] == null)
@@ -69,19 +82,19 @@ public class SuggestionsEditor : EditorWindow
             GUILayout.BeginHorizontal();
             if (mapSuggestionGrid.Count == numberSuggestions)
             {
-                GUILayoutUtility.GetRect(0.5f*position.width, position.height*0.5f - 50);
+                GUILayoutUtility.GetRect(0.5f*position.width, position.height*0.45f - 50);
                 Camera previewCam = mapSuggestionGrid[i].transform.GetComponentInChildren<Camera>();
                 previewCam.hideFlags = HideFlags.HideAndDontSave;
-                Rect cameraRect = new Rect(5, 50 + i*(position.height * 0.25f-15f), 0.5f * position.width-10, position.height * 0.5f - 60);
+                Rect cameraRect = new Rect(5, 70 + i*(position.height * 0.25f-17f), 0.5f * position.width-10, position.height * 0.49f - 60);
                 if (previewCam)
                 {
                     Handles.DrawCamera(cameraRect, previewCam, DrawCameraMode.Normal);
                 }
 
-                GUILayoutUtility.GetRect(0.5f * position.width, position.height * 0.5f - 50);
+                GUILayoutUtility.GetRect(0.5f * position.width, position.height * 0.49f - 50);
                 previewCam = mapSuggestionGrid[i+1].transform.GetComponentInChildren<Camera>();
                 previewCam.hideFlags = HideFlags.HideAndDontSave;
-                cameraRect = new Rect(0.5f*position.width+5, 50 + i *(position.height * 0.25f-15f), 0.5f * position.width-10, position.height * 0.5f - 60);
+                cameraRect = new Rect(0.5f*position.width+5, 70 + i *(position.height * 0.25f-17f), 0.5f * position.width-10, position.height * 0.49f - 60);
                 if (previewCam)
                 {
                     Handles.DrawCamera(cameraRect, previewCam, DrawCameraMode.Normal);

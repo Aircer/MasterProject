@@ -2,28 +2,26 @@ using System;
 using System.Collections.Generic;
 using UtilitiesGenetic;
 using mVectors;
-using System.IO;
 
-namespace MapTileGridCreator.Core
+namespace Genetics
 {
 	public class GeneticAlgorithm
 	{
 		public DNA[] oldPopulation { get; private set; }
 		public DNA[] newPopulation { get; private set; }
-		public int generation { get; private set; }
+		public List<float[]> fitnessPopulation { get; private set; }
 
-		public int elitism;
-		public int populationSize;
-		public float mutationNumber;
+		private int generation;
+		private int elitism;
+		private int populationSize;
+		private float mutationNumber;
 
 		private float fitnessSum;
 		private SharpNeatLib.Maths.FastRandom randomFast;
-		private System.Random randomSystem;
 		private List<int> existingTypes;
-		string path = "D:\\MasterProject\\Genetic3\\Data\\DataFitData.csv";
 
-		public GeneticAlgorithm(EvolutionaryAlgoParams algoParams, Vector3Int dnaSize, System.Random randomSystem, SharpNeatLib.Maths.FastRandom randomFast, Func<int, float> fitnessFunction,
-			WaypointParams[][][] waypointParams, TypeParams[] typeParams)
+		public GeneticAlgorithm(EvolutionaryAlgoParams algoParams, Vector3Int dnaSize, 
+			int[][][] waypointParams, TypeParams[] typeParams, SharpNeatLib.Maths.FastRandom randomFast)
 		{
 			generation = 1;
 			elitism = algoParams.elitism;
@@ -33,24 +31,34 @@ namespace MapTileGridCreator.Core
 			oldPopulation = new DNA[populationSize];
 			newPopulation = new DNA[populationSize];
 
-			this.randomSystem = randomSystem;
 			this.randomFast = randomFast;
 
 			for (int i = 0; i < populationSize; i++)
 			{
-				DNA newPop = new DNA(dnaSize, randomSystem, randomFast, fitnessFunction, typeParams, waypointParams);
+				DNA newPop = new DNA(dnaSize, typeParams, randomFast, waypointParams);
 				oldPopulation[i] = newPop;
-				DNA newPop2 = new DNA(dnaSize, randomSystem, randomFast, fitnessFunction, typeParams, waypointParams);
+				DNA newPop2 = new DNA(dnaSize, typeParams, randomFast, waypointParams);
 				newPopulation[i] = newPop2;
 			}
 
 			existingTypes = oldPopulation[0].ExistingTypes();
+			fitnessPopulation = new List<float[]>();
 		}
 
 		public void NewGeneration()
 		{
-			ClassifyPopulation();
-			
+			fitnessPopulation.Add(ClassifyPopulation());
+			/*
+			if (generation == 1)
+			{
+				UnityEngine.Debug.Log(oldPopulation[0].phenotype.walls.Count);
+
+				foreach (Cuboid wall in oldPopulation[0].phenotype.walls)
+				{
+					UnityEngine.Debug.Log("Size Wall: "  + (wall.max.x - wall.min.x) + " " + (wall.max.y - wall.min.y) + " " + (wall.max.z - wall.min.z));
+				}
+			}*/
+
 			for (int i = 0; i < populationSize; i++)
 			{
 				if (i < elitism)
@@ -59,11 +67,11 @@ namespace MapTileGridCreator.Core
 				}
 				else 
 				{
-					//DNA parent1 = ChooseParent();
-					//DNA parent2 = ChooseParent();
-					//newPopulation[i].Crossover(parent1, parent2);
+					DNA parent1 = ChooseParent();
+					DNA parent2 = ChooseParent();
+					newPopulation[i].Crossover(parent1, parent2);
 
-					newPopulation[i].Copy(ChooseParent());
+					//newPopulation[i].Copy(parent1);
 					newPopulation[i].Mutate(mutationNumber, existingTypes);
 				}
 			}
@@ -75,20 +83,19 @@ namespace MapTileGridCreator.Core
 			generation++;
 		}
 
-		public void ClassifyPopulation()
+		public float[] ClassifyPopulation()
 		{
 			if (populationSize > 0)
 			{
-				CalculateFitness();
+				float[] fitnessPop = CalculateFitness();
 
 				DNA temp;
-				int populationSizeMinus = populationSize - 1;
 
-				for (int i = 0; i < populationSizeMinus; i++)
+				for (int i = 0; i < populationSize - 1; i++)
 				{
 					for (int j = i + 1; j < populationSize; j++)
 					{
-						if (oldPopulation[i].Fitness < oldPopulation[j].Fitness)
+						if (oldPopulation[i].fitness < oldPopulation[j].fitness)
 						{
 
 							temp = oldPopulation[i];
@@ -97,28 +104,24 @@ namespace MapTileGridCreator.Core
 						}
 					}
 				}
-				
-				using (var w = new StreamWriter(path, true))
-				{
-					w.Write(oldPopulation[0].Fitness);
-					for (int i = 1; i < populationSize; i++)
-					{
-						w.Write(";");
-						w.Write(oldPopulation[i].Fitness);
-					}
-					w.WriteLine();
-					w.Flush();
-				}
+				return fitnessPop;
 			}
+
+			return null;
 		}
 
-		private void CalculateFitness()
+		private float[] CalculateFitness()
 		{
+			float[] fitnessPop = new float[populationSize];
+
 			fitnessSum = 0;
 			for (int i = 0; i < populationSize; i++)
 			{
-				fitnessSum += oldPopulation[i].CalculateFitness(i);
+				fitnessSum += oldPopulation[i].CalculateFitness();
+				fitnessPop[i] = oldPopulation[i].fitness;
 			}
+
+			return fitnessPop;
 		}
 
 		private DNA ChooseParent()
@@ -127,12 +130,12 @@ namespace MapTileGridCreator.Core
 
 			for (int i = 0; i < populationSize; i++)
 			{
-				if (randomNumber < oldPopulation[i].Fitness)
+				if (randomNumber < oldPopulation[i].fitness)
 				{
 					return oldPopulation[i];
 				}
 
-				randomNumber -= oldPopulation[i].Fitness;
+				randomNumber -= oldPopulation[i].fitness;
 			}
 
 			return oldPopulation[0];

@@ -8,75 +8,117 @@ namespace Genetics
 {
     public static class Fitness
     {
-		private static int numberBlocks;
-		private static int fitnessType;
+		private static float volumeMax;
+		private static float weightFitnessEmptyCuboids;
+		private static float weightFitnessWallsCuboids;
+		private static float weightFitnessPathfinding;
 
-		public static void InitFitness(Vector3Int size, int fT)
+		public static void InitFitness(Vector3Int size, EvolutionaryAlgoParams algoParams)
 		{
-			numberBlocks = (size.x - 2) * (size.y - 2) * (size.z - 2);
-			fitnessType = fT;
+			volumeMax = (size.x - 2) * (size.y - 2) * (size.z - 2);
+			weightFitnessEmptyCuboids = algoParams.wEmptyCuboids;
+			weightFitnessWallsCuboids = algoParams.wWallsCuboids;
+			weightFitnessPathfinding  = algoParams.wPathfinding;
 		}
 
 		public static float FitnessFunction(Phenotype phenotype)
 		{
-			float finalScore = 0; float nbCuboidsCorrectSize = 0; float nbCuboids = 0;
-			float ratioGoodCuboids = 0; float sizeMin = 0; float nbCuboidsPossible;
-			sizeMin = 5;
+			float fitnessTotal = 0;
+			float fitnessEmptyCuboids = GetFitnessEmptyCuboids(phenotype);
+			float fitnessWallsCuboids = GetFitnessWallsCuboids(phenotype);
+			float fitnessPathfinding = GetFitnessPathfinding(phenotype);
 
-			nbCuboidsPossible = numberBlocks / sizeMin;
+			fitnessTotal = (weightFitnessEmptyCuboids * fitnessEmptyCuboids + weightFitnessWallsCuboids * fitnessWallsCuboids 
+																			+ weightFitnessPathfinding * fitnessPathfinding) 
+							/ (weightFitnessEmptyCuboids + weightFitnessWallsCuboids + weightFitnessPathfinding);
+
+			return fitnessTotal;
+		}
+
+		public static float GetFitnessEmptyCuboids(Phenotype phenotype)
+		{
+			float fitnessEmptyCuboids = 0;
+			int nbEmptyCuboids = phenotype.emptyCuboids.Count;
+			int badEmptyCuboid = 0;
+			float sizeMin = 5;
+			int currentVolume;
+			float totalVolume = 0;
+			float ratioGoodEmptyCuboids = 0;
 
 			foreach (Cuboid cuboid in phenotype.emptyCuboids)
 			{
-				if ((cuboid.max.x - cuboid.min.x) * (cuboid.max.y - cuboid.min.y) * (cuboid.max.z - cuboid.min.z) > sizeMin)
-					nbCuboidsCorrectSize++;
-				nbCuboids++;
+				currentVolume = cuboid.length * cuboid.width * cuboid.height;
+
+				if (currentVolume < sizeMin && cuboid.outCuboids.Count == 0)
+					badEmptyCuboid++;
+
+				totalVolume += currentVolume;
 			}
 
-			if (nbCuboids > 0)
-				ratioGoodCuboids = nbCuboidsCorrectSize / nbCuboidsPossible;
-			else
-				ratioGoodCuboids = 0;
+			if (nbEmptyCuboids > 0)
+				ratioGoodEmptyCuboids = (nbEmptyCuboids - badEmptyCuboid) / nbEmptyCuboids;
 
-			finalScore = ratioGoodCuboids; //Mathf.Pow(2, ratioGoodCuboids) - 1;
+			fitnessEmptyCuboids = (ratioGoodEmptyCuboids + (totalVolume / volumeMax))/2;
 
-			/*
-			foreach (WalkableArea path in phenotype.walkableArea)
-			{
-				if (path.cells.Count < 3)
-					finalScore = 0; 
-			}
+			return fitnessEmptyCuboids;
+		}
 
-			if (phenotype.walkableArea.Count == 0)
-				finalScore = 0;*/
-
-
-			float maxSize = 0;
-			int nbOut = 0;
-			foreach (Cuboid cuboid in phenotype.emptyCuboids)
-			{
-				if ((cuboid.max.x - cuboid.min.x) * (cuboid.max.y - cuboid.min.y) * (cuboid.max.z - cuboid.min.z) > maxSize)
-				{
-					maxSize = (cuboid.max.x - cuboid.min.x) * (cuboid.max.y - cuboid.min.y) * (cuboid.max.z - cuboid.min.z);
-					nbOut = cuboid.outCuboids.Count;
-				}
-			}
-
-			if (maxSize > 0)
-				finalScore = nbOut / maxSize;
-			else
-				finalScore = 0;
-
-			finalScore = phenotype.emptyCuboids.Count;
+		public static float GetFitnessWallsCuboids(Phenotype phenotype)
+		{
+			float fitnessWallsCuboids = 0;
+			int nbWalls = phenotype.walls.Count;
+			float badWalls = 0;
+			float ratioGoodWalls = 0;
+			float totalVolume = 0;
 
 			foreach (Cuboid wall in phenotype.walls)
 			{
-				if ((wall.max.x - wall.min.x) > 1 && (wall.max.z - wall.min.z) > 1)
+				if (wall.width > 1 || wall.height < 2 || wall.length < 2
+					||(wall.inCuboids.Count == 0 && wall.outCuboids.Count == 0))
 				{
-					finalScore = 0;
+					badWalls++;
 				}
+
+				totalVolume += wall.width * wall.height * wall.length;
 			}
 
-			return finalScore;
+			if(nbWalls > 0)
+				ratioGoodWalls = (nbWalls - badWalls) / nbWalls;
+
+			fitnessWallsCuboids = (ratioGoodWalls + (totalVolume / volumeMax)) / 2;
+
+			return fitnessWallsCuboids;
+		}
+
+		public static float GetFitnessPathfinding(Phenotype phenotype)
+		{
+			float fitnessPathfinding = 0;
+
+			float nbWalkableAreas = phenotype.walkableArea.Count; float ratioBadWalkableArea = 0; float badWalkableArea = 0;
+			float nbPaths = phenotype.paths.Count; float ratioBadPath = 0; float badPath = 0;
+
+			foreach (WalkableArea wa in phenotype.walkableArea)
+			{
+				if (wa.cells.Count < 3 || wa.neighborsArea.Count == 0)
+					badWalkableArea++; 
+			}
+
+			if(nbWalkableAreas > 0)
+				ratioBadWalkableArea = (nbWalkableAreas - badWalkableArea) / nbWalkableAreas;
+
+			foreach (Path path in phenotype.paths)
+			{
+				if (path.neighborsConnected.Count == 0)
+					badPath++;
+			}
+
+			if (nbPaths > 0)
+				ratioBadPath = (nbPaths - badPath) / nbPaths;
+
+			fitnessPathfinding = (0.5f*ratioBadWalkableArea + ratioBadPath) / 1.5f;
+
+
+			return fitnessPathfinding;
 		}
 	}
 }

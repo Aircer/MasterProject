@@ -47,7 +47,7 @@ namespace Genetics
 
                 while (z1 < size.z && (Genes[temp.x][y][z1] == 0 || typeParams[Genes[temp.x][y][z1]].floor))
                 {
-                    if (!typeParams[Genes[temp.x][y - 1][z1]].floor && !typeParams[Genes[temp.x][y + 1][z1]].floor && CanFillFloor(temp.x, y, z1, Genes))
+                    if (CanFillFloor(temp.x, y, z1, Genes))
                         Genes[temp.x][y][z1] = newType;
                     newFloor.Add(new Vector3Int(temp.x, y, z1));
 
@@ -138,7 +138,8 @@ namespace Genetics
 
         private static bool CanFillFloor(int x, int y, int z, int[][][] Genes)
         {
-            if ((Genes[x][y][z] == 0 || typeParams[Genes[x][y][z]].floor) && !typeParams[Genes[x][y - 1][z]].stair)
+            if ((Genes[x][y][z] == 0 || typeParams[Genes[x][y][z]].floor) && !typeParams[Genes[x][y - 1][z]].stair
+                                && !typeParams[Genes[x][y - 1][z]].floor && !typeParams[Genes[x][y + 1][z]].floor)
                 return true;
             else
                 return false;

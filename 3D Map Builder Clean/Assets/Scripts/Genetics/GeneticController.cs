@@ -9,15 +9,15 @@ namespace Genetics
 	{
 		private GeneticAlgorithm ga;
 		private TypeParams[] typeParams;
-		private int fitnessType;
 
-		public void StartGenetics(Vector3Int size, TypeParams[] cellsInfos, int[][][] waypointParams, EvolutionaryAlgoParams algoParams, SharpNeatLib.Maths.FastRandom randomFast, int fitnessType)
+		public void StartGenetics(Vector3Int size, TypeParams[] cellsInfos, int[][][] waypointParams, EvolutionaryAlgoParams algoParams,
+			SharpNeatLib.Maths.FastRandom randomFast)
 		{
 			typeParams = new TypeParams[cellsInfos.Length + 1];
 			SetTypeCellParams(cellsInfos);
 
 			Mutations.InitMutations(size, randomFast, typeParams);
-			Fitness.InitFitness(size, fitnessType);
+			Fitness.InitFitness(size, algoParams);
 
 			ga = new GeneticAlgorithm(algoParams, size, waypointParams, typeParams, randomFast);
 		}
@@ -50,12 +50,17 @@ namespace Genetics
 				nbNeighbors += wa.neighborsArea.Count; 
 			}
 
-			UnityEngine.Debug.Log("Fitness Type: " + fitnessType 
-				+ "; Number walkable zones: " + ga.oldPopulation[0].phenotype.walkableArea.Count
+			
+			UnityEngine.Debug.Log("Number walkable zones: " + ga.oldPopulation[0].phenotype.walkableArea.Count
 				+ "; Number neighbors: " + nbNeighbors
 				+ "; Fitness: " + ga.oldPopulation[0].fitness);
 
 			return ga.oldPopulation[0].Genes;
+		}
+
+		public List<float[]> GetFitness()
+		{
+			return ga.fitnessPopulation;
 		}
 	}
 }

@@ -223,13 +223,13 @@ namespace MapTileGridCreator.UtilitiesVisual
 			{
 				List<string> activeElements = new List<string>();
 
-				if (CellIsWall(index.x - 1, index.y + 1, index.z, cells, waypoints))
+				if (CellIsWall(index.x - 1, index.y + 1, index.z, cells, waypoints) || CellIsWall(index.x - 1, index.y, index.z, cells, waypoints))
 					activeElements.Add("x_minus");
-				if(CellIsWall(index.x + 1, index.y + 1, index.z, cells, waypoints))
+				if(CellIsWall(index.x + 1, index.y + 1, index.z, cells, waypoints) || CellIsWall(index.x + 1, index.y, index.z, cells, waypoints))
 					activeElements.Add("x_plus");
-				if(CellIsWall(index.x, index.y + 1, index.z - 1, cells, waypoints))
+				if(CellIsWall(index.x, index.y + 1, index.z - 1, cells, waypoints) || CellIsWall(index.x, index.y, index.z - 1, cells, waypoints))
 					activeElements.Add("z_minus");
-				if(CellIsWall(index.x, index.y + 1, index.z + 1, cells, waypoints))
+				if(CellIsWall(index.x, index.y + 1, index.z + 1, cells, waypoints) || CellIsWall(index.x, index.y, index.z + 1, cells, waypoints))
 					activeElements.Add("z_plus");
 
 				cells[index.x, index.y, index.z].TransformVisualFloor(activeElements);

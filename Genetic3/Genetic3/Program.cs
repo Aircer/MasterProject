@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using MapTileGridCreator.Core;
 using UtilitiesGenetic;
 using mVectors;
 using CsvHelper;
 using System.IO;
 using System.Globalization;
-
+using Genetics;
 
 namespace Genetic3
 {
@@ -20,27 +19,45 @@ namespace Genetic3
         {
             Console.WriteLine("START");
 			Vector3Int size = new Vector3Int(7, 7, 7);
-			string path = "D:\\MasterProject\\Genetic3\\Data\\DataFitData.csv";
+			string path = "D:\\MasterProject\\Genetic3\\Data\\DataFitData";
 
 			TypeParams[] cellsInfos = SetTypesParams();
             EvolutionaryAlgoParams algoParams = SetAlgoParams(path);
-            WaypointParams[][][] waypointParams = SetWaypointsParams(size);
+            int[][][] waypointParams = SetWaypointsParams(size);
 
-			WriteData(path, size, algoParams);
+			Init.GetSuggestionsClusters(size.x, size.y, size.z, cellsInfos, waypointParams, 20, algoParams);
 
-			List<WaypointParams[][][]> newWaypointsParams = IA.GetSuggestionsClusters(size.x, size.y, size.z, cellsInfos, waypointParams, 1, algoParams);
+			WriteData(path, size, algoParams, Init.fitness);
+
 		}
 
 		public static TypeParams[] SetTypesParams()
 		{
-			TypeParams[] newTypesParams = new TypeParams[1];
+			int nbType = 12;
+			TypeParams[] newTypesParams = new TypeParams[nbType];
 
-			newTypesParams[0] = new TypeParams();
-			newTypesParams[0].blockPath = true;
-			newTypesParams[0].door = false;
-			newTypesParams[0].floor = false;
-			newTypesParams[0].ground = true;
-			newTypesParams[0].wall = true;
+			for (int i = 0; i < nbType; i++)
+			{
+				newTypesParams[i] = new TypeParams();
+				newTypesParams[i].SetEmpty();
+			}
+
+			newTypesParams[10].blockPath = true;
+			newTypesParams[10].wall = true;
+
+			/*
+			newTypesParams[3].door = true;
+			newTypesParams[3].wall = true;
+
+			newTypesParams[5].blockPath = true;
+			newTypesParams[5].floor = true;
+			newTypesParams[5].ground = true;
+
+			newTypesParams[6].ladder = true;
+
+			newTypesParams[8].blockPath = true;
+			newTypesParams[8].ground = true;
+			newTypesParams[8].stair = true;*/
 
 			return newTypesParams;
 		}
@@ -51,25 +68,28 @@ namespace Genetic3
 
 			algoParams.population = 100;
 			algoParams.elitism = 0;
-			algoParams.generations = 100;
+			algoParams.generations = 20;
 			algoParams.mutationRate = 0.005f;
+			algoParams.wEmptyCuboids = 0f;
+			algoParams.wWallsCuboids = 1f;
+			algoParams.wPathfinding = 0f;
 
 			return algoParams;
 		}
 
-		public static WaypointParams[][][] SetWaypointsParams(Vector3Int size)
+		public static int[][][] SetWaypointsParams(Vector3Int size)
 		{
-			WaypointParams[][][] waypointsParamsXYZ = new WaypointParams[size.x][][];
+			int[][][] waypointsParamsXYZ = new int[size.x][][];
 
 			for (int x = 0; x < size.x; x++)
 			{
-				WaypointParams[][] waypointsParamsYZ = new WaypointParams[size.y][];
+				int[][] waypointsParamsYZ = new int[size.y][];
 				for (int y = 0; y < size.y; y++)
 				{
-					WaypointParams[] waypointsParamsZ = new WaypointParams[size.z];
+					int[] waypointsParamsZ = new int[size.z];
 					for (int z = 0; z < size.z; z++)
 					{
-						waypointsParamsZ[z].type = 0;
+						waypointsParamsZ[z] = 0;
 					}
 					waypointsParamsYZ[y] = waypointsParamsZ;
 				}
@@ -79,15 +99,35 @@ namespace Genetic3
 			return waypointsParamsXYZ;
 		}
 
-		public static void WriteData(string path, Vector3Int size, EvolutionaryAlgoParams algoParams)
+		public static void WriteData(string path, Vector3Int size, EvolutionaryAlgoParams algoParams, List<List<float[]>> fitness)
 		{
-			using (var w = new StreamWriter(path))
+			int id = 0;
+
+			for(int i = 0; i < fitness.Count; i++)
 			{
-				var line = string.Format("Size_x; Size_y; Size_z; Population; Elitism; Generations; MutationRate");
-				w.WriteLine(line);
-				line = string.Format(size.x + ";" + size.y + ";" + size.z + ";" + algoParams.population + ";" + algoParams.elitism + ";" + algoParams.generations + ";" + algoParams.mutationRate);
-				w.WriteLine(line);
-				w.Flush();
+				using (var w = new StreamWriter(path + "_" + id + ".csv"))
+				{
+					var line = string.Format("Size_x; Size_y; Size_z; Population; Elitism; Generations; MutationRate; wEmptyCuboids; wWallsCuboids; wPathfinding");
+					w.WriteLine(line);
+					line = string.Format(size.x + ";" + size.y + ";" + size.z + ";" + algoParams.population + ";" 
+						+ algoParams.elitism + ";" + algoParams.generations + ";" + algoParams.mutationRate + ";"
+						+ algoParams.wEmptyCuboids + ";" + algoParams.wWallsCuboids + ";" + algoParams.wPathfinding);
+					w.WriteLine(line);
+
+					for(int j = 0; j < fitness[i].Count; j++)
+					{
+						w.Write(fitness[i][j][0]);
+						for (int k = 1; k < fitness[i][j].Length; k++)
+						{
+							w.Write(";");
+							w.Write(fitness[i][j][k]);
+						}
+						w.WriteLine();
+					}
+
+					w.Flush();
+				}
+				id++;
 			}
 		}
 	}
