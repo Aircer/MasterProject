@@ -41,16 +41,23 @@ namespace Genetics
 			int nbEmptyCuboids = phenotype.emptyCuboids.Count;
 			int badEmptyCuboid = 0;
 			float sizeMin = 5;
+			float ratioGoodEmptyCuboids = 0;
+
 			int currentVolume;
 			float totalVolume = 0;
-			float ratioGoodEmptyCuboids = 0;
+			float totalGoodVolume = 0;
+			float ratioGoodVolume = 0;
 
 			foreach (Cuboid cuboid in phenotype.emptyCuboids)
 			{
 				currentVolume = cuboid.length * cuboid.width * cuboid.height;
 
-				if (currentVolume < sizeMin && cuboid.outCuboids.Count == 0)
+				if (currentVolume < sizeMin 
+					&& (cuboid.outCuboids.Count + cuboid.inCuboids.Count < 2))
+				{
 					badEmptyCuboid++;
+					totalGoodVolume += currentVolume;
+				}
 
 				totalVolume += currentVolume;
 			}
@@ -58,7 +65,10 @@ namespace Genetics
 			if (nbEmptyCuboids > 0)
 				ratioGoodEmptyCuboids = (nbEmptyCuboids - badEmptyCuboid) / nbEmptyCuboids;
 
-			fitnessEmptyCuboids = (ratioGoodEmptyCuboids + (totalVolume / volumeMax))/2;
+			if (totalVolume > 0)
+				ratioGoodVolume = (totalVolume - totalGoodVolume) / totalVolume;
+
+			fitnessEmptyCuboids = ratioGoodVolume;
 
 			return fitnessEmptyCuboids;
 		}
@@ -70,6 +80,8 @@ namespace Genetics
 			float badWalls = 0;
 			float ratioGoodWalls = 0;
 			float totalVolume = 0;
+			float totalBadVolume = 0;
+			float ratioGoodVolume = 0;
 
 			foreach (Cuboid wall in phenotype.walls)
 			{
@@ -77,6 +89,7 @@ namespace Genetics
 					||(wall.inCuboids.Count == 0 && wall.outCuboids.Count == 0))
 				{
 					badWalls++;
+					totalBadVolume += wall.width * wall.height * wall.length;
 				}
 
 				totalVolume += wall.width * wall.height * wall.length;
@@ -85,7 +98,10 @@ namespace Genetics
 			if(nbWalls > 0)
 				ratioGoodWalls = (nbWalls - badWalls) / nbWalls;
 
-			fitnessWallsCuboids = (ratioGoodWalls + (totalVolume / volumeMax)) / 2;
+			if (totalVolume > 0)
+				ratioGoodVolume = (totalVolume - totalBadVolume) / totalVolume;
+
+			fitnessWallsCuboids = ratioGoodVolume;
 
 			return fitnessWallsCuboids;
 		}
@@ -99,7 +115,7 @@ namespace Genetics
 
 			foreach (WalkableArea wa in phenotype.walkableArea)
 			{
-				if (wa.cells.Count < 3 || wa.neighborsArea.Count == 0)
+				if (wa.bordersNotGood.Count > 0 || wa.cells.Count < 3 || wa.neighborsArea.Count == 0)
 					badWalkableArea++; 
 			}
 

@@ -76,6 +76,7 @@ namespace mVectors
 		public int yPos;
 		public HashSet<Vector3Int> cells;
 		public HashSet<Vector3Int> paths;
+		public HashSet<Vector3Int> bordersNotGood;
 		public HashSet<WalkableArea> neighborsArea;
 		public HashSet<Path> neighborsPaths;
 	}

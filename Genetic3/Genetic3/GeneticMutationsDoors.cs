@@ -72,7 +72,8 @@ namespace Genetics
 
         public static int[][][] CreateDoor(int[][][] Genes, Vector3Int input, int newType)
         {
-            if (typeParams[Genes[input.x][input.y][input.z]].wall && typeParams[Genes[input.x][input.y + 1][input.z]].wall)
+            if (typeParams[Genes[input.x][input.y][input.z]].wall && typeParams[Genes[input.x][input.y + 1][input.z]].wall
+                &&(!typeParams[Genes[input.x][input.y][input.z]].door && !typeParams[Genes[input.x][input.y + 1][input.z]].door))
             {
                 Genes[input.x][input.y][input.z] = newType;
                 Genes[input.x][input.y + 1][input.z] = newType;

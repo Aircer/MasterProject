@@ -51,11 +51,11 @@ namespace Genetics
 			
 			if (generation == 1)
 			{
-				UnityEngine.Debug.Log("Fitness: " + oldPopulation[0].fitness + " ; Paths number: "  + oldPopulation[0].phenotype.paths.Count);
+				UnityEngine.Debug.Log("Fitness: " + oldPopulation[0].fitness + " ; Empty number: "  + oldPopulation[0].phenotype.emptyCuboids.Count);
 
-				foreach (Path path in oldPopulation[0].phenotype.paths)
+				foreach (Cuboid empty in oldPopulation[0].phenotype.emptyCuboids)
 				{
-					UnityEngine.Debug.Log("Size path: "  + path.cells.Count);
+					UnityEngine.Debug.Log("Size empty: "  + empty.cells.Count);
 				}
 			}
 

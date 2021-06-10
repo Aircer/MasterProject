@@ -171,7 +171,7 @@ namespace Genetics
             {
                 stair.Add(new Vector3Int(x, y, z));
 
-                if (FloorAround(Genes, x, y, z))
+                if (typeParams[Genes[x][y - 1][z]].floor)   //FloorAround(Genes, x, y, z))
                     break;
 
                 x -= direction;
@@ -185,7 +185,7 @@ namespace Genetics
             {
                 stair.Add(new Vector3Int(x, y, z));
 
-                if (FloorAround(Genes, x, y, z))
+                if(FloorAround(Genes, x, y, z))
                     break;
 
                 x += direction;
@@ -217,7 +217,7 @@ namespace Genetics
             {
                 stair.Add(new Vector3Int(x, y, z));
 
-                if (FloorAround(Genes, x, y, z))
+                if (typeParams[Genes[x][y - 1][z]].floor)
                     break;
 
                 z -= direction;

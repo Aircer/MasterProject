@@ -48,17 +48,7 @@ namespace Genetics
 		public void NewGeneration()
 		{
 			fitnessPopulation.Add(ClassifyPopulation());
-			/*
-			if (generation == 1)
-			{
-				UnityEngine.Debug.Log(oldPopulation[0].phenotype.walls.Count);
-
-				foreach (Cuboid wall in oldPopulation[0].phenotype.walls)
-				{
-					UnityEngine.Debug.Log("Size Wall: "  + (wall.max.x - wall.min.x) + " " + (wall.max.y - wall.min.y) + " " + (wall.max.z - wall.min.z));
-				}
-			}*/
-
+			
 			for (int i = 0; i < populationSize; i++)
 			{
 				if (i < elitism)
@@ -71,7 +61,7 @@ namespace Genetics
 					DNA parent2 = ChooseParent();
 					newPopulation[i].Crossover(parent1, parent2);
 
-					//newPopulation[i].Copy(parent1);
+					newPopulation[i].Copy(parent1);
 					newPopulation[i].Mutate(mutationNumber, existingTypes);
 				}
 			}

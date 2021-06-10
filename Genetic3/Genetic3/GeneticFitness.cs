@@ -8,14 +8,14 @@ namespace Genetics
 {
     public static class Fitness
     {
-		private static int numberBlocks;
+		private static float volumeMax;
 		private static float weightFitnessEmptyCuboids;
 		private static float weightFitnessWallsCuboids;
 		private static float weightFitnessPathfinding;
 
 		public static void InitFitness(Vector3Int size, EvolutionaryAlgoParams algoParams)
 		{
-			numberBlocks = (size.x - 2) * (size.y - 2) * (size.z - 2);
+			volumeMax = (size.x - 2) * (size.y - 2) * (size.z - 2);
 			weightFitnessEmptyCuboids = algoParams.wEmptyCuboids;
 			weightFitnessWallsCuboids = algoParams.wWallsCuboids;
 			weightFitnessPathfinding  = algoParams.wPathfinding;
@@ -37,34 +37,28 @@ namespace Genetics
 
 		public static float GetFitnessEmptyCuboids(Phenotype phenotype)
 		{
-			float fitnessEmptyCuboids;
-			float nbCuboidsCorrectSize = 0;
-			float nbEmptyCuboids = 0;
-			float ratioGoodCuboids;
+			float fitnessEmptyCuboids = 0;
+			int nbEmptyCuboids = phenotype.emptyCuboids.Count;
+			int badEmptyCuboid = 0;
 			float sizeMin = 5;
-			float maxSize = 0;
-			float nbCuboidsPossible = numberBlocks / sizeMin;
-			int nbOut = 0;
+			int currentVolume;
+			float totalVolume = 0;
+			float ratioGoodEmptyCuboids = 0;
 
 			foreach (Cuboid cuboid in phenotype.emptyCuboids)
 			{
-				if ((cuboid.max.x - cuboid.min.x) * (cuboid.max.y - cuboid.min.y) * (cuboid.max.z - cuboid.min.z) > sizeMin)
-					nbCuboidsCorrectSize++;
-				else if ((cuboid.max.x - cuboid.min.x) * (cuboid.max.y - cuboid.min.y) * (cuboid.max.z - cuboid.min.z) > maxSize)
-				{
-					maxSize = (cuboid.max.x - cuboid.min.x) * (cuboid.max.y - cuboid.min.y) * (cuboid.max.z - cuboid.min.z);
-					nbOut = cuboid.outCuboids.Count;
-				}
+				currentVolume = cuboid.length * cuboid.width * cuboid.height;
 
-				nbEmptyCuboids++;
+				if (currentVolume < sizeMin && cuboid.outCuboids.Count == 0)
+					badEmptyCuboid++;
+
+				totalVolume += currentVolume;
 			}
 
 			if (nbEmptyCuboids > 0)
-				ratioGoodCuboids = nbCuboidsCorrectSize / nbCuboidsPossible;
-			else
-				ratioGoodCuboids = 0;
+				ratioGoodEmptyCuboids = (nbEmptyCuboids - badEmptyCuboid) / nbEmptyCuboids;
 
-			fitnessEmptyCuboids = ratioGoodCuboids;
+			fitnessEmptyCuboids = (ratioGoodEmptyCuboids + (totalVolume / volumeMax))/2;
 
 			return fitnessEmptyCuboids;
 		}
@@ -74,6 +68,8 @@ namespace Genetics
 			float fitnessWallsCuboids = 0;
 			int nbWalls = phenotype.walls.Count;
 			float badWalls = 0;
+			float ratioGoodWalls = 0;
+			float totalVolume = 0;
 
 			foreach (Cuboid wall in phenotype.walls)
 			{
@@ -82,10 +78,14 @@ namespace Genetics
 				{
 					badWalls++;
 				}
+
+				totalVolume += wall.width * wall.height * wall.length;
 			}
 
 			if(nbWalls > 0)
-				fitnessWallsCuboids = (nbWalls - badWalls) / nbWalls;
+				ratioGoodWalls = (nbWalls - badWalls) / nbWalls;
+
+			fitnessWallsCuboids = (ratioGoodWalls + (totalVolume / volumeMax)) / 2;
 
 			return fitnessWallsCuboids;
 		}
@@ -94,15 +94,28 @@ namespace Genetics
 		{
 			float fitnessPathfinding = 0;
 
-			
-			foreach (WalkableArea path in phenotype.walkableArea)
+			float nbWalkableAreas = phenotype.walkableArea.Count; float ratioBadWalkableArea = 0; float badWalkableArea = 0;
+			float nbPaths = phenotype.paths.Count; float ratioBadPath = 0; float badPath = 0;
+
+			foreach (WalkableArea wa in phenotype.walkableArea)
 			{
-				if (path.cells.Count < 3)
-					fitnessPathfinding = 0; 
+				if (wa.cells.Count < 3 || wa.neighborsArea.Count == 0)
+					badWalkableArea++; 
 			}
 
-			if (phenotype.walkableArea.Count == 0)
-				fitnessPathfinding = 0;
+			if(nbWalkableAreas > 0)
+				ratioBadWalkableArea = (nbWalkableAreas - badWalkableArea) / nbWalkableAreas;
+
+			foreach (Path path in phenotype.paths)
+			{
+				if (path.neighborsConnected.Count == 0)
+					badPath++;
+			}
+
+			if (nbPaths > 0)
+				ratioBadPath = (nbPaths - badPath) / nbPaths;
+
+			fitnessPathfinding = (0.5f*ratioBadWalkableArea + ratioBadPath) / 1.5f;
 
 
 			return fitnessPathfinding;

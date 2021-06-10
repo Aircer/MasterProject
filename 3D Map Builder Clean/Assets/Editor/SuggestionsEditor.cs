@@ -40,13 +40,13 @@ public class SuggestionsEditor : EditorWindow
             mapWindow = (MapTileGridCreatorWindow)Resources.FindObjectsOfTypeAll(typeof(MapTileGridCreatorWindow))[0];
 
         window = GetWindow(typeof(SuggestionsEditor));
-        evolAlgoParams.population = 20;
-        evolAlgoParams.elitism = 0;
-        evolAlgoParams.generations = 1;
+        evolAlgoParams.population = 50;
+        evolAlgoParams.elitism = 4;
+        evolAlgoParams.generations = 20;
         evolAlgoParams.mutationRate = 0.005f;
 
-        evolAlgoParams.wEmptyCuboids = 1f;
-        evolAlgoParams.wWallsCuboids = 1f;
+        evolAlgoParams.wEmptyCuboids = 0.2f;
+        evolAlgoParams.wWallsCuboids = 0.2f;
         evolAlgoParams.wPathfinding = 1f;
     }
     

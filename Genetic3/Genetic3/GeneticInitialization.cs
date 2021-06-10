@@ -10,7 +10,7 @@ namespace Genetics
     {
         public static List<List<float[]>> fitness { get; private set; }
 
-        public static List<int[][][]> GetSuggestionsClusters(int sizeX, int sizeY, int sizeZ, TypeParams[] cellsInfos, int[][][] waypointParams, 
+        public static List<int[][][]> GetSuggestionsClusters(int sizeX, int sizeY, int sizeZ, TypeParams[] cellsInfos,int[][][] waypointParams, 
             int nbSuggestions, EvolutionaryAlgoParams algoParams)
         {
             List<int[][][]> newWaypointsParams = new List<int[][][]>();

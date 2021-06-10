@@ -45,19 +45,18 @@ namespace Genetic3
 			newTypesParams[10].blockPath = true;
 			newTypesParams[10].wall = true;
 
-			/*
-			newTypesParams[3].door = true;
-			newTypesParams[3].wall = true;
+			newTypesParams[2].door = true;
+			newTypesParams[2].wall = true;
 
-			newTypesParams[5].blockPath = true;
-			newTypesParams[5].floor = true;
-			newTypesParams[5].ground = true;
+			newTypesParams[4].blockPath = true;
+			newTypesParams[4].floor = true;
+			newTypesParams[4].ground = true;
 
-			newTypesParams[6].ladder = true;
+			newTypesParams[5].ladder = true;
 
-			newTypesParams[8].blockPath = true;
-			newTypesParams[8].ground = true;
-			newTypesParams[8].stair = true;*/
+			newTypesParams[7].blockPath = true;
+			newTypesParams[7].ground = true;
+			newTypesParams[7].stair = true;
 
 			return newTypesParams;
 		}
@@ -67,12 +66,12 @@ namespace Genetic3
 			EvolutionaryAlgoParams algoParams = new EvolutionaryAlgoParams();
 
 			algoParams.population = 100;
-			algoParams.elitism = 0;
-			algoParams.generations = 20;
+			algoParams.elitism = 4;
+			algoParams.generations = 100;
 			algoParams.mutationRate = 0.005f;
-			algoParams.wEmptyCuboids = 0f;
+			algoParams.wEmptyCuboids = 0.2f;
 			algoParams.wWallsCuboids = 1f;
-			algoParams.wPathfinding = 0f;
+			algoParams.wPathfinding = 0.2f;
 
 			return algoParams;
 		}

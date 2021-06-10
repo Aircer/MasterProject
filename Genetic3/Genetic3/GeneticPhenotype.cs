@@ -511,7 +511,7 @@ namespace Genetics
             HashSet<Vector3Int> path = new HashSet<Vector3Int>();
 
             openSet.Push(input);
-            if (CellIsPath(input.x, input.y, input.z))
+            if (CellIsPathWalkable(input.x, input.y, input.z))
                 path.Add(input);
 
             while (openSet.Count > 0)
@@ -524,32 +524,40 @@ namespace Genetics
                 {
                     if(CellIsWalkable(x - 1, y, z) && !cells.Contains(new Vector3Int(x - 1, y, z)))
                         openSet.Push(new Vector3Int(x - 1, y, z));
-                    if (CellIsPath(x - 1, y, z))
+                    if (CellIsPathWalkable(x - 1, y, z))
                         path.Add(new Vector3Int(x - 1, y, z));
+                    if (CellIsPathWalkable(x - 1, y - 1, z))
+                        path.Add(new Vector3Int(x - 1, y - 1, z));
                 }
 
                 if (x + 1 < size.x)
                 {
                     if (CellIsWalkable(x + 1, y, z) && !cells.Contains(new Vector3Int(x + 1, y, z)))
                         openSet.Push(new Vector3Int(x + 1, y, z));
-                    if (CellIsPath(x + 1, y, z))
+                    if (CellIsPathWalkable(x + 1, y, z))
                         path.Add(new Vector3Int(x + 1, y, z));
+                    if (CellIsPathWalkable(x + 1, y - 1, z))
+                        path.Add(new Vector3Int(x + 1, y - 1, z));
                 }
 
                 if (z - 1 > 0)
                 {
                     if (CellIsWalkable(x, y, z - 1) && !cells.Contains(new Vector3Int(x, y, z - 1)))
                         openSet.Push(new Vector3Int(x, y, z - 1));
-                    if (CellIsPath(x, y, z - 1))
+                    if (CellIsPathWalkable(x, y, z - 1))
                         path.Add(new Vector3Int(x, y, z - 1));
+                    if (CellIsPathWalkable(x, y - 1, z - 1))
+                        path.Add(new Vector3Int(x, y - 1, z - 1));
                 }
 
                 if (z + 1 < size.z)
                 {
                     if (CellIsWalkable(x, y, z + 1) && !cells.Contains(new Vector3Int(x, y, z + 1)))
                         openSet.Push(new Vector3Int(x, y, z + 1));
-                    if (CellIsPath(x, y, z + 1))
+                    if (CellIsPathWalkable(x, y, z + 1))
                         path.Add(new Vector3Int(x, y, z + 1));
+                    if (CellIsPathWalkable(x, y - 1, z + 1))
+                        path.Add(new Vector3Int(x, y - 1, z + 1));
                 }
 
             }
@@ -597,7 +605,7 @@ namespace Genetics
             HashSet<Vector3Int> cells = new HashSet<Vector3Int>();
 
             openSet.Push(input);
-
+            
             while (openSet.Count > 0)
             {
                 Vector3Int currentCell = openSet.Pop();
@@ -606,13 +614,13 @@ namespace Genetics
 
                 if (y - 1 > 0)
                 {
-                    if (Genes[x][y - 1][z] == newPath.type && CellIsPath(x, y - 1, z) && !cells.Contains(new Vector3Int(x, y - 1, z)))
+                    if (Genes[x][y - 1][z] == newPath.type && typeParams[Genes[x][y - 1][z]].ladder && !cells.Contains(new Vector3Int(x, y - 1, z)))
                         openSet.Push(new Vector3Int(x, y - 1, z));
                 }
 
                 if (y + 1 < size.y)
                 {
-                    if (Genes[x][y + 1][z] == newPath.type && CellIsPath(x, y + 1, z) && !cells.Contains(new Vector3Int(x, y + 1, z)))
+                    if (Genes[x][y + 1][z] == newPath.type && typeParams[Genes[x][y + 1][z]].ladder && !cells.Contains(new Vector3Int(x, y + 1, z)))
                         openSet.Push(new Vector3Int(x, y + 1, z));
                 }
 
@@ -639,12 +647,20 @@ namespace Genetics
                 return false;
         }
 
-        private static bool CellIsPath(int x, int y, int z)
+        private static bool CellIsPathWalkable(int x, int y, int z)
         {
             if ((Genes[x][y][z] == 0 && typeParams[Genes[x][y - 1][z]].stair)
               || (Genes[x][y + 1][z] == 0 && typeParams[Genes[x][y][z]].stair)
               || (typeParams[Genes[x][y][z]].ladder || typeParams[Genes[x][y - 1][z]].ladder)
               || (typeParams[Genes[x][y][z]].door && Genes[x][y - 1][z] > 0 && !typeParams[Genes[x][y - 1][z]].door))
+                return true;
+            else
+                return false;
+        }
+
+        private static bool CellIsPath(int x, int y, int z)
+        {
+            if (typeParams[Genes[x][y][z]].stair || typeParams[Genes[x][y][z]].ladder || (typeParams[Genes[x][y][z]].door && !typeParams[Genes[x][y - 1][z]].door))
                 return true;
             else
                 return false;
