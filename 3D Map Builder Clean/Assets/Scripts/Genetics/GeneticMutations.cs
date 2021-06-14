@@ -2,7 +2,6 @@
 using System.Linq;
 using System;
 using UtilitiesGenetic;
-using mVectors;
 
 namespace Genetics
 {
@@ -77,7 +76,7 @@ namespace Genetics
 				if (mutationType == 3)
 					Genes = MutationsWalls.DeleteWallX(Genes, input);
 				if (mutationType == 4)
-					Genes = MutationsDoors.CreateDoor(Genes, input, 3);
+					Genes = MutationsDoors.CreateDoor(Genes, input, 1);
 			}
 
 			if (typeParams[Genes[input.x][input.y][input.z]].stair)
@@ -87,7 +86,7 @@ namespace Genetics
 				if (mutationType == 0)
 					Genes = MutationsStairs.DestroyStair(Genes, input);
 				if (mutationType == 1)
-					Genes = MutationsStairs.MoveStair(Genes, input, 8);
+					Genes = MutationsStairs.MoveStair(Genes, input, 4);
 			}
 
 			if (Genes[input.x][input.y][input.z] == 0)
@@ -95,15 +94,15 @@ namespace Genetics
 				int mutationType = random.Next(100);
 
 				if (mutationType < 5)
-					Genes = MutationsWalls.FillWallX(Genes, input, 11);
+					Genes = MutationsWalls.FillWallX(Genes, input, 5);
 				if (mutationType > 5 && mutationType < 10)
-					Genes = MutationsWalls.FillWallZ(Genes, input, 11);
+					Genes = MutationsWalls.FillWallZ(Genes, input, 5);
 				if (mutationType > 10 && mutationType < 60)
-					Genes = MutationsFloor.FillFloor(Genes, input, 5);
+					Genes = MutationsFloor.FillFloor(Genes, input, 2);
 				if (mutationType > 60 && mutationType < 65)
-					Genes = MutationsLadders.CreateLadder(Genes, input, 6);
+					Genes = MutationsLadders.CreateLadder(Genes, input, 3);
 				if (mutationType > 65 && mutationType < 70)
-					Genes = MutationsStairs.CreateStair(Genes, new Vector3Int(input.x, input.y, input.z), 8);
+					Genes = MutationsStairs.CreateStair(Genes, new Vector3Int(input.x, input.y, input.z), 4);
 			}
 
 			return Genes;

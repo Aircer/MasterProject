@@ -2,7 +2,6 @@
 using System.Linq;
 using System;
 using UtilitiesGenetic;
-using mVectors;
 
 namespace Genetics
 {
@@ -12,27 +11,27 @@ namespace Genetics
         public static SharpNeatLib.Maths.FastRandom random;
         public static TypeParams[] typeParams;
         public static int[][][] Genes;
+        public static int nbCells;
 
         public static void InitMutations(Vector3Int sizeDNA, SharpNeatLib.Maths.FastRandom rand, TypeParams[] tp)
         {
             size = sizeDNA;
             random = rand;
             typeParams = tp;
+            nbCells = sizeDNA.x * sizeDNA.y * sizeDNA.z;
         }
 
         public static Phenotype GetPhenotype(int[][][] newGenes)
-        {
+        { 
+            Phenotype newPhenotype = new Phenotype();
+            newPhenotype.Init(typeParams.Length, nbCells);
             Genes = newGenes;
+            newPhenotype.population.genes = Genes;
+
             HashSet<Vector3Int> cellsInEmptyCuboids = new HashSet<Vector3Int>();
             HashSet<Vector3Int> cellsInWalls= new HashSet<Vector3Int>();
             HashSet<Vector3Int> cellsInWalkableAreas = new HashSet<Vector3Int>();
             HashSet<Vector3Int> cellsInPaths = new HashSet<Vector3Int>();
-
-            Phenotype newPhenotype = new Phenotype();
-            newPhenotype.emptyCuboids = new HashSet<Cuboid>();
-            newPhenotype.walls= new HashSet<Cuboid>();
-            newPhenotype.walkableArea = new HashSet<WalkableArea>();
-            newPhenotype.paths = new HashSet<Path>();
 
             for (int x = 1; x < size.x; x++)
             {
@@ -292,6 +291,7 @@ namespace Genetics
             newCuboid.cellsBorder = ConnectCuboid(newCuboid, type);
             newCuboid.inCuboids = new HashSet<Cuboid>();
             newCuboid.outCuboids = new HashSet<Cuboid>();
+            newCuboid.bottomEmpty = BottomEmpty(newCuboid);
 
             newCuboid.width = (newCuboid.max.x - newCuboid.min.x) > (newCuboid.max.z - newCuboid.min.z) ?
                                     (newCuboid.max.z - newCuboid.min.z) : (newCuboid.max.x - newCuboid.min.x);
@@ -405,12 +405,33 @@ namespace Genetics
                 return 0;
         }
 
+        private static HashSet<Vector3Int> BottomEmpty(Cuboid cuboid)
+        {
+            HashSet<Vector3Int> newBorderCells = new HashSet<Vector3Int>();
+
+            if (cuboid.min.y - 1 > 0)
+            {
+                for (int x = cuboid.min.x; x < cuboid.max.x; x++)
+                {
+                    for (int z = cuboid.min.z; z < cuboid.max.z; z++)
+                    {
+                        if (!CellIsStruct(x, cuboid.min.y - 1, z))
+                            newBorderCells.Add(new Vector3Int(x, cuboid.min.y - 1, z));
+                    }
+                }
+
+                return newBorderCells;
+            }
+
+            return new HashSet<Vector3Int>();
+        }
+
         private static HashSet<Vector3Int> ConnectCuboid(Cuboid cuboid, string type)
         {
 
             HashSet<Vector3Int> borderCells  = new HashSet<Vector3Int>();
-            borderCells.UnionWith(NewBorderCellsYPos(cuboid, type));
-            borderCells.UnionWith(NewBorderCellsYNeg(cuboid, type));
+            //borderCells.UnionWith(NewBorderCellsYPos(cuboid, type));
+            //borderCells.UnionWith(NewBorderCellsYNeg(cuboid, type));
             borderCells.UnionWith(NewBorderCellsXPos(cuboid, type));
             borderCells.UnionWith(NewBorderCellsXNeg(cuboid, type));
             borderCells.UnionWith(NewBorderCellsZPos(cuboid, type));

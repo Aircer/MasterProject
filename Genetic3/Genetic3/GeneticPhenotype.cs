@@ -2,7 +2,6 @@
 using System.Linq;
 using System;
 using UtilitiesGenetic;
-using mVectors;
 
 namespace Genetics
 {
@@ -12,27 +11,27 @@ namespace Genetics
         public static SharpNeatLib.Maths.FastRandom random;
         public static TypeParams[] typeParams;
         public static int[][][] Genes;
+        public static int nbCells;
 
         public static void InitMutations(Vector3Int sizeDNA, SharpNeatLib.Maths.FastRandom rand, TypeParams[] tp)
         {
             size = sizeDNA;
             random = rand;
             typeParams = tp;
+            nbCells = sizeDNA.x * sizeDNA.y * sizeDNA.z;
         }
 
         public static Phenotype GetPhenotype(int[][][] newGenes)
-        {
+        { 
+            Phenotype newPhenotype = new Phenotype();
+            newPhenotype.Init(typeParams.Length, nbCells);
             Genes = newGenes;
+            newPhenotype.population.genes = Genes;
+
             HashSet<Vector3Int> cellsInEmptyCuboids = new HashSet<Vector3Int>();
             HashSet<Vector3Int> cellsInWalls= new HashSet<Vector3Int>();
             HashSet<Vector3Int> cellsInWalkableAreas = new HashSet<Vector3Int>();
             HashSet<Vector3Int> cellsInPaths = new HashSet<Vector3Int>();
-
-            Phenotype newPhenotype = new Phenotype();
-            newPhenotype.emptyCuboids = new HashSet<Cuboid>();
-            newPhenotype.walls= new HashSet<Cuboid>();
-            newPhenotype.walkableArea = new HashSet<WalkableArea>();
-            newPhenotype.paths = new HashSet<Path>();
 
             for (int x = 1; x < size.x; x++)
             {
@@ -143,7 +142,33 @@ namespace Genetics
 
                         for (int z = input.z; z < max.z; z++)
                         {
-                            if (!CellInCuboid(max.x, y, z, type) && !cellsAlreadyPicked.Contains(new Vector3Int(max.x, y, z)))
+                            if (CellInCuboid(max.x, y, z, type) && !cellsAlreadyPicked.Contains(new Vector3Int(max.x, y, z)))
+                                holeMaxX++;
+                            else
+                            {
+                                holeMaxX = 0;
+                                newMax = z + 1;
+                            }
+
+                            if (holeMaxX >= max.x - input.x && newMax < max.z && newMax > input.z)
+                            {
+                                max.z = newMax;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (input.x > 1)
+                {
+                    for (int y = input.y; y < max.y; y++)
+                    {
+                        int holeMaxX = 0;
+                        int newMax = 0;
+
+                        for (int z = input.z; z < max.z; z++)
+                        {
+                            if (CellInCuboid(input.x - 1, y, z, type) && !cellsAlreadyPicked.Contains(new Vector3Int(input.x - 1, y, z)))
                                 holeMaxX++;
                             else
                             {
@@ -171,7 +196,33 @@ namespace Genetics
 
                         for (int x = input.x; x < max.x; x++)
                         {
-                            if (!CellInCuboid(x, y, max.z, type) && !cellsAlreadyPicked.Contains(new Vector3Int(x, y, max.z)))
+                            if (CellInCuboid(x, y, max.z, type) && !cellsAlreadyPicked.Contains(new Vector3Int(x, y, max.z)))
+                                holeMaxZ++;
+                            else
+                            {
+                                holeMaxZ = 0;
+                                newMax = x + 1;
+                            }
+
+                            if (holeMaxZ >= max.z - input.z && newMax < max.x && newMax > input.x)
+                            {
+                                max.x = newMax;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (input.z > 1)
+                {
+                    for (int y = input.y; y < max.y; y++)
+                    {
+                        int holeMaxZ = 0;
+                        int newMax = 0;
+
+                        for (int x = input.x; x < max.x; x++)
+                        {
+                            if (CellInCuboid(x, y, input.z - 1, type) && !cellsAlreadyPicked.Contains(new Vector3Int(x, y, input.z - 1)))
                                 holeMaxZ++;
                             else
                             {
@@ -199,11 +250,17 @@ namespace Genetics
                 {
                     if (max.z < size.z && CellInCuboid(x, y, max.z, type))
                         numberEmpty++;
+
+                    if (input.z > 1 && CellInCuboid(x, y, input.z - 1, type))
+                        numberEmpty++;
                 }
                 
                 for (int z = input.z; z < max.z; z++)
                 {
                     if (max.x < size.x && CellInCuboid(max.x, y, z, type))
+                        numberEmpty++;
+
+                    if (input.x > 1 && CellInCuboid(input.x - 1, y, z, type))
                         numberEmpty++;
                 }
 
@@ -234,6 +291,7 @@ namespace Genetics
             newCuboid.cellsBorder = ConnectCuboid(newCuboid, type);
             newCuboid.inCuboids = new HashSet<Cuboid>();
             newCuboid.outCuboids = new HashSet<Cuboid>();
+            newCuboid.bottomEmpty = BottomEmpty(newCuboid);
 
             newCuboid.width = (newCuboid.max.x - newCuboid.min.x) > (newCuboid.max.z - newCuboid.min.z) ?
                                     (newCuboid.max.z - newCuboid.min.z) : (newCuboid.max.x - newCuboid.min.x);
@@ -347,12 +405,33 @@ namespace Genetics
                 return 0;
         }
 
+        private static HashSet<Vector3Int> BottomEmpty(Cuboid cuboid)
+        {
+            HashSet<Vector3Int> newBorderCells = new HashSet<Vector3Int>();
+
+            if (cuboid.min.y - 1 > 0)
+            {
+                for (int x = cuboid.min.x; x < cuboid.max.x; x++)
+                {
+                    for (int z = cuboid.min.z; z < cuboid.max.z; z++)
+                    {
+                        if (!CellIsStruct(x, cuboid.min.y - 1, z))
+                            newBorderCells.Add(new Vector3Int(x, cuboid.min.y - 1, z));
+                    }
+                }
+
+                return newBorderCells;
+            }
+
+            return new HashSet<Vector3Int>();
+        }
+
         private static HashSet<Vector3Int> ConnectCuboid(Cuboid cuboid, string type)
         {
 
             HashSet<Vector3Int> borderCells  = new HashSet<Vector3Int>();
-            borderCells.UnionWith(NewBorderCellsYPos(cuboid, type));
-            borderCells.UnionWith(NewBorderCellsYNeg(cuboid, type));
+            //borderCells.UnionWith(NewBorderCellsYPos(cuboid, type));
+            //borderCells.UnionWith(NewBorderCellsYNeg(cuboid, type));
             borderCells.UnionWith(NewBorderCellsXPos(cuboid, type));
             borderCells.UnionWith(NewBorderCellsXNeg(cuboid, type));
             borderCells.UnionWith(NewBorderCellsZPos(cuboid, type));
@@ -504,6 +583,7 @@ namespace Genetics
             WalkableArea newWalkableArea = new WalkableArea();
             newWalkableArea.neighborsArea = new HashSet<WalkableArea>();
             newWalkableArea.neighborsPaths = new HashSet<Path>();
+            newWalkableArea.bordersNotGood = new HashSet<Vector3Int>();
             newWalkableArea.yPos = input.y;
 
             Stack<Vector3Int> openSet = new Stack<Vector3Int>();
@@ -526,8 +606,8 @@ namespace Genetics
                         openSet.Push(new Vector3Int(x - 1, y, z));
                     if (CellIsPathWalkable(x - 1, y, z))
                         path.Add(new Vector3Int(x - 1, y, z));
-                    if (CellIsPathWalkable(x - 1, y - 1, z))
-                        path.Add(new Vector3Int(x - 1, y - 1, z));
+                    if (!CellIsWalkable(x - 1, y, z) && !CellIsPathWalkable(x - 1, y, z) && !CellIsPathWalkable(x - 1, y - 1, z) && !CellIsStruct(x - 1, y, z))
+                        newWalkableArea.bordersNotGood.Add(new Vector3Int(x - 1, y, z));
                 }
 
                 if (x + 1 < size.x)
@@ -536,8 +616,8 @@ namespace Genetics
                         openSet.Push(new Vector3Int(x + 1, y, z));
                     if (CellIsPathWalkable(x + 1, y, z))
                         path.Add(new Vector3Int(x + 1, y, z));
-                    if (CellIsPathWalkable(x + 1, y - 1, z))
-                        path.Add(new Vector3Int(x + 1, y - 1, z));
+                    if (!CellIsWalkable(x + 1, y, z) && !CellIsPathWalkable(x + 1, y, z) && !CellIsPathWalkable(x + 1, y - 1, z) && !CellIsStruct(x + 1, y, z))
+                        newWalkableArea.bordersNotGood.Add(new Vector3Int(x + 1, y, z));
                 }
 
                 if (z - 1 > 0)
@@ -546,8 +626,8 @@ namespace Genetics
                         openSet.Push(new Vector3Int(x, y, z - 1));
                     if (CellIsPathWalkable(x, y, z - 1))
                         path.Add(new Vector3Int(x, y, z - 1));
-                    if (CellIsPathWalkable(x, y - 1, z - 1))
-                        path.Add(new Vector3Int(x, y - 1, z - 1));
+                    if (!CellIsWalkable(x, y, z - 1) && !CellIsPathWalkable(x, y, z - 1) && !CellIsPathWalkable(x, y - 1, z - 1) && !CellIsStruct(x, y, z - 1))
+                        newWalkableArea.bordersNotGood.Add(new Vector3Int(x, y, z - 1));
                 }
 
                 if (z + 1 < size.z)
@@ -556,8 +636,8 @@ namespace Genetics
                         openSet.Push(new Vector3Int(x, y, z + 1));
                     if (CellIsPathWalkable(x, y, z + 1))
                         path.Add(new Vector3Int(x, y, z + 1));
-                    if (CellIsPathWalkable(x, y - 1, z + 1))
-                        path.Add(new Vector3Int(x, y - 1, z + 1));
+                    if (!CellIsWalkable(x, y, z + 1) && !CellIsPathWalkable(x, y, z + 1) && !CellIsPathWalkable(x, y - 1, z + 1) && !CellIsStruct(x, y, z + 1))
+                        newWalkableArea.bordersNotGood.Add(new Vector3Int(x, y, z + 1));
                 }
 
             }
@@ -590,11 +670,21 @@ namespace Genetics
         {
             HashSet<Vector3Int> stairX = MutationsStairs.GetStairX(Genes, input);
             HashSet<Vector3Int> stairZ = MutationsStairs.GetStairZ(Genes, input);
+            HashSet<Vector3Int> stair = new HashSet<Vector3Int>();
 
             if (stairX.Count > stairZ.Count)
-                newPath.cells = stairX;
+                stair = stairX;
             else
-                newPath.cells = stairZ;
+                stair = stairZ;
+
+            foreach(Vector3Int ind in stair)
+            {
+                if (CellIsStairPath(ind.x, ind.y, ind.z))
+                {
+                    newPath.cells.Add(ind);
+                    newPath.cells.Add(new Vector3Int(ind.x, ind.y + 1, ind.z));
+                }
+            }
 
             return newPath;
         }
@@ -614,13 +704,13 @@ namespace Genetics
 
                 if (y - 1 > 0)
                 {
-                    if (Genes[x][y - 1][z] == newPath.type && typeParams[Genes[x][y - 1][z]].ladder && !cells.Contains(new Vector3Int(x, y - 1, z)))
+                    if (Genes[x][y - 1][z] == newPath.type && CellIsLadderPath(x, y - 1, z) && !cells.Contains(new Vector3Int(x, y - 1, z)))
                         openSet.Push(new Vector3Int(x, y - 1, z));
                 }
 
                 if (y + 1 < size.y)
                 {
-                    if (Genes[x][y + 1][z] == newPath.type && typeParams[Genes[x][y + 1][z]].ladder && !cells.Contains(new Vector3Int(x, y + 1, z)))
+                    if (Genes[x][y + 1][z] == newPath.type && CellIsLadderPath(x, y + 1, z) && !cells.Contains(new Vector3Int(x, y + 1, z)))
                         openSet.Push(new Vector3Int(x, y + 1, z));
                 }
 
@@ -660,7 +750,26 @@ namespace Genetics
 
         private static bool CellIsPath(int x, int y, int z)
         {
-            if (typeParams[Genes[x][y][z]].stair || typeParams[Genes[x][y][z]].ladder || (typeParams[Genes[x][y][z]].door && !typeParams[Genes[x][y - 1][z]].door))
+            if (CellIsLadderPath(x, y, z) || CellIsStairPath(x, y, z)
+             || (typeParams[Genes[x][y][z]].door && !typeParams[Genes[x][y - 1][z]].door))
+                return true;
+            else
+                return false;
+        }
+
+        private static bool CellIsLadderPath(int x, int y, int z)
+        {
+            if ((typeParams[Genes[x][y][z]].ladder && (Genes[x][y + 1][z] == 0 || typeParams[Genes[x][y + 1][z]].ladder))
+             || (typeParams[Genes[x][y - 1][z]].ladder && Genes[x][y][z] == 0))
+                return true;
+            else
+                return false;
+        }
+
+        private static bool CellIsStairPath(int x, int y, int z)
+        {
+            if ((typeParams[Genes[x][y][z]].stair && Genes[x][y + 1][z] == 0)
+             || (typeParams[Genes[x][y - 1][z]].stair && Genes[x][y][z] == 0))
                 return true;
             else
                 return false;

@@ -2,19 +2,21 @@
 using System.Linq;
 using System;
 using UtilitiesGenetic;
-using mVectors;
 
 namespace Genetics
 {
-    public static class Init
+    public class Init
     {
-        public static List<List<float[]>> fitness { get; private set; }
+        //[run][generation][population]
+        public Fitness[][][] fitness;
+        public Population[][][] populations;
 
-        public static List<int[][][]> GetSuggestionsClusters(int sizeX, int sizeY, int sizeZ, TypeParams[] cellsInfos,int[][][] waypointParams, 
+        public List<int[][][]> GetSuggestionsClusters(int sizeX, int sizeY, int sizeZ, TypeParams[] cellsInfos,int[][][] waypointParams, 
             int nbSuggestions, EvolutionaryAlgoParams algoParams)
         {
             List<int[][][]> newWaypointsParams = new List<int[][][]>();
-            fitness = new List<List<float[]>>();
+            fitness = new Fitness[nbSuggestions][][];
+            populations = new Population[nbSuggestions][][];
             Vector3Int size = new Vector3Int(sizeX, sizeY, sizeZ);
             SharpNeatLib.Maths.FastRandom randomFast = new SharpNeatLib.Maths.FastRandom();
 
@@ -29,7 +31,8 @@ namespace Genetics
                 }
 
                 newWaypointsParams.Add(newGenetic.GetBestClusters());
-                fitness.Add(newGenetic.GetFitness());
+                fitness[i] = newGenetic.GetFitness();
+                populations[i] = newGenetic.GetPopulations();
             }
 
             return newWaypointsParams;

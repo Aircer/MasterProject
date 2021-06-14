@@ -1,14 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using Genetics;
 
 namespace UtilitiesGenetic
 {
-	public struct WaypointParams
-	{
-		public int type;
-		public bool baseType;
-	}
-
 	[System.Serializable]
 	public class TypeParams
 	{
@@ -39,36 +34,30 @@ namespace UtilitiesGenetic
 		public int generations;
 		public int elitism;
 
-		public float wEmptyCuboids;
+		public float wDifference;
+		public float wWalkingAreas;
 		public float wWallsCuboids;
 		public float wPathfinding;
 	}
-}
 
-namespace mVectors
-{
-	public struct Phenotype
+	public class Phenotype
 	{
 		public HashSet<Cuboid> emptyCuboids;
 		public HashSet<Cuboid> walls;
 		public HashSet<WalkableArea> walkableArea;
 		public HashSet<Path> paths;
-	}
 
-	public struct Cuboid
-	{
-		public Vector3Int min;
-		public Vector3Int max;
+		public Population population;
 
-		public int width;
-		public int length;
-		public int height;
 
-		public HashSet<Vector3Int> cellsBorder;
-		public HashSet<Vector3Int> cells;
-
-		public HashSet<Cuboid> inCuboids;
-		public HashSet<Cuboid> outCuboids;
+		public void Init(int lengthTypes, int numberCells)
+		{
+			emptyCuboids = new HashSet<Cuboid>();
+			walls = new HashSet<Cuboid>();
+			walkableArea = new HashSet<WalkableArea>();
+			paths = new HashSet<Path>();
+			population = new Population();
+		}
 	}
 
 	public struct WalkableArea
@@ -89,6 +78,21 @@ namespace mVectors
 		public HashSet<WalkableArea> neighbors;
 	}
 
+	public struct Fitness
+	{
+		public float total;
+		public float walls;
+		public float walkingAreas;
+		public float pathfinding;
+		public float difference;
+	}
+
+	public struct Population
+	{
+		public int[][][] genes;
+	}
+
+	//Vector2Int and Vector3Int class so we can use them without using UnityEngine for running the genetic algorithm outside Unity
 	public class Vector2Int
 	{
 		public int x;

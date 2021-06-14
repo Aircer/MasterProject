@@ -45,7 +45,8 @@ public class SuggestionsEditor : EditorWindow
         evolAlgoParams.generations = 20;
         evolAlgoParams.mutationRate = 0.005f;
 
-        evolAlgoParams.wEmptyCuboids = 0.2f;
+        evolAlgoParams.wDifference = 0.2f;
+        evolAlgoParams.wWalkingAreas = 0.2f;
         evolAlgoParams.wWallsCuboids = 0.2f;
         evolAlgoParams.wPathfinding = 1f;
     }
@@ -64,11 +65,12 @@ public class SuggestionsEditor : EditorWindow
         evolAlgoParams.elitism = EditorGUILayout.IntField("Elitism ", evolAlgoParams.elitism, GUILayout.Width(0.5f * position.width));
         GUILayout.EndHorizontal();
 
-        EditorGUIUtility.labelWidth = 50;
+        EditorGUIUtility.labelWidth = 70;
         GUILayout.BeginHorizontal();
-        evolAlgoParams.wEmptyCuboids = EditorGUILayout.FloatField("wEmpty ", evolAlgoParams.wEmptyCuboids, GUILayout.Width(0.3f * position.width));
-        evolAlgoParams.wWallsCuboids = EditorGUILayout.FloatField("wWalls", evolAlgoParams.wWallsCuboids, GUILayout.Width(0.3f * position.width));
-        evolAlgoParams.wPathfinding = EditorGUILayout.FloatField("wPath ", evolAlgoParams.wPathfinding, GUILayout.Width(0.3f * position.width));
+        evolAlgoParams.wDifference = EditorGUILayout.FloatField("wDiff ", evolAlgoParams.wDifference, GUILayout.Width(0.25f * position.width));
+        evolAlgoParams.wWalkingAreas = EditorGUILayout.FloatField("wWA ", evolAlgoParams.wWalkingAreas, GUILayout.Width(0.25f * position.width));
+        evolAlgoParams.wWallsCuboids = EditorGUILayout.FloatField("wWalls ", evolAlgoParams.wWallsCuboids, GUILayout.Width(0.25f * position.width));
+        evolAlgoParams.wPathfinding = EditorGUILayout.FloatField("wPath ", evolAlgoParams.wPathfinding, GUILayout.Width(0.25f * position.width));
         GUILayout.EndHorizontal();
 
         if (mapSuggestionGrid == null || mapSuggestionGrid.Count == 0 || mapSuggestionGrid[0] == null)
@@ -157,7 +159,9 @@ public class SuggestionsEditor : EditorWindow
             typeParams[i] = mapCluster.cellInfos[i].typeParams;
         }
 
-        List<int[][][]> newWpList = Init.GetSuggestionsClusters(sizeDNDA_X, sizeDNDA_Y, sizeDNDA_Z, typeParams, wp, numberSuggestions, evolAlgoParams);
+        Genetics.Init geneticInit = new Genetics.Init();
+
+        List<int[][][]> newWpList = geneticInit.GetSuggestionsClusters(sizeDNDA_X, sizeDNDA_Y, sizeDNDA_Z, typeParams, wp, numberSuggestions, evolAlgoParams);
         List<WaypointCluster> newSuggestionClusters = new List<WaypointCluster>();
         for (int i = 0; i < numberSuggestions; i++)
         {

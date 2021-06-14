@@ -72,6 +72,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 	private GameObject _erasePrefab;
 	private GameObject _setWaypointPrefab;
 	private Dictionary<CellInformation, GameObject> _cellPrefabs = new Dictionary<CellInformation, GameObject>();
+	private GameObject palletObject;
 	private List<CellInformation> _cellTypes = new List<CellInformation>();
 	private List<bool> _cellTypesShow = new List<bool>();
 	private List<bool> _oldCellTypesShow = new List<bool>();
@@ -155,13 +156,22 @@ public class MapTileGridCreatorWindow : EditorWindow
 		_oldCellTypesShow.Clear();
 
 		string[] prefabFiles = Directory.GetFiles(_path_palletPreview, "*.prefab");
-		foreach (string prefabFile in prefabFiles)
+		DestroyImmediate(palletObject);
+		palletObject = new GameObject();
+		palletObject.SetActive(false);
+
+		foreach (string pF in prefabFiles)
 		{
-			GameObject newPrefab = AssetDatabase.LoadAssetAtPath(prefabFile, typeof(GameObject)) as GameObject;
-			_cellPrefabs[newPrefab.GetComponent<CellInformation>()] = newPrefab;
-			_cellTypes.Add(newPrefab.GetComponent<CellInformation>());
+			GameObject newObject = AssetDatabase.LoadAssetAtPath(pF, typeof(GameObject)) as GameObject;
+
+			_cellPrefabs[newObject.GetComponent<CellInformation>()] = newObject.gameObject;
+			_cellTypes.Add(newObject.GetComponent<CellInformation>());
 			_cellTypesShow.Add(true);
 			_oldCellTypesShow.Add(true);
+
+			GameObject newChild = PrefabUtility.InstantiatePrefab(newObject) as GameObject;
+			PrefabUtility.UnpackPrefabInstance(newChild, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+			newChild.transform.parent = palletObject.transform;
 		}
 
 		_erasePrefab = AssetDatabase.LoadAssetAtPath(_path_eraser, typeof(GameObject)) as GameObject;
@@ -250,7 +260,6 @@ public class MapTileGridCreatorWindow : EditorWindow
 		{
 			case PaintMode.Single:
 				{
-					ChangeBrushPallet();
 					Vector3Int input = Vector3Int.RoundToInt(GetGridPositionInput(0.5f));
 
 					if (input.x >= 0 && input.y >= 0 && input.z >= 0 && input.x < _size_grid.x && input.y < _size_grid.y && input.z < _size_grid.z)
@@ -268,7 +277,6 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 			case PaintMode.Erase:
 				{
-					ChangeBrushPallet();
 					Vector3Int input = Vector3Int.RoundToInt(GetGridPositionInput(-0.5f));
 
 					if(FuncMain.InputInGridBoundaries(input, _size_grid))
@@ -281,7 +289,6 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 			case PaintMode.SetPathfindingWaypoint:
 				{
-					ChangeBrushPallet();
 					Vector3Int input = Vector3Int.RoundToInt(GetGridPositionInput(0.5f));
 
 					if (FuncMain.InputInGridBoundaries(input, _size_grid))
@@ -712,16 +719,29 @@ public class MapTileGridCreatorWindow : EditorWindow
 			RefreshPallet();
 
 			//Create Visualization object (Coordinates, Brush and ToolManager) if it doesn't exist
-			if (!GameObject.Find("Visualization"))
-				PrefabUtility.InstantiatePrefab(Resources.Load("Visualization"));
+			GameObject newChildVisualization;
 
-			_brush = GameObject.Find("Brush");
-			_coordinates = GameObject.Find("Coordinates");
+			if (!GameObject.Find("Visualization"))
+			{
+				newChildVisualization = PrefabUtility.InstantiatePrefab(Resources.Load("Visualization")) as GameObject;
+				PrefabUtility.UnpackPrefabInstance(newChildVisualization, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+				_brush = GameObject.Find("Brush");
+
+				foreach (Transform child in palletObject.transform)
+                {
+					GameObject newObject = Instantiate(child.gameObject);
+					newObject.transform.name = newObject.transform.name.Replace("(Clone)", "").Trim();
+					newObject.transform.parent = _brush.transform;
+					newObject.transform.localPosition = new Vector3(0, 0, 0);
+				}
+
+				_coordinates = GameObject.Find("Coordinates");
+			}
 
 			//Destroy then create Grid and Cells with waypoints
 			FuncMain.DestroyGrids();
 
-			FuncMain.CreateCellsAndWaypoints(ref _grid, ref _cells, ref _cluster, _cellPrefabs, _size_grid);
+			FuncMain.CreateCellsAndWaypoints(ref _grid, ref _cells, ref _cluster, _cellPrefabs, _size_grid, palletObject);
 			_grid.transform.position = new Vector3(0, 0, 0);
 			suggWindow = (SuggestionsEditor[])Resources.FindObjectsOfTypeAll(typeof(SuggestionsEditor));
 
@@ -740,7 +760,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 					//newGrid.GetCells(_size_grid, _cellPrefabs);
 					//UnityEngine.Debug.Log(newGrid._cells.GetLength(0));
 					GameObject newcameraObject = Instantiate<GameObject>(_suggestionsCameraPrefab);
-					FuncMain.CreateCellsAndWaypoints(ref newGrid, ref newCells, ref newCluster, _cellPrefabs, _size_grid);
+					FuncMain.CreateCellsAndWaypoints(ref newGrid, ref newCells, ref newCluster, _cellPrefabs, _size_grid, palletObject);
 					_suggestionsCell.Add(newGrid._cells);
 					newGrid.transform.position = new Vector3(1000 * (i + 1), 1000 * (i + 1), 1000 * (i + 1));
 					newcameraObject.transform.parent = newGrid.transform;
@@ -830,7 +850,6 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 				case PaintMode.SetPathfindingWaypoint:
 					{
-						
 					}
 					break;
 
@@ -860,9 +879,12 @@ public class MapTileGridCreatorWindow : EditorWindow
 			_rotationCell.y = _rotationCell.y == 270 ? 0 : _rotationCell.y + 90;
 		}*/
 
-	   GUILayout.EndHorizontal();
+		GUILayout.EndHorizontal();
 
+		PaintMode old_mode_paint = _mode_paint;
 		_mode_paint = (PaintMode)GUILayout.Toolbar((int)_mode_paint, _modes_paint);
+
+		if (old_mode_paint != _mode_paint) { ChangeBrushPallet(); };
 	}
 
 	private void DrawPanelPallet()
@@ -933,21 +955,17 @@ public class MapTileGridCreatorWindow : EditorWindow
     {
 		foreach (Transform child in _brush.transform)
 		{
-			DestroyImmediate(child.gameObject);
+			child.gameObject.SetActive(false);
 		}
-		GameObject newBrushPallet;
-		if (_mode_paint == PaintMode.Single)
-			newBrushPallet = Instantiate<GameObject>(_cellPrefabs[_cellTypes[_cellTypes_index]]);
-		else if (_mode_paint == PaintMode.Erase)
-			newBrushPallet = Instantiate<GameObject>(_erasePrefab);
-		else if(_mode_paint == PaintMode.SetPathfindingWaypoint)
-			newBrushPallet = Instantiate<GameObject>(_setWaypointPrefab);
-		else
-			newBrushPallet = new GameObject();
 
-		newBrushPallet.transform.parent = _brush.transform;
-		newBrushPallet.transform.localPosition = new Vector3(0, 0, 0);
-		newBrushPallet.transform.localEulerAngles = new Vector3(0, 0, 0);
+		UnityEngine.Debug.Log(_cellPrefabs[_cellTypes[_cellTypes_index]].name);
+
+		if (_mode_paint == PaintMode.Single)
+			_brush.transform.Find(_cellPrefabs[_cellTypes[_cellTypes_index]].name).gameObject.SetActive(true);
+		else if (_mode_paint == PaintMode.Erase)
+			_brush.transform.Find("Erase").gameObject.SetActive(true);
+		else if(_mode_paint == PaintMode.SetPathfindingWaypoint)
+			_brush.transform.Find("PathfindingWaypoint").gameObject.SetActive(true);
 	}
 	#endregion
 }

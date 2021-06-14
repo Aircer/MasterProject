@@ -2,7 +2,6 @@
 using System.Linq;
 using System;
 using UtilitiesGenetic;
-using mVectors;
 
 namespace Genetics
 {

@@ -19,11 +19,11 @@ namespace MapTileGridCreator.UtilitiesVisual
 				{
 					for (int k = -1; k < 2; k++)
 					{
-						FloorTransform(cells, waypoints, new Vector3Int(newIndex.x + i, newIndex.y - 1, newIndex.z + k));
+						//FloorTransform(cells, waypoints, new Vector3Int(newIndex.x + i, newIndex.y - 1, newIndex.z + k));
 						LadderTransform(cells, waypoints, new Vector3Int(newIndex.x + i, newIndex.y, newIndex.z + k));
 					}
 				}
-
+				
 				if (newIndex.x > 0)
 					WallTransform(cells, waypoints, new Vector3Int(newIndex.x - 1, newIndex.y, newIndex.z));
 				if (newIndex.z > 0)
@@ -60,10 +60,10 @@ namespace MapTileGridCreator.UtilitiesVisual
 					}
 				}
 			}
-
+			
 			if (type != null && type.typeParams.floor)
 			{
-				FloorTransform(cells, waypoints, new Vector3Int(newIndex.x, newIndex.y, newIndex.z));
+				//FloorTransform(cells, waypoints, new Vector3Int(newIndex.x, newIndex.y, newIndex.z));
 
 				if (CellIsWall(newIndex.x, newIndex.y - 1, newIndex.z, cells, waypoints))
 					WallTransform(cells, waypoints, new Vector3Int(newIndex.x, newIndex.y - 1, newIndex.z));
@@ -82,8 +82,8 @@ namespace MapTileGridCreator.UtilitiesVisual
 				bool[] neighborsWalls = new bool[4];
 
 				Vector3 rotation = new Vector3(0, 0, 0);
-				string subType = "";
-
+				string subType = "Single";
+				/*
 				if (index.x > 0 && waypoints[index.x - 1, index.y, index.z].type != null && waypoints[index.x - 1, index.y, index.z].type.typeParams.wall)
 					neighborsWalls[0] = true;
 				else
@@ -132,7 +132,7 @@ namespace MapTileGridCreator.UtilitiesVisual
 				{
 					subType = "DoubleSides";
 					rotation = cells[index.x, index.y + 1, index.z].rotation;
-				}*/
+				}
 
 				if (neighborsWalls[1] && neighborsWalls[2] && !neighborsWalls[0] && !neighborsWalls[3])
 				{
@@ -204,7 +204,7 @@ namespace MapTileGridCreator.UtilitiesVisual
 					subType = "Floor";
 					rotation = new Vector3(0, 0, 0);
 				}*/
-
+				
 				if (CellIsFloor(index.x, index.y + 1, index.z, cells, waypoints))
 				{
 					subType += "Up";

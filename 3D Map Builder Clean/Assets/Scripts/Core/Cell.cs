@@ -70,16 +70,16 @@ namespace MapTileGridCreator.Core
 
 		public void Painted(CellInformation cellType, Vector2 rotation)
 		{
-			if (cellType != null && transform.childCount == 0)
+			if (cellType != null)
 			{
-				GameObject newChild = PrefabUtility.InstantiatePrefab(typeDicoCell[cellType], parent.transform) as GameObject;
-				PrefabUtility.UnpackPrefabInstance(newChild, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-				newChild.transform.parent = this.transform;
-				newChild.transform.localPosition = new Vector3(0, 0, 0);
-				newChild.transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
+				//GameObject newChild = PrefabUtility.InstantiatePrefab(typeDicoCell[cellType], parent.transform) as GameObject;
+				//PrefabUtility.UnpackPrefabInstance(newChild, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+				//newChild.transform.parent = this.transform;
+				//newChild.transform.localPosition = new Vector3(0, 0, 0);
+				//newChild.transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
 
-				//typeDicoCell[cellType].SetActive(true);
-				//typeDicoCell[cellType].transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
+				typeDicoCell[cellType].SetActive(true);
+				typeDicoCell[cellType].transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
 			}
 
 			lastRotation = rotation;
@@ -93,49 +93,36 @@ namespace MapTileGridCreator.Core
 
 		public void TransformVisual(string activeElement, Vector3 rotation)
         {
-			if(type != null)
+			if(false || type != null)
             {
-				/*foreach (Transform child in typeDicoCell[type].transform)
+				foreach (Transform child in typeDicoCell[type].transform)
 				{
 					child.gameObject.SetActive(false);
 				}
-				typeDicoCell[type].transform.Find(activeElement).gameObject.SetActive(true);
-				typeDicoCell[type].transform.localEulerAngles = rotation;*/
 
-				if (transform.GetChild(0).transform.Find(activeElement))
+				if (typeDicoCell[type].transform.Find(activeElement))
 				{
-					foreach (Transform child in transform.GetChild(0))
-					{
-						child.gameObject.SetActive(false);
-					}
-					transform.GetChild(0).transform.Find(activeElement).gameObject.SetActive(true);
+					typeDicoCell[type].transform.Find(activeElement).gameObject.SetActive(true);
 				}
 
-				transform.GetChild(0).transform.localEulerAngles = rotation;
+				typeDicoCell[type].transform.localEulerAngles = rotation;
 			}
 		}
 
 		public void TransformVisualFloor(List<string> activeElements)
-		{
-			if (type != null)
+		{	
+			if (false || type != null)
 			{
-				/*foreach (Transform child in typeDicoCell[type].transform)
-				{
-					child.gameObject.SetActive(false);
-				}
-				typeDicoCell[type].transform.Find(activeElement).gameObject.SetActive(true);
-				typeDicoCell[type].transform.localEulerAngles = rotation;*/
-
-				foreach (Transform child in transform.GetChild(0))
+				foreach (Transform child in typeDicoCell[type].transform.GetChild(0))
 				{
 					child.gameObject.SetActive(false);
 				}
 
-				transform.GetChild(0).Find("Floor").gameObject.SetActive(true);
+				typeDicoCell[type].transform.Find("Floor").gameObject.SetActive(true);
 
 				foreach (string elem in activeElements)
 				{
-					transform.GetChild(0).transform.Find(elem).gameObject.SetActive(true);
+					typeDicoCell[type].transform.Find(elem).gameObject.SetActive(true);
 				}
 			}
 		}
@@ -161,11 +148,11 @@ namespace MapTileGridCreator.Core
 
 			if (newType != null)
 			{
-				//typeDicoCell[newType].SetActive(true);
-				//typeDicoCell[newType].transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
+				typeDicoCell[newType].SetActive(true);
+				typeDicoCell[newType].transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
 
-				transform.GetChild(0).gameObject.SetActive(true);
-				transform.GetChild(0).transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
+				//transform.GetChild(0).gameObject.SetActive(true);
+				//transform.GetChild(0).transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
 
 				lastRotation = rotation;
 				lastType = type = newType;
@@ -173,8 +160,8 @@ namespace MapTileGridCreator.Core
 
 			if (type != null)
 			{
-				//typeDicoCell[type].SetActive(true);
-				transform.GetChild(0).gameObject.SetActive(true);
+				typeDicoCell[type].SetActive(true);
+				//transform.GetChild(0).gameObject.SetActive(true);
 			}
 
 			state = CellState.Active;
@@ -184,12 +171,6 @@ namespace MapTileGridCreator.Core
 		{
 			SetColliderState(false);
 			SetMeshState(false);
-
-			if (type != null)
-			{
-				//typeDicoCell[type].SetActive(false);
-				DestroyImmediate(transform.GetChild(0).gameObject);
-			}
 
 			type = null;
 			state = CellState.Inactive;
@@ -203,15 +184,13 @@ namespace MapTileGridCreator.Core
 
 		public void SetMeshState(bool state)
 		{
-			/*for (int i = 0; i < gameObject.transform.childCount; i++)
-			{
-				if (type && gameObject.transform.GetChild(i).name == type.name || !state)
-				{
-					gameObject.transform.GetChild(i).transform.gameObject.SetActive(state);
-				}
-			}*/
-			if(transform.childCount > 0)
-				transform.GetChild(0).transform.gameObject.SetActive(state);
+			foreach(KeyValuePair<CellInformation, GameObject> entry in typeDicoCell)
+            {
+				if (!state || entry.Key != type)
+					typeDicoCell[entry.Key].SetActive(false);
+				else
+					typeDicoCell[entry.Key].SetActive(true);
+			}
 		}
 
 		public override bool Equals(object obj)

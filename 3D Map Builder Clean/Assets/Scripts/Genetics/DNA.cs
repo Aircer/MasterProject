@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UtilitiesGenetic;
-using mVectors;
 
 namespace Genetics
 {
@@ -11,7 +10,7 @@ namespace Genetics
 		//public WaypointCluster GenesCluster { get; private set; }
 		public int[][][] Genes { get; private set; }
 
-		public float fitness { get; private set; }
+		public Fitness fitness { get; private set; }
 
 		private SharpNeatLib.Maths.FastRandom randomFast;
 		private TypeParams[] typeParams;
@@ -65,11 +64,11 @@ namespace Genetics
 			return differentTypes;
 		}
 
-		public float CalculateFitness()
+		public Fitness CalculateFitness()
 		{
 			phenotype = PhenotypeCompute.GetPhenotype(Genes);
 
-			fitness = Fitness.FitnessFunction(phenotype);
+			fitness = FitnessComputation.FitnessFunction(phenotype);
 			return fitness;
 		}
 
@@ -121,13 +120,13 @@ namespace Genetics
 				{
 					for (int z = 1; z < limitDNA.z; z++)
 					{
-						Genes[x][y][z] = parent.Genes[x][y][z];
+						Genes[x][y][z] = parent.Genes[x][y][z]; 
 					}
 				}
 			}
 		}
 
-		public void Mutate(float mutationNumber, List<int> existingTypes)
+		public void Mutate(float mutationNumber)
 		{
 			for (int x = 0; x < mutationNumber; x++)
 			{

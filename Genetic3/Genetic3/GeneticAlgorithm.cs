@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UtilitiesGenetic;
-using mVectors;
 
 namespace Genetics
 {
@@ -9,7 +8,8 @@ namespace Genetics
 	{
 		public DNA[] oldPopulation { get; private set; }
 		public DNA[] newPopulation { get; private set; }
-		public List<float[]> fitnessPopulation { get; private set; }
+		public Fitness[][] fitnessPopulation { get; private set; }
+		public Population[][] populations { get; private set; }
 
 		private int generation;
 		private int elitism;
@@ -42,30 +42,35 @@ namespace Genetics
 			}
 
 			existingTypes = oldPopulation[0].ExistingTypes();
-			fitnessPopulation = new List<float[]>();
+			fitnessPopulation = new Fitness[algoParams.generations][];
+			populations = new Population[algoParams.generations][];
+
+			FitnessComputation.InitFitness(PhenotypeCompute.GetPhenotype(oldPopulation[0].Genes), dnaSize, algoParams);
 		}
 
 		public void NewGeneration()
 		{
-			fitnessPopulation.Add(ClassifyPopulation());
-			
+			fitnessPopulation[generation - 1] = ClassifyPopulation();
+
+			populations[generation - 1] = new Population[populationSize];
+
 			for (int i = 0; i < populationSize; i++)
 			{
 				if (i < elitism)
 				{
 					newPopulation[i].Copy(oldPopulation[i]);
 				}
-				else 
+				else
 				{
 					DNA parent1 = ChooseParent();
-					DNA parent2 = ChooseParent();
-					newPopulation[i].Crossover(parent1, parent2);
 
 					newPopulation[i].Copy(parent1);
-					newPopulation[i].Mutate(mutationNumber, existingTypes);
+					newPopulation[i].Mutate(mutationNumber);
 				}
+
+				populations[generation - 1][i] = oldPopulation[i].phenotype.population;
 			}
-			
+
 			DNA[] tmpArray = oldPopulation;
 			oldPopulation = newPopulation;
 			newPopulation = tmpArray;
@@ -73,11 +78,11 @@ namespace Genetics
 			generation++;
 		}
 
-		public float[] ClassifyPopulation()
+		public Fitness[] ClassifyPopulation()
 		{
 			if (populationSize > 0)
 			{
-				float[] fitnessPop = CalculateFitness();
+				Fitness[] fitnessPop = CalculateFitness();
 
 				DNA temp;
 
@@ -85,7 +90,7 @@ namespace Genetics
 				{
 					for (int j = i + 1; j < populationSize; j++)
 					{
-						if (oldPopulation[i].fitness < oldPopulation[j].fitness)
+						if (oldPopulation[i].fitness.total < oldPopulation[j].fitness.total)
 						{
 
 							temp = oldPopulation[i];
@@ -100,15 +105,15 @@ namespace Genetics
 			return null;
 		}
 
-		private float[] CalculateFitness()
+		private Fitness[] CalculateFitness()
 		{
-			float[] fitnessPop = new float[populationSize];
+			Fitness[] fitnessPop = new Fitness[populationSize];
 
 			fitnessSum = 0;
 			for (int i = 0; i < populationSize; i++)
 			{
-				fitnessSum += oldPopulation[i].CalculateFitness();
-				fitnessPop[i] = oldPopulation[i].fitness;
+				fitnessPop[i] = oldPopulation[i].CalculateFitness();
+				fitnessSum += fitnessPop[i].total;
 			}
 
 			return fitnessPop;
@@ -120,12 +125,12 @@ namespace Genetics
 
 			for (int i = 0; i < populationSize; i++)
 			{
-				if (randomNumber < oldPopulation[i].fitness)
+				if (randomNumber < oldPopulation[i].fitness.total)
 				{
 					return oldPopulation[i];
 				}
 
-				randomNumber -= oldPopulation[i].fitness;
+				randomNumber -= oldPopulation[i].fitness.total;
 			}
 
 			return oldPopulation[0];

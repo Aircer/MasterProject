@@ -1,42 +1,47 @@
 clear all;
 clc;
-path = 'D:\MasterProject\Genetic3\Data\DataFitData_';
-numberRuns = 20;
+IDExperiment = 1;
+path = 'D:\MasterProject\Genetic3\Data\';
+pathSetUp = strcat(path, 'Experiment_', num2str(IDExperiment), '\ExperimentSetUp.csv');
+pathFitness = strcat(path, 'Experiment_', num2str(IDExperiment), '\Fitness_');
 
-size = zeros(numberRuns,3);
-population = zeros(numberRuns);
-elitism = zeros(numberRuns);
-mutationsRate = zeros(numberRuns);
-generations = zeros(numberRuns);
-fit = zeros(numberRuns, 500, 500);
-bestFit = zeros(numberRuns, 500);
-meanFit = zeros(numberRuns, 500);
+[~,~,X] = xlsread(pathSetUp);
+dataSetUp = cell2mat(X(2,:));
+
+size = dataSetUp(1:3);
+population = dataSetUp(4);
+elitism = dataSetUp(5);
+generations = dataSetUp(6);
+mutationsRate = dataSetUp(7);
+numberRuns = dataSetUp(8); 
+fitnessWeights = dataSetUp(9:12); 
+
+fitRun = zeros(generations*population, 5);
+fitGen = zeros(population, 5);
+fit = zeros(numberRuns, generations, population, 5);
+bestFit = zeros(numberRuns, generations, 5);
+meanFit = zeros(numberRuns, generations, 5);
 
 % figure
 % hold on 
 for i = 1:numberRuns  
+    [~,~,data] = xlsread(strcat(pathFitness, num2str(i - 1), '.csv'));
+    fitRun(:, :) = cell2mat(data);
     
-    [~,~,data] = xlsread(strcat(path, num2str(i - 1), '.csv'));
-    
-    size(i, :) = cell2mat(data(2,1:3));
-    elitism(i) = cell2mat(data(2,5));
-    mutationsRate(i) = cell2mat(data(2,7));
-    population(i) = cell2mat(data(2,4));
-    generations(i) = cell2mat(data(2,6));
-    
-    fit(i, 1: population(i), 1:generations(i)) = cell2mat(data(3:end,:))';
-    bestFit(i, 1:generations(i)) = max(fit(i, 1: population(i), 1:generations(i)), [], 2);
-    meanFit(i, 1:generations(i)) = mean(fit(i, 1: population(i), 1:generations(i)),2);
-    
-%     x = 0:generations(i) - 1;
-%     plot(x,bestFit(i, 1:generations(i)))
-%     plot(x,meanFit(i, 1:generations(i)))
-
+    for j = 1:generations  
+        fit(i, j, :, :) = fitRun((j-1)*population + 1:j*population, :);
+        
+        fitGen(:, :) = fit(i, j, :, :);
+        [M,I] = max(fitGen(:, 1));
+        bestFit(i, j, :) = fitGen(I, :);
+        meanFit(i, j, :) = mean(fitGen);
+    end
 end
 
-x = 0:generations(1) - 1;
-plotshaded(x,bestFit(:, 1:generations(1)),'b');
-plotshaded(x,meanFit(:, 1:generations(1)),'r');
+
+x = 1:generations;
+plotshaded(x,bestFit(:, :, 3),'b');
+plotshaded(x,meanFit(:, :, 3),'r');
 
 xlabel('Number Generations') 
 ylabel('Fitness') 

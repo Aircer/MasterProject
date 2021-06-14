@@ -124,7 +124,7 @@ namespace MapTileGridCreator.UtilitiesMain
 		/// <param name="grid">The grid the cell will belongs.</param>
 		/// <param name="index"> The index of the cell.</param>
 		/// <returns>The cell component associated to the gameobject.</returns>
-		public static Cell InstantiateCell(Grid3D grid, Vector3Int index, Dictionary<CellInformation, GameObject> pallet)
+		public static Cell InstantiateCell(Grid3D grid, Vector3Int index, Dictionary<CellInformation, GameObject> pallet, GameObject palletObject)
 		{
 			//GameObject cellGameObject = PrefabUtility.InstantiatePrefab(pallet, grid.transform) as GameObject;
 			GameObject cellGameObject = new GameObject();
@@ -133,16 +133,21 @@ namespace MapTileGridCreator.UtilitiesMain
 			BoxCollider coll = cellGameObject.AddComponent<BoxCollider>();
 			coll.enabled = false;
 			Cell cell = cellGameObject.AddComponent<Cell>();
-			cell.typeDicoCell = pallet;
-			/*foreach (KeyValuePair<CellInformation, GameObject> child in pallet)
+
+			GameObject newChild = GameObject.Instantiate(palletObject);
+			newChild.transform.parent = cellGameObject.transform;
+			newChild.SetActive(true);
+			foreach (Transform child in newChild.transform)
 			{
-				GameObject newChild = PrefabUtility.InstantiatePrefab(child.Value, grid.transform) as GameObject;
-				PrefabUtility.UnpackPrefabInstance(newChild, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-				newChild.transform.parent = cellGameObject.transform;
-				newChild.transform.localPosition = new Vector3(0, 0, 0);
-				newChild.SetActive(false);
-				cell.typeDicoCell.Add(child.Key, newChild);
-			}*/
+				foreach (KeyValuePair<CellInformation, GameObject> keyValuePair in pallet)
+				{
+					if (keyValuePair.Key.name == child.GetComponent<CellInformation>().name)
+					{
+						cell.typeDicoCell.Add(keyValuePair.Key, child.gameObject);
+						child.gameObject.SetActive(false);
+					}
+				}
+			}
 
 			grid.AddCell(index, cell);
 			cell.ResetTransform();
@@ -254,7 +259,7 @@ namespace MapTileGridCreator.UtilitiesMain
 		/// /// <param name="pallet"> List of all gameobject that can be painted on cells.</param>
 		/// /// <param name="grid"> Parent grid of the cell.</param>
 		/// /// <param name="size_grid"> Give number of the cells to create.</param>
-		public static void CreateEmptyCells(out Cell[,,] cells, Grid3D grid, Vector3Int size_grid, Dictionary<CellInformation, GameObject> pallet)
+		public static void CreateEmptyCells(out Cell[,,] cells, Grid3D grid, Vector3Int size_grid, Dictionary<CellInformation, GameObject> pallet, GameObject palletObject)
 		{
 			//GameObject pallet = AssetDatabase.LoadAssetAtPath("Assets/Cells/Cell.prefab", typeof(GameObject)) as GameObject;
 			Cell[,,] newCells = new Cell[size_grid.x, size_grid.y, size_grid.z];
@@ -268,7 +273,7 @@ namespace MapTileGridCreator.UtilitiesMain
 					for (int z = 0; z < size_grid.z; z++)
 					{
 						progressBarTime += 1;
-						newCells[x, y, z] = InstantiateCell(grid, new Vector3Int(x, y, z), pallet);
+						newCells[x, y, z] = InstantiateCell(grid, new Vector3Int(x, y, z), pallet, palletObject);
 						EditorUtility.DisplayProgressBar("Creatings empty cells", "You can go have a coffee...", progressBarTime / numberCells);
 					}
 				}
@@ -316,11 +321,11 @@ namespace MapTileGridCreator.UtilitiesMain
 		/// <summary>
 		/// Create cells and waypoints
 		/// </summary>
-		public static void CreateCellsAndWaypoints(ref Grid3D grid, ref Cell[,,] cells, ref WaypointCluster cluster, Dictionary<CellInformation, GameObject> pallet, Vector3Int size_grid)
+		public static void CreateCellsAndWaypoints(ref Grid3D grid, ref Cell[,,] cells, ref WaypointCluster cluster, Dictionary<CellInformation, GameObject> pallet, Vector3Int size_grid, GameObject palletObject)
 		{
 			//Create Grid and all Cells 
 			grid = InstantiateGrid3D();
-			CreateEmptyCells(out cells, grid, size_grid, pallet);
+			CreateEmptyCells(out cells, grid, size_grid, pallet, palletObject);
 			grid._cells = cells;
 			//Create Cluster and Waypoints
 			List<CellInformation> keyList = new List<CellInformation>(pallet.Keys);
@@ -367,7 +372,7 @@ namespace MapTileGridCreator.UtilitiesMain
 							cells[i, j, k].Inactive();
 							cells[i, j, k].Painted(waypoints[i, j, k].type, waypoints[i, j, k].rotation);
 							cells[i, j, k].Active();
-
+							
 							if (!waypoints[i, j, k].show)
 								cells[i, j, k].Sleep();
 						}
@@ -595,8 +600,8 @@ namespace MapTileGridCreator.UtilitiesMain
 						{
 							cells[i, j, k].Sleep();
 						}
+						yield return null;
 					}
-					yield return null;
 				}
 			}
 

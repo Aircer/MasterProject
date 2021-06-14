@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System;
 using UtilitiesGenetic;
-using mVectors;
 
 namespace Genetics
 {
@@ -17,7 +16,6 @@ namespace Genetics
 			SetTypeCellParams(cellsInfos);
 
 			Mutations.InitMutations(size, randomFast, typeParams);
-			Fitness.InitFitness(size, algoParams);
 
 			ga = new GeneticAlgorithm(algoParams, size, waypointParams, typeParams, randomFast);
 		}
@@ -53,9 +51,14 @@ namespace Genetics
 			return ga.oldPopulation[0].Genes;
 		}
 
-		public List<float[]> GetFitness()
+		public Fitness[][] GetFitness()
 		{
 			return ga.fitnessPopulation;
+		}
+
+		public Population[][] GetPopulations()
+		{
+			return ga.populations;
 		}
 	}
 }

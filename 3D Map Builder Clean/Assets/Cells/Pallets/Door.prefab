@@ -165,7 +165,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5661447534035790558}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 43, z: 44}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 3577126811352059258}
@@ -188,12 +188,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   typeParams:
-    size: {x: 1, y: 1, z: 1}
     ground: 0
     blockPath: 0
     wall: 1
     floor: 0
     door: 1
+    stair: 0
+    ladder: 0
 --- !u!1 &5932242831619273979
 GameObject:
   m_ObjectHideFlags: 0
