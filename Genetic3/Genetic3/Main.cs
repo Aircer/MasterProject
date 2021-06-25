@@ -33,7 +33,6 @@ namespace Genetic3
 		static void Main()
         {
 			pathExperiment = "D:\\MasterProject\\Genetic3\\Data\\Experiment_";
-			nbRuns = 20;
 			typeParams = SetTypesParams();
 
 			SetExperimentParams(ref experimentID, ref nbRuns, ref numberCandidates, ref sizeCommun, ref algoCommun, ref typeSetUpCommun);
@@ -53,9 +52,9 @@ namespace Genetic3
 		{
 			algoCommun = new EvolutionaryAlgoParams();
 
-			experimentID = 7;
+			experimentID = 14;
 			nbRuns = 20;
-			numberCandidates = 2;
+			numberCandidates = 3;
 
 			sizeCommun = new Vector3Int(5, 5, 5);
 
@@ -79,24 +78,17 @@ namespace Genetic3
 
 		private static void SetExperimentObservedVariable(ref Experiment exp)
 		{
-			CrossoverType[] variableType = new CrossoverType[numberCandidates];
-			variableObserved = "CrossoverType";
+			variableObserved = "Weights";
 
-			variableType[0] = CrossoverType.Copy;
-			variableType[1] = CrossoverType.Swap;
-
-			for (int i = 0; i < numberCandidates; i++)
-			{
-				exp.algoParams[i].crossoverType = variableType[i];
-			}
-
-			exp.SetCandidates();
+			exp.algoParams[1].wWallsCuboids = 0;
+			exp.algoParams[2].wWalkingAreas = 0;
 
 			variableObservedValues = new string[numberCandidates];
-			for (int i = 0; i < numberCandidates; i++)
-			{
-				variableObservedValues[i] = variableType[i].ToString();
-			}
+			variableObservedValues[0] = "Normal";
+			variableObservedValues[1] = "WeighWallNull";
+			variableObservedValues[2] = "WeighWalkingAreaNull";
+
+			exp.SetCandidates();
 		}
 
 		private static TypeParams[] SetTypesParams()

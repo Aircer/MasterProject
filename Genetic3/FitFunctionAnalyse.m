@@ -3,14 +3,14 @@ clear all;
 clc;
 warning('off');
 
-IDExperiment = 7;
+IDExperiment = 13;
 
-[size, population, generations, numberRuns, candidatesNumber] = GetDataSetUp(IDExperiment);
+[size, sizeCandidate, population, generations, numberRuns, candidatesNumber] = GetDataSetUp(IDExperiment);
 
 Legend = GetLegend(candidatesNumber, IDExperiment);
 numberSubFitness = 4;
 fitness = GetFitness(IDExperiment, numberSubFitness, candidatesNumber, numberRuns, generations, population);
-cells = GetCells(IDExperiment, candidatesNumber, numberRuns, generations, population, size);
+cells = GetCells(IDExperiment, candidatesNumber, numberRuns, generations, population, size, sizeCandidate);
 
 disp('GET DATA FITNESS done')
 %% GET MEAN AND MAX
@@ -39,7 +39,7 @@ maxCellsTypes = zeros(candidatesNumber, numberRuns, generations + 1, numberTypes
 for i=1:candidatesNumber
     for j = 1:numberRuns  
         for k = 1:generations + 1
-            maxCellsTypes(i, j, k, :) = cellsTypes(i, j, k, I(i,j,k), :);
+            maxCellsTypes(i, j, k, :) = cellsTypes(i, j, k, I(i,j,k), :)/(sizeCandidate(i, 1) *sizeCandidate(i, 2) *sizeCandidate(i, 3));
         end
     end
 end
@@ -96,6 +96,7 @@ ylim([0 1])
 xlabel('Number Generations') 
 ylabel('Max Fitness') 
 title('Max Fitness Difference')
+legend(Legend);
 
 subplot(2,2,2)
 hold on
@@ -107,6 +108,7 @@ ylim([0 1])
 xlabel('Number Generations') 
 ylabel('Max Fitness') 
 title('Max Fitness Walking Area')
+legend(Legend);
 
 subplot(2,2,3)
 hold on
@@ -118,6 +120,7 @@ ylim([0 1])
 xlabel('Number Generations') 
 ylabel('Max Fitness') 
 title('Max Fitness Walls')
+legend(Legend);
 
 subplot(2,2,4)
 hold on
@@ -129,6 +132,7 @@ ylim([0 1])
 xlabel('Number Generations') 
 ylabel('Max Fitness') 
 title('Max Fitness Paths')
+legend(Legend);
 
 %% PLOT ALL MEAN FITNESS
 lookGraph = ['b', 'r', 'k', 'y', 'm'];
@@ -146,6 +150,7 @@ ylim([0 1])
 xlabel('Number Generations') 
 ylabel('Mean Fitness') 
 title('Mean Fitness Difference')
+legend(Legend);
 
 subplot(2,2,2)
 hold on
@@ -157,6 +162,7 @@ ylim([0 1])
 xlabel('Number Generations') 
 ylabel('Mean Fitness') 
 title('Mean Fitness Walking Area')
+legend(Legend);
 
 subplot(2,2,3)
 hold on
@@ -168,6 +174,7 @@ ylim([0 1])
 xlabel('Number Generations') 
 ylabel('Mean Fitness') 
 title('Mean Fitness Walls')
+legend(Legend);
 
 subplot(2,2,4)
 hold on
@@ -179,38 +186,41 @@ ylim([0 1])
 xlabel('Number Generations') 
 ylabel('Mean Fitness') 
 title('Mean Fitness Paths')
-
+legend(Legend);
 %% PLOT ALL MAX FITNESS
 lookGraph = ['b', 'r', 'k', 'y', 'm'];
 x = 0:generations;
 
 figure('Name','Sub Max Fitness');
 
-subplot(1,3,1)
+subplot(2,2,1)
 for i=1:candidatesNumber
     plotWConfidence(x, maxCellsTypes(i, :, :, 2), numberRuns, lookGraph(i));
 end
 xlabel('Number Generations') 
-ylabel('Number Floor Cells') 
-title('Number Floor Cells')
-ylim([0 inf])
+ylabel('Percentage Floor Cells') 
+title('Percentage Floor Cells')
+ylim([0 0.5])
+legend(Legend);
 
-subplot(1,3,2)
+subplot(2,2,2)
 for i=1:candidatesNumber
     plotWConfidence(x, maxCellsTypes(i, :, :, 5), numberRuns, lookGraph(i));
 end
 
 xlabel('Number Generations') 
-ylabel('Number Walls Cells') 
-title('Number Walls Cells')
-ylim([0 inf])
+ylabel('Percentage Walls Cells') 
+title('Percentage Walls Cells')
+ylim([0 0.5])
+legend(Legend);
 
-subplot(1,3,3)
+subplot(2,2,3)
 for i=1:candidatesNumber
     plotWConfidence(x, maxCellsTypes(i, :, :, 1) + maxCellsTypes(i, :, :, 3)...
                     + maxCellsTypes(i, :, :, 4), numberRuns, lookGraph(i));
 end
 xlabel('Number Generations') 
-ylabel('Number Paths Cells') 
-title('Number Paths Cells')
-ylim([0 inf])
+ylabel('Percentage Paths Cells') 
+title('Percentage Paths Cells')
+ylim([0 0.1])
+legend(Legend);
