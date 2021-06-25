@@ -1,2 +1,0 @@
-Size_x; Size_y; Size_z; Population; Elitism; Generations; MutationRate; numberRuns; wDifference; wWalkingAreas; wWallsCuboids; wPathfinding
-7;7;7;30;4;20;0,005;20;0,2;0,2;0,2;1

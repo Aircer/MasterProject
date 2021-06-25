@@ -195,14 +195,11 @@ namespace MapTileGridCreator.Core
 			}
 		}
 
-		private void SetTypeAround(Vector3Int size_grid, Vector3 rotation, CellInformation type, Vector3Int index)
+		private void SetTypeAround(Vector3Int size_grid, CellInformation type, Vector3Int index)
 		{
 			if (type != null)
 			{
 				waypoints[index.x, index.y, index.z].SetType(type);
-				waypoints[index.x, index.y, index.z].SetBasePos(index);
-				waypoints[index.x, index.y, index.z].SetBase(true);
-				SetBase(index, type, rotation);
 				//Debug.Log(minSize + " -- " + maxSize);
 			}
 		}
@@ -243,10 +240,9 @@ namespace MapTileGridCreator.Core
 			return type;
 		}
 
-		public void SetTypeAndRotationAround(Vector3Int size_grid, Vector3 rotation, CellInformation type, Vector3Int index)
+		public void SetTypeAndRotationAround(Vector3Int size_grid, CellInformation type, Vector3Int index)
 		{
-			SetTypeAround(size_grid, rotation, type, index);
-			waypoints[index.x, index.y, index.z].SetRotation(rotation);
+			SetTypeAround(size_grid, type, index);
 		}
 
 		/*

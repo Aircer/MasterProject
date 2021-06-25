@@ -11,27 +11,32 @@ namespace Genetics
 		public Fitness[][] fitnessPopulation { get; private set; }
 		public Population[][] populations { get; private set; }
 
-		private int generation;
+		public int generation;
 		private int elitism;
 		private int populationSize;
 		private float mutationNumber;
-
+		private Vector3Int sizeDNA;
 		private float fitnessSum;
 		private SharpNeatLib.Maths.FastRandom randomFast;
 		private List<int> existingTypes;
-
+		private CrossoverType crossoverType;
 		public GeneticAlgorithm(EvolutionaryAlgoParams algoParams, Vector3Int dnaSize, 
 			int[][][] waypointParams, TypeParams[] typeParams, SharpNeatLib.Maths.FastRandom randomFast)
 		{
+			sizeDNA = dnaSize;
 			generation = 1;
 			elitism = algoParams.elitism;
 			populationSize = algoParams.population;
 			mutationNumber = algoParams.mutationRate* dnaSize.x* dnaSize.y* dnaSize.z;
+			crossoverType = algoParams.crossoverType;
 
 			oldPopulation = new DNA[populationSize];
 			newPopulation = new DNA[populationSize];
 
 			this.randomFast = randomFast;
+
+			fitnessPopulation = new Fitness[algoParams.generations + 1][];
+			populations = new Population[algoParams.generations + 1][];
 
 			for (int i = 0; i < populationSize; i++)
 			{
@@ -41,19 +46,21 @@ namespace Genetics
 				newPopulation[i] = newPop2;
 			}
 
+			FitnessComputation.InitFitness(PhenotypeCompute.GetPhenotype(oldPopulation[0].Genes), dnaSize, algoParams, typeParams);
 			existingTypes = oldPopulation[0].ExistingTypes();
-			fitnessPopulation = new Fitness[algoParams.generations][];
-			populations = new Population[algoParams.generations][];
 
-			FitnessComputation.InitFitness(PhenotypeCompute.GetPhenotype(oldPopulation[0].Genes), dnaSize, algoParams);
+			populations[0] = new Population[populationSize];
+			for (int i = 0; i < populationSize; i++)
+			{
+				populations[0][i] = new Population();
+				populations[0][i].Copy(newPopulation[0].Genes, sizeDNA);
+			}
+
+			fitnessPopulation[0] = ClassifyPopulation();
 		}
 
 		public void NewGeneration()
 		{
-			fitnessPopulation[generation - 1] = ClassifyPopulation();
-
-			populations[generation - 1] = new Population[populationSize];
-
 			for (int i = 0; i < populationSize; i++)
 			{
 				if (i < elitism)
@@ -62,18 +69,35 @@ namespace Genetics
 				}
 				else
 				{
-					DNA parent1 = ChooseParent();
+					if (crossoverType == CrossoverType.Copy)
+					{
+						DNA parent = ChooseParent();
+						newPopulation[i].Copy(parent);
+					}
 
-					newPopulation[i].Copy(parent1);
+					if (crossoverType == CrossoverType.Swap)
+					{
+						DNA parent1 = ChooseParent();
+						DNA parent2 = ChooseParent();
+						newPopulation[i].Crossover(parent1, parent2);
+					}
+
 					newPopulation[i].Mutate(mutationNumber);
 				}
-
-				populations[generation - 1][i] = oldPopulation[i].phenotype.population;
 			}
 
 			DNA[] tmpArray = oldPopulation;
 			oldPopulation = newPopulation;
 			newPopulation = tmpArray;
+
+			fitnessPopulation[generation] = ClassifyPopulation();
+
+			populations[generation] = new Population[populationSize];
+			for (int i = 0; i < populationSize; i++)
+			{
+				populations[generation][i] = new Population();
+				populations[generation][i].Copy(oldPopulation[i].Genes, sizeDNA);
+			}
 
 			generation++;
 		}

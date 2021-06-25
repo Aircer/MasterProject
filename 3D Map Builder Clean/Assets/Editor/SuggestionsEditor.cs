@@ -40,12 +40,16 @@ public class SuggestionsEditor : EditorWindow
             mapWindow = (MapTileGridCreatorWindow)Resources.FindObjectsOfTypeAll(typeof(MapTileGridCreatorWindow))[0];
 
         window = GetWindow(typeof(SuggestionsEditor));
+
+        evolAlgoParams.crossoverType = CrossoverType.Copy;
+        evolAlgoParams.mutationType = MutationsType.NoTransformations;
         evolAlgoParams.population = 50;
         evolAlgoParams.elitism = 4;
         evolAlgoParams.generations = 20;
         evolAlgoParams.mutationRate = 0.005f;
+        evolAlgoParams.fitnessStop = 0.9f;
 
-        evolAlgoParams.wDifference = 0.2f;
+        evolAlgoParams.wDifference = 0f;
         evolAlgoParams.wWalkingAreas = 0.2f;
         evolAlgoParams.wWallsCuboids = 0.2f;
         evolAlgoParams.wPathfinding = 1f;
@@ -63,6 +67,7 @@ public class SuggestionsEditor : EditorWindow
         GUILayout.BeginHorizontal();
         evolAlgoParams.generations = EditorGUILayout.IntField("Generations ", evolAlgoParams.generations, GUILayout.Width(0.5f * position.width));
         evolAlgoParams.elitism = EditorGUILayout.IntField("Elitism ", evolAlgoParams.elitism, GUILayout.Width(0.5f * position.width));
+        evolAlgoParams.fitnessStop = EditorGUILayout.FloatField("FitStop ", evolAlgoParams.fitnessStop, GUILayout.Width(0.5f * position.width));
         GUILayout.EndHorizontal();
 
         EditorGUIUtility.labelWidth = 70;
@@ -117,8 +122,8 @@ public class SuggestionsEditor : EditorWindow
                         SwapCluster(ref mapCluster, ref newCluster);
                         suggestionsClusters[j] = newCluster;
 
-                        FuncMain.TransformCellsFromWaypoints(mapSuggestionCells[j], suggestionsClusters[j].GetWaypoints());
-                        FuncMain.TransformCellsFromWaypoints(mapCells, mapCluster.GetWaypoints());
+                        FuncMain.TransformCellsFromWaypoints(mapSuggestionCells[j], suggestionsClusters[j].GetWaypoints(), mapWindow.minVal, mapWindow.maxVal);
+                        FuncMain.TransformCellsFromWaypoints(mapCells, mapCluster.GetWaypoints(), mapWindow.minVal, mapWindow.maxVal);
 
                     }
                 }
@@ -161,7 +166,7 @@ public class SuggestionsEditor : EditorWindow
 
         Genetics.Init geneticInit = new Genetics.Init();
 
-        List<int[][][]> newWpList = geneticInit.GetSuggestionsClusters(sizeDNDA_X, sizeDNDA_Y, sizeDNDA_Z, typeParams, wp, numberSuggestions, evolAlgoParams);
+        List<int[][][]> newWpList = geneticInit.GetSuggestionsClusters(new UtilitiesGenetic.Vector3Int(sizeDNDA_X, sizeDNDA_Y, sizeDNDA_Z), typeParams, wp, numberSuggestions, evolAlgoParams);
         List<WaypointCluster> newSuggestionClusters = new List<WaypointCluster>();
         for (int i = 0; i < numberSuggestions; i++)
         {
@@ -177,7 +182,7 @@ public class SuggestionsEditor : EditorWindow
         for (int i = 0; i < numberSuggestions; i++)
         {
             //FuncMain.EditorCoroutines.Execute(FuncMain.CoroutineTransformCellsFromWaypoints(mapSuggestionCells[i], suggestionsClusters[i].GetWaypoints()));
-            FuncMain.TransformCellsFromWaypoints(mapSuggestionCells[i], suggestionsClusters[i].GetWaypoints());
+            FuncMain.TransformCellsFromWaypoints(mapSuggestionCells[i], suggestionsClusters[i].GetWaypoints(), mapWindow.minVal, mapWindow.maxVal);
         }
     }
 }

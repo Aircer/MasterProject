@@ -40,13 +40,13 @@ namespace Genetics
                     for (int z = 1; z < size.z; z++)
                     {
                         Vector3Int input = new Vector3Int(x, y, z);
-
+                        /*
                         if (!CellIsStruct(x, y, z) && !cellsInEmptyCuboids.Contains(input))
                         {
                             Cuboid newCuboid = GetCuboid(input, ref cellsInEmptyCuboids, "empty");
                             newPhenotype.emptyCuboids.Add(newCuboid);
                         }
-
+                        */
                         if (typeParams[Genes[x][y][z]].wall && !cellsInWalls.Contains(input))
                         {
                             Cuboid newWall = GetCuboid(input, ref cellsInWalls, "wall");
@@ -663,6 +663,9 @@ namespace Genetics
             if (typeParams[Genes[input.x][input.y][input.z]].ladder)
                 newPath = GetLadderPath(input, newPath);
 
+            if (typeParams[Genes[input.x][input.y][input.z]].door)
+                newPath = GetDoorPath(input, newPath);
+
             return newPath;
         }
 
@@ -721,6 +724,38 @@ namespace Genetics
             return newPath;
         }
 
+        private static Path GetDoorPath(Vector3Int input, Path newPath)
+        {
+            Stack<Vector3Int> openSet = new Stack<Vector3Int>();
+            HashSet<Vector3Int> cells = new HashSet<Vector3Int>();
+
+            openSet.Push(input);
+
+            while (openSet.Count > 0)
+            {
+                Vector3Int currentCell = openSet.Pop();
+                cells.Add(currentCell);
+                int x = currentCell.x; int y = currentCell.y; int z = currentCell.z;
+
+                if (y - 1 > 0)
+                {
+                    if (Genes[x][y - 1][z] == newPath.type && !cells.Contains(new Vector3Int(x, y - 1, z)))
+                        openSet.Push(new Vector3Int(x, y - 1, z));
+                }
+
+                if (y + 1 < size.y)
+                {
+                    if (Genes[x][y + 1][z] == newPath.type && !cells.Contains(new Vector3Int(x, y + 1, z)))
+                        openSet.Push(new Vector3Int(x, y + 1, z));
+                }
+
+            }
+
+            newPath.cells = cells;
+
+            return newPath;
+        }
+
         private static bool CellIsStruct(int x, int y, int z)
         {
             if (typeParams[Genes[x][y][z]].wall || typeParams[Genes[x][y][z]].floor)
@@ -751,7 +786,7 @@ namespace Genetics
         private static bool CellIsPath(int x, int y, int z)
         {
             if (CellIsLadderPath(x, y, z) || CellIsStairPath(x, y, z)
-             || (typeParams[Genes[x][y][z]].door && !typeParams[Genes[x][y - 1][z]].door))
+             || typeParams[Genes[x][y][z]].door)
                 return true;
             else
                 return false;

@@ -29,15 +29,28 @@ namespace UtilitiesGenetic
 
 	public struct EvolutionaryAlgoParams
 	{
+		public CrossoverType crossoverType;
+		public MutationsType mutationType;
 		public float mutationRate;
 		public int population;
 		public int generations;
 		public int elitism;
+		public float fitnessStop;
 
 		public float wDifference;
 		public float wWalkingAreas;
 		public float wWallsCuboids;
 		public float wPathfinding;
+	}
+
+	public enum MutationsType
+	{
+		Normal, NoWalls, NoFloor, NoDoors, NoPathsUp, NoTransformations
+	}
+
+	public enum CrossoverType
+	{
+		Swap, Copy
 	}
 
 	public class Phenotype
@@ -87,9 +100,30 @@ namespace UtilitiesGenetic
 		public float difference;
 	}
 
-	public struct Population
+	public class Population
 	{
 		public int[][][] genes;
+
+		public void Copy(int[][][] original, Vector3Int size)
+		{
+			genes = new int[size.x][][];
+
+			for (int x = 0; x < size.x; x++)
+			{
+				int[][] waypointsParamsYZ = new int[size.y][];
+				for (int y = 0; y < size.y; y++)
+				{
+					int[] waypointsParamsZ = new int[size.z];
+					for (int z = 0; z < size.z; z++)
+					{
+						waypointsParamsZ[z] = original[x][y][z];
+					}
+					waypointsParamsYZ[y] = waypointsParamsZ;
+				}
+				genes[x] = waypointsParamsYZ;
+			}
+		}
+
 	}
 
 	//Vector2Int and Vector3Int class so we can use them without using UnityEngine for running the genetic algorithm outside Unity

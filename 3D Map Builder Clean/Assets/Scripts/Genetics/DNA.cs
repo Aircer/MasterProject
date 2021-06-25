@@ -8,7 +8,7 @@ namespace Genetics
 	public class DNA
 	{
 		//public WaypointCluster GenesCluster { get; private set; }
-		public int[][][] Genes { get; private set; }
+		public int[][][] Genes { get; set; }
 
 		public Fitness fitness { get; private set; }
 
@@ -120,7 +120,7 @@ namespace Genetics
 				{
 					for (int z = 1; z < limitDNA.z; z++)
 					{
-						Genes[x][y][z] = parent.Genes[x][y][z]; 
+						Genes[x][y][z] = parent.Genes[x][y][z];
 					}
 				}
 			}

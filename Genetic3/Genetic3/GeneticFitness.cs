@@ -14,12 +14,14 @@ namespace Genetics
 		private static float weightFitnessWallsCuboids;
 		private static float weightFitnessPathfinding;
 		private static Phenotype initialPhenotype;
+		private static TypeParams[] typeParams;
 
-		public static void InitFitness(Phenotype initPhen, Vector3Int sizeDNA, EvolutionaryAlgoParams algoParams)
+		public static void InitFitness(Phenotype initPhen, Vector3Int sizeDNA, EvolutionaryAlgoParams algoParams, TypeParams[] tP)
 		{
 			initialPhenotype = initPhen;
 			volumeMax = (sizeDNA.x - 2) * (sizeDNA.y - 2) * (sizeDNA.z - 2);
 			size = sizeDNA;
+			typeParams = tP;
 			weightFitnessDifference = algoParams.wDifference;
 			weightFitnessWalkingAreas = algoParams.wWalkingAreas;
 			weightFitnessWallsCuboids = algoParams.wWallsCuboids;
@@ -112,35 +114,37 @@ namespace Genetics
 		public static float GetFitnessWallsCuboids(Phenotype phenotype)
 		{
 			float fitnessWallsCuboids = 0;
-			int nbWalls = phenotype.walls.Count;
-			float badWalls = 0;
-			float ratioGoodWalls = 0;
 			float totalVolume = 0;
-			float totalBadVolume = 0;
-			float ratioGoodVolume = 0;
+			float volumeWRating = 0;
+			float rating; 
 
 			foreach (Cuboid wall in phenotype.walls)
 			{
+				rating = 1f;
+
 				if (wall.width > FitnessConstants.WALL_WIDTH_MAX 
 					|| wall.height < FitnessConstants.WALL_HEIGHT_MIN 
-					|| wall.length < FitnessConstants.WALL_LENGTH_MIN
-					|| (wall.inCuboids.Count == 0 && wall.outCuboids.Count == 0)
-					|| (wall.bottomEmpty.Count > 0))
+					|| wall.length < FitnessConstants.WALL_LENGTH_MIN)
 				{
-					badWalls++;
-					totalBadVolume += wall.width * wall.height * wall.length;
+					rating -= 0.33f;
 				}
 
-				totalVolume += wall.width * wall.height * wall.length;
+				if (wall.inCuboids.Count == 0 && wall.outCuboids.Count == 0)
+				{
+					rating -= 0.33f;
+				}
+
+				if (wall.bottomEmpty.Count > 0)
+				{
+					rating -= 0.33f;
+				}
+
+				volumeWRating += (wall.width * wall.height * wall.length)* rating;
+				totalVolume += (wall.width * wall.height * wall.length);
 			}
 
-			if(nbWalls > 0)
-				ratioGoodWalls = (nbWalls - badWalls) / nbWalls;
-
 			if (totalVolume > 0)
-				ratioGoodVolume = (totalVolume - totalBadVolume) / totalVolume;
-
-			fitnessWallsCuboids = ratioGoodVolume;
+				fitnessWallsCuboids = volumeWRating / totalVolume;
 
 			return fitnessWallsCuboids;
 		}
@@ -148,21 +152,28 @@ namespace Genetics
 		public static float GetFitnessWalkingAreas(Phenotype phenotype)
 		{
 			float fitnessWalkingAreas = 0;
-
-			float nbWalkableAreas = phenotype.walkableArea.Count; float ratioBadWalkableArea = 0; float badWalkableArea = 0;
-			float nbPaths = phenotype.paths.Count; 
+			float totalArea = 0;
+			float areaWRating = 0;
+			float rating;
 
 			foreach (WalkableArea wa in phenotype.walkableArea)
 			{
-				if (wa.bordersNotGood.Count > 0 || wa.cells.Count < FitnessConstants.WA_SIZE_MIN || wa.neighborsArea.Count == 0)
-					badWalkableArea++;
+				rating = 1f;
+				if (wa.cells.Count < FitnessConstants.WA_SIZE_MIN)
+					rating -= 0.33f;
+
+				if (wa.bordersNotGood.Count > 0)
+					rating -= 0.33f;
+
+				if (wa.neighborsArea.Count == 0)
+					rating -= 0.33f;
+
+				areaWRating += wa.cells.Count* rating;
+				totalArea += wa.cells.Count;
 			}
 
-			if (nbWalkableAreas > 0)
-				ratioBadWalkableArea = (nbWalkableAreas - badWalkableArea) / nbWalkableAreas;
-
-			fitnessWalkingAreas = ratioBadWalkableArea;
-
+			if (totalArea > 0)
+				fitnessWalkingAreas = areaWRating / totalArea;
 
 			return fitnessWalkingAreas;
 		}
@@ -176,7 +187,7 @@ namespace Genetics
 
 			foreach (Path path in phenotype.paths)
 			{
-				if (path.neighborsConnected.Count == 0)
+				if (path.neighborsConnected.Count == 0 || (typeParams[path.type].door && path.cells.Count != 2))
 					badPath++;
 			}
 

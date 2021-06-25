@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class MyUndo { 
 
-    public List<Vector3Int> lastIndexToPaint { get; set; }
+    public HashSet<Vector3Int> lastIndexToPaint { get; set; }
 
     public PaintMode last_mode_paint { get; set; }
 
@@ -12,7 +12,7 @@ public class MyUndo {
 
     public bool noUndo { get; set; }
 
-    public static MyUndo UpdateUndo(MyUndo undo, List<Vector3Int> indexToPaint, PaintMode mode_paint, int pallet_index)
+    public static MyUndo UpdateUndo(MyUndo undo, HashSet<Vector3Int> indexToPaint, PaintMode mode_paint, int pallet_index)
     {
         undo.lastIndexToPaint = indexToPaint;
         undo.last_mode_paint = mode_paint;

@@ -15,7 +15,7 @@ namespace Genetics
 			typeParams = new TypeParams[cellsInfos.Length + 1];
 			SetTypeCellParams(cellsInfos);
 
-			Mutations.InitMutations(size, randomFast, typeParams);
+			Mutations.InitMutations(size, randomFast, typeParams, algoParams.mutationType);
 
 			ga = new GeneticAlgorithm(algoParams, size, waypointParams, typeParams, randomFast);
 		}
@@ -48,12 +48,18 @@ namespace Genetics
 				nbNeighbors += wa.neighborsArea.Count; 
 			}
 
-			
 			UnityEngine.Debug.Log("Number walkable zones: " + ga.oldPopulation[0].phenotype.walkableArea.Count
-				+ "; Number neighbors: " + nbNeighbors
-				+ "; Fitness: " + ga.oldPopulation[0].fitness.difference);
+				+ "; Number neighbors: " + nbNeighbors + "; Gen: " + ga.generation
+				+ "; Fitness: " + ga.oldPopulation[0].fitness.total);
 
 			return ga.oldPopulation[0].Genes;
+		}
+
+		public float GetBestTotalFitness()
+		{
+			ga.ClassifyPopulation();
+
+			return ga.oldPopulation[0].fitness.total;
 		}
 
 		public Fitness[][] GetFitness()

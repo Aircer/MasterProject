@@ -77,7 +77,8 @@ namespace MapTileGridCreator.UtilitiesVisual
 
 		public static void WallTransform(Cell[,,] cells, Waypoint[,,] waypoints, Vector3Int index)
 		{
-			if (cells[index.x, index.y, index.z].type && cells[index.x, index.y, index.z].type.typeParams.wall)
+			if (cells[index.x, index.y, index.z].type && cells[index.x, index.y, index.z].type.typeParams.wall
+				&& !cells[index.x, index.y, index.z].type.typeParams.door)
 			{
 				bool[] neighborsWalls = new bool[4];
 
@@ -238,22 +239,79 @@ namespace MapTileGridCreator.UtilitiesVisual
 
 		public static void LadderTransform(Cell[,,] cells, Waypoint[,,] waypoints, Vector3Int index)
 		{
-			if (index.x >= 0 && index.y >= 0 && index.z >= 0
-				&& index.x < cells.GetLength(0) && index.y < cells.GetLength(1) && index.z < cells.GetLength(2)
-				&& cells[index.x, index.y, index.z].type && cells[index.x, index.y, index.z].type.typeParams.ladder)
+			if (CellIsLadder(index.x, index.y, index.z, cells, waypoints))
 			{
-				string subType = "--";
+				string subType = "LadderSide";
 
-				if (CellIsWall(index.x - 1, index.y, index.z, cells, waypoints) && !CellIsWall(index.x + 1, index.y, index.z, cells, waypoints))
-					subType = "Ladder_x_minus";
-				if (CellIsWall(index.x + 1, index.y, index.z, cells, waypoints) && !CellIsWall(index.x - 1, index.y, index.z, cells, waypoints))
-					subType = "Ladder_x_plus";
-				if (CellIsWall(index.x, index.y, index.z - 1, cells, waypoints) && !CellIsWall(index.x, index.y, index.z + 1, cells, waypoints))
-					subType = "Ladder_z_minus";
-				if (CellIsWall(index.x, index.y, index.z + 1, cells, waypoints) && !CellIsWall(index.x, index.y, index.z - 1, cells, waypoints))
-					subType = "Ladder_z_plus";
+				int rotation = 0;
+				int ytemp = index.y; int yMin = index.y; int yMax = index.y;
+				int Xneg = 0;
+				int Xpos = 0;
+				int Zneg = 0;
+				int Zpos = 0;
 
-				cells[index.x, index.y, index.z].TransformVisual(subType, new Vector3(0, 0, 0));
+				while (CellIsLadder(index.x, ytemp, index.z, cells, waypoints))
+				{
+					if (!CellIsWall(index.x - 1, ytemp, index.z, cells, waypoints) || !CellIsWall(index.x + 1, ytemp, index.z, cells, waypoints))
+					{
+						if (CellIsWall(index.x - 1, index.y, index.z, cells, waypoints))
+							Xneg++;
+
+						if (CellIsWall(index.x + 1, index.y, index.z, cells, waypoints))
+							Xpos++;
+					}
+
+					if (!CellIsWall(index.x, ytemp, index.z - 1, cells, waypoints) || !CellIsWall(index.x, ytemp, index.z + 1, cells, waypoints))
+					{
+						if (CellIsWall(index.x, index.y, index.z - 1, cells, waypoints))
+							Zneg++;
+
+						if (CellIsWall(index.x, index.y, index.z + 1, cells, waypoints))
+							Zpos++;
+					}
+					yMax = ytemp;
+					ytemp++;
+				}
+
+				ytemp = index.y - 1;
+
+				while (CellIsLadder(index.x, ytemp, index.z, cells, waypoints))
+				{
+					if (!CellIsWall(index.x - 1, ytemp, index.z, cells, waypoints) || !CellIsWall(index.x + 1, ytemp, index.z, cells, waypoints))
+					{
+						if (CellIsWall(index.x - 1, index.y, index.z, cells, waypoints))
+							Xneg++;
+
+						if (CellIsWall(index.x + 1, index.y, index.z, cells, waypoints))
+							Xpos++;
+					}
+
+					if (!CellIsWall(index.x, ytemp, index.z - 1, cells, waypoints) || !CellIsWall(index.x, ytemp, index.z + 1, cells, waypoints))
+					{
+						if (CellIsWall(index.x, index.y, index.z - 1, cells, waypoints))
+							Zneg++;
+
+						if (CellIsWall(index.x, index.y, index.z + 1, cells, waypoints))
+							Zpos++;
+					}
+
+					yMin = ytemp;
+					ytemp--;
+				}
+
+				if (Xpos > Xneg && Xpos > Zneg && Xpos > Zpos)
+					rotation = 90;
+				if (Xneg > Xpos && Xneg > Zneg && Xneg > Zpos)
+					rotation = -90;
+				if (Zneg > Xneg && Zneg > Xpos && Zneg > Zpos)
+					rotation = 180;
+				if (Zpos > Zneg && Zpos > Xneg && Zpos > Xpos)
+					rotation = 0;
+
+				for (int i = yMin; i < yMax + 1; i++)
+				{
+					cells[index.x, i, index.z].TransformVisual(subType, new Vector3(0, rotation, 0));
+				}
 			}
 		}
 
@@ -266,7 +324,7 @@ namespace MapTileGridCreator.UtilitiesVisual
 				bool neighborDownDoor;
 
 				Vector3 rotation = new Vector3(0, 0, 0);
-				string subType = "";
+				string subType = "Door";
 
 				if (index.y > 0 && waypoints[index.x, index.y - 1, index.z].type != null && waypoints[index.x, index.y - 1, index.z].type.typeParams.door)
 					neighborDownDoor = true;
@@ -290,7 +348,82 @@ namespace MapTileGridCreator.UtilitiesVisual
 					subType = "Door";
 				}
 
-				cells[index.x, index.y, index.z].TransformVisual(subType, cells[index.x, index.y, index.z].rotation);
+				if (index.x > 0 && waypoints[index.x - 1, index.y, index.z].type != null && waypoints[index.x - 1, index.y, index.z].type.typeParams.wall)
+					neighborsWalls[0] = true;
+				else
+					neighborsWalls[0] = false;
+
+				if (index.x < waypoints.GetLength(0) - 1 && waypoints[index.x + 1, index.y, index.z].type != null && waypoints[index.x + 1, index.y, index.z].type.typeParams.wall)
+					neighborsWalls[1] = true;
+				else
+					neighborsWalls[1] = false;
+
+				if (index.z > 0 && waypoints[index.x, index.y, index.z - 1].type != null && waypoints[index.x, index.y, index.z - 1].type.typeParams.wall)
+					neighborsWalls[2] = true;
+				else
+					neighborsWalls[2] = false;
+
+				if (index.z < waypoints.GetLength(2) - 1 && waypoints[index.x, index.y, index.z + 1].type != null && waypoints[index.x, index.y, index.z + 1].type.typeParams.wall)
+					neighborsWalls[3] = true;
+				else
+					neighborsWalls[3] = false;
+
+				if (!neighborsWalls[0] && !neighborsWalls[1] && !neighborsWalls[2] && !neighborsWalls[3])
+				{
+					rotation = new Vector3(0, 0, 0);
+				}
+
+				if ((neighborsWalls[2] || neighborsWalls[3]) && !neighborsWalls[0] && !neighborsWalls[1])
+				{
+					rotation = new Vector3(0, 90, 0);
+				}
+
+				if (neighborsWalls[1] && neighborsWalls[2] && !neighborsWalls[0] && !neighborsWalls[3])
+				{
+					rotation = new Vector3(0, 0, 0);
+				}
+
+				if (neighborsWalls[0] && neighborsWalls[2] && !neighborsWalls[1] && !neighborsWalls[3])
+				{
+					rotation = new Vector3(0, 90, 0);
+				}
+
+				if (neighborsWalls[0] && neighborsWalls[3] && !neighborsWalls[1] && !neighborsWalls[2])
+				{
+					rotation = new Vector3(0, 180, 0);
+				}
+
+				if (neighborsWalls[1] && neighborsWalls[3] && !neighborsWalls[0] && !neighborsWalls[2])
+				{
+					rotation = new Vector3(0, 270, 0);
+				}
+
+				if (neighborsWalls[1] && neighborsWalls[2] && !neighborsWalls[0] && neighborsWalls[3])
+				{
+					rotation = new Vector3(0, 0, 0);
+				}
+
+				if (neighborsWalls[1] && neighborsWalls[2] && neighborsWalls[0] && !neighborsWalls[3])
+				{
+					rotation = new Vector3(0, 90, 0);
+				}
+
+				if (!neighborsWalls[1] && neighborsWalls[3] && neighborsWalls[0] && neighborsWalls[2])
+				{
+					rotation = new Vector3(0, 180, 0);
+				}
+
+				if (neighborsWalls[0] && neighborsWalls[3] && neighborsWalls[1] && !neighborsWalls[2])
+				{
+					rotation = new Vector3(0, 270, 0);
+				}
+
+				if (neighborsWalls[0] && neighborsWalls[3] && neighborsWalls[1] && neighborsWalls[2])
+				{
+					rotation = new Vector3(0, 0, 0);
+				}
+
+				cells[index.x, index.y, index.z].TransformVisual(subType, rotation);
 			}
 		}
 
@@ -481,6 +614,16 @@ namespace MapTileGridCreator.UtilitiesVisual
 			if (x >= 0 && y >= 0 && z >= 0
 				&& x < waypoints.GetLength(0) && y < waypoints.GetLength(1) && z < waypoints.GetLength(2)
 				&& waypoints[x, y, z].type != null && waypoints[x, y, z].type.typeParams.floor)
+				return true;
+			else
+				return false;
+		}
+
+		public static bool CellIsLadder(int x, int y, int z, Cell[,,] cells, Waypoint[,,] waypoints)
+		{
+			if (x >= 0 && y >= 0 && z >= 0
+				&& x < waypoints.GetLength(0) && y < waypoints.GetLength(1) && z < waypoints.GetLength(2)
+				&& waypoints[x, y, z].type != null && waypoints[x, y, z].type.typeParams.ladder)
 				return true;
 			else
 				return false;

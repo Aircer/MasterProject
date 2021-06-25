@@ -68,7 +68,7 @@ namespace MapTileGridCreator.Core
 			transform.localScale = Vector3.one * parent.SizeCell;
 		}
 
-		public void Painted(CellInformation cellType, Vector2 rotation)
+		public void Painted(CellInformation cellType)
 		{
 			if (cellType != null)
 			{
@@ -79,7 +79,6 @@ namespace MapTileGridCreator.Core
 				//newChild.transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
 
 				typeDicoCell[cellType].SetActive(true);
-				typeDicoCell[cellType].transform.localEulerAngles = new Vector3(rotation.x, rotation.y, 0);
 			}
 
 			lastRotation = rotation;
@@ -93,7 +92,7 @@ namespace MapTileGridCreator.Core
 
 		public void TransformVisual(string activeElement, Vector3 rotation)
         {
-			if(false || type != null)
+			if(type != null)
             {
 				foreach (Transform child in typeDicoCell[type].transform)
 				{
@@ -111,7 +110,7 @@ namespace MapTileGridCreator.Core
 
 		public void TransformVisualFloor(List<string> activeElements)
 		{	
-			if (false || type != null)
+			if (type != null)
 			{
 				foreach (Transform child in typeDicoCell[type].transform.GetChild(0))
 				{
@@ -138,7 +137,15 @@ namespace MapTileGridCreator.Core
 		{
 			SetColliderState(false);
 			SetMeshState(false);
-			state = CellState.Sleep;
+			//TraverseChildren(this.gameObject);
+		}
+
+		public void AWake()
+		{
+			if(state == CellState.Active)
+				SetColliderState(true);
+			SetMeshState(true);
+			//TraverseChildren(this.gameObject)
 		}
 
 		public void Active(CellInformation newType = null, Vector2 rotation = default(Vector2))
@@ -270,6 +277,32 @@ namespace MapTileGridCreator.Core
 			{
 				GetGridParent().DeleteCell(this);
 			}
+		}
+
+		private GameObject TraverseChildren(GameObject root)
+		{
+			if (root.activeSelf)
+            {
+				foreach (Transform child in root.transform)
+				{
+					GameObject grandChild = TraverseChildren(child.gameObject);
+
+					if (grandChild.activeSelf)
+					{
+						foreach (Transform node in grandChild.transform)
+						{
+							if (node.gameObject.activeSelf && node.gameObject.GetComponent<Renderer>() != null
+														   && node.gameObject.GetComponent<Renderer>().sharedMaterial != null)
+							{
+							}
+
+							return node.gameObject;
+						}
+					}
+				}
+			}
+
+			return root;
 		}
 	}
 }
