@@ -3,7 +3,7 @@ clear all;
 clc;
 warning('off');
 
-IDExperiment = 13;
+IDExperiment = 15;
 
 [size, sizeCandidate, population, generations, numberRuns, candidatesNumber] = GetDataSetUp(IDExperiment);
 
@@ -18,6 +18,7 @@ disp('GET DATA FITNESS done')
 totalFitness = fitness(:, :, :, :, 1);
 meanFitness = zeros(candidatesNumber, numberRuns, generations + 1, numberSubFitness + 1);
 maxFitness = zeros(candidatesNumber, numberRuns, generations + 1, numberSubFitness + 1);
+cellsMaxFitness = zeros(candidatesNumber, numberRuns, generations + 1, size(1)*size(2)*size(3));
 
 [M,I] = max(totalFitness,[], 4);
 meanFitness(:, :, :, :) = mean(fitness, 4);
@@ -26,6 +27,7 @@ for i=1:candidatesNumber
     for j = 1:numberRuns  
         for k = 1:generations + 1
             maxFitness(i, j, k, :) = fitness(i, j, k, I(i,j,k), :);
+            cellsMaxFitness(i, j, k, :) = cells(i, j, k, I(i,j,k), :);
         end
     end
 end
@@ -224,3 +226,42 @@ ylabel('Percentage Paths Cells')
 title('Percentage Paths Cells')
 ylim([0 0.1])
 legend(Legend);
+%% GET POP 
+
+cellsReShape = zeros(candidatesNumber, numberRuns, generations + 1, size(1), size(2), size(3));
+
+for i=1:candidatesNumber
+    for j = 1:numberRuns  
+        for k = 1:generations + 1
+            rawIndi = squeeze(cellsMaxFitness(i, j, k, 1:sizeCandidate(i, 1)*sizeCandidate(i, 2)*sizeCandidate(i, 3)));
+            indi = reshape(rawIndi, sizeCandidate(i, 1), sizeCandidate(i, 2), sizeCandidate(i, 3));
+            cellsReShape(i, j, k, 1:sizeCandidate(i, 1), 1:sizeCandidate(i, 2), 1:sizeCandidate(i, 3)) = indi;
+        end
+    end
+end
+disp('GET POP done')
+
+%% PLOT 3D 
+
+for i=1:candidatesNumber
+    r = randi([1 numberRuns],1);
+    
+    initGrid  = squeeze(cellsReShape(i, r, 1, :, :, :));
+    initGrid = permute(initGrid,[1 3 2]);
+    
+    initGrid1D = zeros(1, sizeCandidate(i, 1)*sizeCandidate(i, 2)*sizeCandidate(i, 3));
+    index = 1;
+    for x=1:sizeCandidate(i, 1)
+        for y=1:sizeCandidate(i, 2)
+            for z=1:sizeCandidate(i, 3)
+                initGrid1D(index) = initGrid(x, y, z);
+                index = index + 1;
+            end
+        end
+    end
+    
+    plot3c(1:sizeCandidate(1), 1:sizeCandidate(3), 1:sizeCandidate(2), initGrid1D, 'o','Title');
+    
+    finalGrid = squeeze(cellsReShape(i, r, generations + 1, :, :, :));
+    finalGrid = permute(finalGrid,[1 3 2]);
+end

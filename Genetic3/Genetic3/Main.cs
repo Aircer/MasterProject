@@ -52,9 +52,9 @@ namespace Genetic3
 		{
 			algoCommun = new EvolutionaryAlgoParams();
 
-			experimentID = 14;
-			nbRuns = 20;
-			numberCandidates = 3;
+			experimentID = 15;
+			nbRuns = 5;
+			numberCandidates = 2;
 
 			sizeCommun = new Vector3Int(5, 5, 5);
 
@@ -78,22 +78,21 @@ namespace Genetic3
 
 		private static void SetExperimentObservedVariable(ref Experiment exp)
 		{
-			variableObserved = "Weights";
+			variableObserved = "SetUps";
 
-			exp.algoParams[1].wWallsCuboids = 0;
-			exp.algoParams[2].wWalkingAreas = 0;
+			exp.typeSetUp[0] = TypeSetUp.Empty;
+			exp.typeSetUp[1] = TypeSetUp.Floor_and_Floor;
 
 			variableObservedValues = new string[numberCandidates];
-			variableObservedValues[0] = "Normal";
-			variableObservedValues[1] = "WeighWallNull";
-			variableObservedValues[2] = "WeighWalkingAreaNull";
+			variableObservedValues[0] = "Empty";
+			variableObservedValues[1] = "Floor_and_Floor";
 
 			exp.SetCandidates();
 		}
 
 		private static TypeParams[] SetTypesParams()
 		{
-			int nbType = 5;
+			int nbType = 6;
 			TypeParams[] newTypesParams = new TypeParams[nbType];
 
 			for (int i = 0; i < nbType; i++)
@@ -102,21 +101,21 @@ namespace Genetic3
 				newTypesParams[i].SetEmpty();
 			}
 
-			newTypesParams[0].door = true;
-			newTypesParams[0].wall = true;
+			newTypesParams[1].door = true;
+			newTypesParams[1].wall = true;
 
-			newTypesParams[1].blockPath = true;
-			newTypesParams[1].floor = true;
-			newTypesParams[1].ground = true;
+			newTypesParams[2].blockPath = true;
+			newTypesParams[2].floor = true;
+			newTypesParams[2].ground = true;
 
-			newTypesParams[2].ladder = true;
-
-			newTypesParams[3].blockPath = true;
-			newTypesParams[3].ground = true;
-			newTypesParams[3].stair = true;
+			newTypesParams[3].ladder = true;
 
 			newTypesParams[4].blockPath = true;
-			newTypesParams[4].wall = true;
+			newTypesParams[4].ground = true;
+			newTypesParams[4].stair = true;
+
+			newTypesParams[5].blockPath = true;
+			newTypesParams[5].wall = true;
 
 			return newTypesParams;
 		}
