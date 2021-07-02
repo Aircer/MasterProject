@@ -3,7 +3,7 @@ clear all;
 clc;
 warning('off');
 
-IDExperiment = 15;
+IDExperiment = 16;
 
 [size, sizeCandidate, population, generations, numberRuns, candidatesNumber] = GetDataSetUp(IDExperiment);
 
@@ -246,22 +246,13 @@ disp('GET POP done')
 for i=1:candidatesNumber
     r = randi([1 numberRuns],1);
     
+    figure('Name', strcat('Initgrid', num2str(i)));
     initGrid  = squeeze(cellsReShape(i, r, 1, :, :, :));
     initGrid = permute(initGrid,[1 3 2]);
+    plot3c(sizeCandidate(i, :), initGrid, 'initGrid');
     
-    initGrid1D = zeros(1, sizeCandidate(i, 1)*sizeCandidate(i, 2)*sizeCandidate(i, 3));
-    index = 1;
-    for x=1:sizeCandidate(i, 1)
-        for y=1:sizeCandidate(i, 2)
-            for z=1:sizeCandidate(i, 3)
-                initGrid1D(index) = initGrid(x, y, z);
-                index = index + 1;
-            end
-        end
-    end
-    
-    plot3c(1:sizeCandidate(1), 1:sizeCandidate(3), 1:sizeCandidate(2), initGrid1D, 'o','Title');
-    
-    finalGrid = squeeze(cellsReShape(i, r, generations + 1, :, :, :));
+    figure('Name', strcat('FinalGrid', num2str(i)));
+    finalGrid = squeeze(cellsReShape(1, r, generations + 1, :, :, :));
     finalGrid = permute(finalGrid,[1 3 2]);
+    plot3c(sizeCandidate(1, :), finalGrid, 'finalGrid');
 end

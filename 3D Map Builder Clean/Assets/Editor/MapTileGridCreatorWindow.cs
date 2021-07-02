@@ -9,6 +9,7 @@ using UnityEngine;
 using System.Reflection;
 using System.Threading;
 using System.Diagnostics;
+using MapTileGridCreator.SerializeSystem;
 
 /// <summary>
 /// Main window class.
@@ -32,8 +33,6 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	//Debug Grid
 	[SerializeField]
-	private bool _debug_grid = true;
-	private GameObject _coordinates;
 	private Plane[] _planesGrid = new Plane[3];
 
 	//Paint
@@ -57,6 +56,8 @@ public class MapTileGridCreatorWindow : EditorWindow
 	private List<CellInformation> _cellTypes = new List<CellInformation>();
 	private List<bool> _cellTypesShow = new List<bool>();
 	private List<bool> _oldCellTypesShow = new List<bool>();
+	private GameObject emptyCellObj;
+	private bool autoRefreshSuggestions;
 
 	public Grid3D GetGrid()
 	{
@@ -74,13 +75,18 @@ public class MapTileGridCreatorWindow : EditorWindow
 	}
 	#endregion
 
+	[MenuItem("3D Map/MapTileGridCreator")]
+	public static void OpenWindows()
+	{
+		MapTileGridCreatorWindow window = (MapTileGridCreatorWindow)GetWindow(typeof(MapTileGridCreatorWindow));
+		window.Show();
+	}
+
 	private void OnEnable()
 	{
 		_modes_paint = new GUIContent[] {
 			new GUIContent(EditorGUIUtility.IconContent("Grid.PaintTool", "Paint one by one the prefab selected")),
-			new GUIContent(EditorGUIUtility.IconContent("Grid.EraserTool", "Erase the cell in scene view")),
-			new GUIContent(EditorGUIUtility.IconContent("Grid.PickingTool", "Create waypoint for Pathfinding")),
-			new GUIContent(EditorGUIUtility.IconContent("d_ToolHandleCenter@2x", "Eyedropper to auto select the corresponding prefab in pallete")) };
+			new GUIContent(EditorGUIUtility.IconContent("Grid.EraserTool", "Erase the cell in scene view"))};
 
 		RefreshPallet();
 	}
@@ -95,7 +101,10 @@ public class MapTileGridCreatorWindow : EditorWindow
 	{
 		_cellPrefabs.Clear();
 		_cellTypes.Clear();
-		CellInformation emptyCell = new CellInformation();
+		if (emptyCellObj != null)
+			DestroyImmediate(emptyCellObj);
+		emptyCellObj = new GameObject();
+		CellInformation emptyCell = emptyCellObj.AddComponent<CellInformation>();
 		emptyCell.SetEmpty();
 		_cellTypes.Add(emptyCell);
 		_cellTypesShow.Clear();
@@ -129,14 +138,12 @@ public class MapTileGridCreatorWindow : EditorWindow
 	{
 		if (_grid != null)
 		{
-			if (_debug_grid)
-			{
-				//Set the planes of the grid position and normal
-				_planesGrid = FuncMain.SetGridDebugPlanesNormalAndPosition(_planesGrid, _size_grid, SceneView.lastActiveSceneView.rotation.eulerAngles);
-				UpdateCameraSuggestion(SceneView.lastActiveSceneView.rotation.eulerAngles, SceneView.lastActiveSceneView.cameraDistance);
-				//Draw the drawing plans of the grid 
-				FuncMain.DebugSquareGrid(_grid, DebugsColor.grid_help, _size_grid, _planesGrid);
-			}
+			//Set the planes of the grid position and normal
+			_planesGrid = FuncMain.SetGridDebugPlanesNormalAndPosition(_planesGrid, _size_grid, SceneView.lastActiveSceneView.rotation.eulerAngles);
+			UpdateCameraSuggestion(SceneView.lastActiveSceneView.rotation.eulerAngles, SceneView.lastActiveSceneView.cameraDistance);
+			//Draw the drawing plans of the grid 
+			FuncMain.DebugSquareGrid(_grid, DebugsColor.grid_help, _size_grid, _planesGrid);
+
 			PaintEdit();
 		}
 
@@ -183,7 +190,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 					SetBrushPosition(input);
 
 					if (IndexesToPaint.Paint(_size_grid, input, _mode_paint, _cellTypes[_cellTypes_index],
-														 ref _grid))
+														 ref _grid) && autoRefreshSuggestions)
 						StartThreadNewSuggestionsIA();
 				}
 				break;
@@ -198,7 +205,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 					SetBrushPosition(input);
 					if (IndexesToPaint.Paint(_size_grid, input, _mode_paint, _cellTypes[_cellTypes_index],
-														 ref _grid))
+														 ref _grid) && autoRefreshSuggestions)
 						StartThreadNewSuggestionsIA();
 				}
 				break;
@@ -236,7 +243,6 @@ public class MapTileGridCreatorWindow : EditorWindow
 	}
 	
 	#endregion
-
 
 	////////////////////////////////////////
 	// Utilities scene view
@@ -296,130 +302,60 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	private void OnGUI()
 	{
-		DrawMainMenu();
+		if(_grid == null)
+			DrawMainStartingMenu();
+		else
+			DrawMainMenu();
 	}
 
 	private void DrawMainMenu()
 	{
-		GUILayout.Label("Map Tile Grid Creator Settings", EditorStyles.boldLabel);
+		GUILayout.Label("Main Editor", EditorStyles.boldLabel);
 
-		DrawNewGridPanel();
-		FuncMain.DrawUILine(Color.gray);
-
-		if (_grid != null)
+		GUILayout.BeginHorizontal();
+		if (GUILayout.Button("Change Grid"))
 		{
-			EditorGUILayout.LabelField("Number of cells : " + _size_grid.x * _size_grid.y * _size_grid.z);
+			DestroyImmediate(_grid.gameObject);
+			foreach(Grid3D grid in _suggestionsGrid)
+            {
+				DestroyImmediate(grid.gameObject);
+            }
 		}
 
-		if (_grid != null)
+		if (GUILayout.Button("Reset"))
 		{
-			var origFontStyle = EditorStyles.label.fontStyle;
-			EditorStyles.label.fontStyle = FontStyle.Bold;
-
-			_debug_grid = EditorGUILayout.Toggle("Debug grid", _debug_grid);
-
-			if (_debug_grid)
-			{
-				EditorGUILayout.LabelField("Size grid", EditorStyles.boldLabel);
-				EditorStyles.label.fontStyle = origFontStyle;
-				_size_grid = EditorGUILayout.Vector3IntField("", _size_grid);
-
-				Vector3Int oldMaxVal = maxVal;
-				EditorGUILayout.LabelField("Hide X", EditorStyles.boldLabel);
-				maxVal.x = EditorGUILayout.IntSlider(maxVal.x, 0, _size_grid.x);
-				EditorGUILayout.LabelField("Hide Y", EditorStyles.boldLabel);
-				maxVal.y = EditorGUILayout.IntSlider(maxVal.y, 0, _size_grid.y);
-				EditorGUILayout.LabelField("Hide Z", EditorStyles.boldLabel);
-				maxVal.z = EditorGUILayout.IntSlider(maxVal.z, 0, _size_grid.z);
-
-				if (maxVal != oldMaxVal)
-				{
-					FuncMain.SetShowLayersCell(minVal, maxVal, _grid._cells);
-
-					suggWindow = (SuggestionsEditor[])Resources.FindObjectsOfTypeAll(typeof(SuggestionsEditor));
-
-					if (suggWindow.Length != 0)
-					{
-						for (int i = 0; i < suggWindow[0].numberSuggestions; i++)
-						{
-							FuncMain.SetShowLayersCell(minVal, maxVal, _suggestionsGrid[i]._cells);
-						}
-					}
-				}
-			}
-
-			_coordinates.SetActive(_debug_grid);
-
-			FuncMain.DrawUILine(Color.gray);
-			DrawEditor();
-		}
-	}
-
-	private void DrawNewGridPanel()
-	{
-		FuncMain.DrawUILine(Color.gray);
-
-		if (GUILayout.Button("New"))
-		{
-			var assembly = Assembly.GetAssembly(typeof(UnityEditor.Editor));
-			var type = assembly.GetType("UnityEditor.LogEntries");
-			var method = type.GetMethod("Clear");
-			method.Invoke(new object(), null);
-
 			RefreshPallet();
 
-			GameObject newChildVisualization;
-
-			if (GameObject.Find("Visualization"))
-				DestroyImmediate(GameObject.Find("Visualization"));
-
-			newChildVisualization = PrefabUtility.InstantiatePrefab(Resources.Load("Visualization")) as GameObject;
-			PrefabUtility.UnpackPrefabInstance(newChildVisualization, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-			_brush = GameObject.Find("Brush");
-
-			foreach (Transform child in palletObject.transform)
-            {
-				GameObject newObject = Instantiate(child.gameObject);
-				newObject.transform.name = newObject.transform.name.Replace("(Clone)", "").Trim();
-				newObject.transform.parent = _brush.transform;
-				newObject.transform.localPosition = new Vector3(0, 0, 0);
-			}
-
-			_coordinates = GameObject.Find("Coordinates");
-
+			CreateBrushAndVisualization();
 			_mode_paint = PaintMode.Single;
 			_cellTypes_index = 1;
 			ChangeBrushPallet();
 
-			//Destroy then create Grid and Cells with waypoints
-			FuncMain.DestroyGrids();
+			_grid.ResetCells();
 
-			FuncMain.CreateCells(ref _grid, _cellTypes, _cellPrefabs, _size_grid, palletObject);
-			_grid.transform.position = new Vector3(0, 0, 0);
+			foreach (Grid3D grid in _suggestionsGrid)
+			{
+				grid.ResetCells();
+			}
+		}
+		GUILayout.EndHorizontal();
+		FuncMain.DrawUILine(Color.gray);
+
+		if (GUILayout.Button("Show/Hide Suggestions"))
+		{
 			suggWindow = (SuggestionsEditor[])Resources.FindObjectsOfTypeAll(typeof(SuggestionsEditor));
 
-			_suggestionsGrid = new List<Grid3D>();
-
-			if (suggWindow.Length != 0)
+			if (suggWindow.Length > 0)
 			{
-				for (int i = 0; i < suggWindow[0].numberSuggestions; i++)
+				foreach (SuggestionsEditor suggEditor in suggWindow)
 				{
-					Cell[,,] newCells = new Cell[_size_grid.x, _size_grid.y, _size_grid.z];
-					Grid3D newGrid = _grid;
-					GameObject newcameraObject = Instantiate<GameObject>(_suggestionsCameraPrefab);
-					FuncMain.CreateCells(ref newGrid, _cellTypes, _cellPrefabs, _size_grid, palletObject);
-					newGrid.transform.position = new Vector3(1000 * (i + 1), 1000 * (i + 1), 1000 * (i + 1));
-					newcameraObject.transform.parent = newGrid.transform;
-					newcameraObject.transform.localPosition = new Vector3(_size_grid.x / 2, _size_grid.y / 2, _size_grid.z / 2);
-
-					Camera cam = newcameraObject.GetComponent<Camera>();
-
-					cam.hideFlags = HideFlags.HideAndDontSave;
-					cam.farClipPlane = 50;
-					cam.nearClipPlane = -50;
-					cam.depth = -10f;
-					_suggestionsGrid.Add(newGrid);
+					suggEditor.Close();
 				}
+			}
+			else
+			{
+				SuggestionsEditor suggWindow = ScriptableObject.CreateInstance<SuggestionsEditor>();
+				suggWindow.OpenSuggestions();
 			}
 		}
 
@@ -444,7 +380,249 @@ public class MapTileGridCreatorWindow : EditorWindow
 			}
 		}
 
+		GUILayout.BeginHorizontal();
+		EditorGUIUtility.labelWidth = 30;
+		EditorGUILayout.LabelField("Size : " + _size_grid.x + " x " + _size_grid.y + " x " + _size_grid.z);
+		EditorGUILayout.LabelField("Number of cells : " + _size_grid.x * _size_grid.y * _size_grid.z);
+		GUILayout.EndHorizontal();
+
+		var origFontStyle = EditorStyles.label.fontStyle;
+		EditorStyles.label.fontStyle = FontStyle.Bold;
+
+		EditorGUILayout.LabelField("Hide", EditorStyles.boldLabel);
+		GUILayout.BeginHorizontal();
+		Vector3Int oldMaxVal = maxVal;
+		maxVal.x = EditorGUILayout.IntSlider(maxVal.x, 0, _size_grid.x);
+		maxVal.y = EditorGUILayout.IntSlider(maxVal.y, 0, _size_grid.y);
+		maxVal.z = EditorGUILayout.IntSlider(maxVal.z, 0, _size_grid.z);
+		GUILayout.EndHorizontal();
+
+		GUILayout.BeginHorizontal();
+		EditorGUILayout.LabelField("AutoRefresh Suggestions", EditorStyles.boldLabel);
+		autoRefreshSuggestions = EditorGUILayout.Toggle(autoRefreshSuggestions);
+		GUILayout.EndHorizontal();
+
+		if (maxVal != oldMaxVal)
+		{
+			FuncMain.SetShowLayersCell(minVal, maxVal, _grid._cells);
+
+			suggWindow = (SuggestionsEditor[])Resources.FindObjectsOfTypeAll(typeof(SuggestionsEditor));
+
+			if (suggWindow.Length != 0)
+			{
+				for (int i = 0; i < suggWindow[0].numberSuggestions; i++)
+				{
+					FuncMain.SetShowLayersCell(minVal, maxVal, _suggestionsGrid[i]._cells);
+				}
+			}
+		}
+
+		FuncMain.DrawUILine(Color.gray);
+		DrawEditor();
+		FuncMain.DrawUILine(Color.gray);
+		if (GUILayout.Button("Save"))
+		{
+			string fullpath = EditorUtility.SaveFilePanel("File map save", "", _grid.name, "json");
+			if (fullpath != "")
+			{
+				SaveLoadFileSystem.SaveAsyncRawJSON(_grid, fullpath);
+			}
+		}
+	}
+
+	private void DrawMainStartingMenu()
+	{
+		suggWindow = (SuggestionsEditor[])Resources.FindObjectsOfTypeAll(typeof(SuggestionsEditor));
+
+		foreach(SuggestionsEditor suggEditor in suggWindow)
+        {
+			suggEditor.Close();
+        }
+
+		if (emptyCellObj != null)
+			DestroyImmediate(emptyCellObj);
+
+		if (_brush != null)
+			DestroyImmediate(_brush);
+
+		autoRefreshSuggestions = true;
+
+		GUILayout.Label("Main Editor", EditorStyles.boldLabel);
+
+		FuncMain.DrawUILine(Color.gray);
+
+		if (GUILayout.Button("New Grid : 5 x 5 x 5 "))
+		{
+			RefreshPallet();
+
+			CreateBrushAndVisualization();
+			_mode_paint = PaintMode.Single;
+			_cellTypes_index = 1;
+			ChangeBrushPallet();
+
+			SuggestionsEditor suggWindow = ScriptableObject.CreateInstance<SuggestionsEditor>();
+			suggWindow.OpenSuggestions();
+			_size_grid = new Vector3Int(5, 5, 5);
+			CreateGrids();
+		}
+
+		if (GUILayout.Button("New Grid : 10 x 5 x 5 "))
+		{
+			RefreshPallet();
+
+			CreateBrushAndVisualization();
+			_mode_paint = PaintMode.Single;
+			_cellTypes_index = 1;
+			ChangeBrushPallet();
+
+			SuggestionsEditor suggWindow = ScriptableObject.CreateInstance<SuggestionsEditor>();
+			suggWindow.OpenSuggestions();
+			_size_grid = new Vector3Int(10, 5, 5);
+			CreateGrids();
+		}
+
+		if (GUILayout.Button("New Grid : 5 x 10 x 5 "))
+		{
+			RefreshPallet();
+
+			CreateBrushAndVisualization();
+			_mode_paint = PaintMode.Single;
+			_cellTypes_index = 1;
+			ChangeBrushPallet();
+
+			SuggestionsEditor suggWindow = ScriptableObject.CreateInstance<SuggestionsEditor>();
+			suggWindow.OpenSuggestions();
+			_size_grid = new Vector3Int(5, 10, 5);
+			CreateGrids();
+		}
+
+		if (GUILayout.Button("New Grid : 10 x 5 x 10 "))
+		{
+			RefreshPallet();
+
+			CreateBrushAndVisualization();
+			_mode_paint = PaintMode.Single;
+			_cellTypes_index = 1;
+			ChangeBrushPallet();
+
+			SuggestionsEditor suggWindow = ScriptableObject.CreateInstance<SuggestionsEditor>();
+			suggWindow.OpenSuggestions();
+			_size_grid = new Vector3Int(10, 5, 10);
+			CreateGrids();
+		}
+
+		if (GUILayout.Button("New Grid : 10 x 10 x 10 "))
+		{
+			RefreshPallet();
+
+			CreateBrushAndVisualization();
+			_mode_paint = PaintMode.Single;
+			_cellTypes_index = 1;
+			ChangeBrushPallet();
+
+			SuggestionsEditor suggWindow = ScriptableObject.CreateInstance<SuggestionsEditor>();
+			suggWindow.OpenSuggestions();
+			_size_grid = new Vector3Int(5, 10, 5);
+			CreateGrids();
+		}
+
+		if (GUILayout.Button("Load"))
+		{
+			string fullpath = EditorUtility.OpenFilePanel("File map load", "", "json");
+			if (fullpath != "")
+			{
+				RefreshPallet();
+
+				CreateBrushAndVisualization();
+				_mode_paint = PaintMode.Single;
+				_cellTypes_index = 1;
+				ChangeBrushPallet();
+
+				//Destroy then create Grid and Cells with waypoints
+				FuncMain.DestroyGrids();
+
+				if (_grid != null)
+					DestroyImmediate(_grid.gameObject);
+				_grid = SaveLoadFileSystem.LoadRawJSON(fullpath, _cellTypes, _cellPrefabs, palletObject);
+
+				_size_grid = _grid.size;
+
+				SuggestionsEditor suggWindow = ScriptableObject.CreateInstance<SuggestionsEditor>();
+				suggWindow.OpenSuggestions();
+
+				CreateSuggestionsGrids();
+				maxVal = new Vector3Int(_size_grid.x, _size_grid.y, _size_grid.z);
+			}
+		}
+
+		Selection.SetActiveObjectWithContext(_grid, null);
 		EditorUtility.ClearProgressBar();
+	}
+
+    private void CreateGrids()
+	{
+		//Destroy then create Grid and Cells with waypoints
+		FuncMain.DestroyGrids();
+
+		CreateMainGrid();
+		CreateSuggestionsGrids();
+
+		maxVal = new Vector3Int(_size_grid.x, _size_grid.y, _size_grid.z);
+	}
+
+	private void CreateMainGrid()
+	{
+		FuncMain.CreateCells(ref _grid, _cellTypes, _cellPrefabs, _size_grid, palletObject);
+		_grid.transform.position = new Vector3(0, 0, 0);
+	}
+
+	private void CreateSuggestionsGrids()
+	{
+		suggWindow = (SuggestionsEditor[])Resources.FindObjectsOfTypeAll(typeof(SuggestionsEditor));
+
+		_suggestionsGrid = new List<Grid3D>();
+
+		if (suggWindow.Length != 0)
+		{
+			for (int i = 0; i < suggWindow[0].numberSuggestions; i++)
+			{
+				Cell[,,] newCells = new Cell[_size_grid.x, _size_grid.y, _size_grid.z];
+				Grid3D newGrid = _grid;
+				GameObject newcameraObject = Instantiate<GameObject>(_suggestionsCameraPrefab);
+				FuncMain.CreateCells(ref newGrid, _cellTypes, _cellPrefabs, _size_grid, palletObject);
+				newGrid.transform.position = new Vector3(1000 * (i + 1), 1000 * (i + 1), 1000 * (i + 1));
+				newcameraObject.transform.parent = newGrid.transform;
+				newcameraObject.transform.localPosition = new Vector3(_size_grid.x / 2, _size_grid.y / 2, _size_grid.z / 2);
+
+				Camera cam = newcameraObject.GetComponent<Camera>();
+
+				cam.hideFlags = HideFlags.HideAndDontSave;
+				cam.farClipPlane = 50;
+				cam.nearClipPlane = -50;
+				cam.depth = -10f;
+				_suggestionsGrid.Add(newGrid);
+			}
+		}
+	}
+
+	private void CreateBrushAndVisualization()
+	{
+		GameObject newChildVisualization;
+
+		if (GameObject.Find("Visualization"))
+			DestroyImmediate(GameObject.Find("Visualization"));
+
+		newChildVisualization = PrefabUtility.InstantiatePrefab(Resources.Load("Visualization")) as GameObject;
+		PrefabUtility.UnpackPrefabInstance(newChildVisualization, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+		_brush = GameObject.Find("Brush");
+
+		foreach (Transform child in palletObject.transform)
+		{
+			GameObject newObject = Instantiate(child.gameObject);
+			newObject.transform.name = newObject.transform.name.Replace("(Clone)", "").Trim();
+			newObject.transform.parent = _brush.transform;
+			newObject.transform.localPosition = new Vector3(0, 0, 0);
+		}
 	}
 
 	private void DrawEditor()
@@ -489,22 +667,8 @@ public class MapTileGridCreatorWindow : EditorWindow
 				if(i+1 < palletIcons.Count)
 					if (GUILayout.Button(palletIcons[i+1])) { _cellTypes_index = i + 2; _cellTypesShow[i+1] = true; _mode_paint = PaintMode.Single; ChangeBrushPallet(); };
 				GUILayout.EndHorizontal();
-				GUILayout.BeginHorizontal();
-				_cellTypesShow[i] =  EditorGUILayout.Toggle("Show/Hide", _cellTypesShow[i]);
-				if (i + 1 < palletIcons.Count)
-					_cellTypesShow[i+1] = EditorGUILayout.Toggle("Show/Hide", _cellTypesShow[i + 1]);
-				GUILayout.EndHorizontal();
 			}
 			GUILayout.EndScrollView();
-
-			for (int i = 0; i < palletIcons.Count; i++)
-			{
-				if (_oldCellTypesShow[i] != _cellTypesShow[i])
-                {
-					//FuncMain.SetShowTypeCell(_cellTypesShow[i], _cellTypes[i], _grid._cells);
-					//_oldCellTypesShow[i] = _cellTypesShow[i];
-				}
-			}
 		}
 	}
 

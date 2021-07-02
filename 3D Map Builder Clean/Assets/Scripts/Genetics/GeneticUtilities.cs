@@ -45,7 +45,7 @@ namespace UtilitiesGenetic
 
 	public enum MutationsType
 	{
-		Normal, NoWalls, NoFloor, NoDoors, NoPathsUp, NoTransformations
+		Normal, NoWalls, NoFloor, NoDoors, NoPathsUp, NoTransformations, OnlyTransformations, NoCreateDeleteFloorAndWalls
 	}
 
 	public enum CrossoverType

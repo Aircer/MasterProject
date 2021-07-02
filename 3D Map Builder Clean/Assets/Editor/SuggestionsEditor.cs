@@ -24,8 +24,7 @@ public class SuggestionsEditor : EditorWindow
     public int numberSuggestions;
     public EvolutionaryAlgoParams evolAlgoParams;
 
-    [MenuItem("3D Map/SuggestionsEditor")]
-    static void ShowWindow()
+    public void OpenSuggestions()
     {
         EditorWindow window = GetWindow(typeof(SuggestionsEditor));
         window.autoRepaintOnSceneChange = true;
@@ -58,6 +57,7 @@ public class SuggestionsEditor : EditorWindow
     
     private void OnGUI()
     {
+        /*
         EditorGUIUtility.labelWidth = 100;
         //Get parameters of Evolutionary the Algorithm
         GUILayout.BeginHorizontal();
@@ -77,7 +77,7 @@ public class SuggestionsEditor : EditorWindow
         evolAlgoParams.wWalkingAreas = EditorGUILayout.FloatField("wWA ", evolAlgoParams.wWalkingAreas, GUILayout.Width(0.25f * position.width));
         evolAlgoParams.wWallsCuboids = EditorGUILayout.FloatField("wWalls ", evolAlgoParams.wWallsCuboids, GUILayout.Width(0.25f * position.width));
         evolAlgoParams.wPathfinding = EditorGUILayout.FloatField("wPath ", evolAlgoParams.wPathfinding, GUILayout.Width(0.25f * position.width));
-        GUILayout.EndHorizontal();
+        GUILayout.EndHorizontal();*/
 
         if (mapSuggestionGrid == null || mapSuggestionGrid.Count == 0 || mapSuggestionGrid[0] == null)
             NewSuggestionsInt();
@@ -90,19 +90,19 @@ public class SuggestionsEditor : EditorWindow
             GUILayout.BeginHorizontal();
             if (mapSuggestionGrid.Count == numberSuggestions)
             {
-                GUILayoutUtility.GetRect(0.5f*position.width, position.height*0.45f - 50);
+                GUILayoutUtility.GetRect(0.5f*position.width, position.height*0.45f - 20);
                 Camera previewCam = mapSuggestionGrid[i].transform.GetComponentInChildren<Camera>();
                 previewCam.hideFlags = HideFlags.HideAndDontSave;
-                Rect cameraRect = new Rect(5, 70 + i*(position.height * 0.25f-17f), 0.5f * position.width-10, position.height * 0.49f - 60);
+                Rect cameraRect = new Rect(5, 5 + i*(position.height * 0.25f), 0.5f * position.width-10, position.height * 0.49f - 30);
                 if (previewCam)
                 {
                     Handles.DrawCamera(cameraRect, previewCam, DrawCameraMode.Normal);
                 }
 
-                GUILayoutUtility.GetRect(0.5f * position.width, position.height * 0.49f - 50);
+                GUILayoutUtility.GetRect(0.5f * position.width, position.height * 0.49f - 20);
                 previewCam = mapSuggestionGrid[i+1].transform.GetComponentInChildren<Camera>();
                 previewCam.hideFlags = HideFlags.HideAndDontSave;
-                cameraRect = new Rect(0.5f*position.width+5, 70 + i *(position.height * 0.25f-17f), 0.5f * position.width-10, position.height * 0.49f - 60);
+                cameraRect = new Rect(0.5f*position.width+5, 5 + i *(position.height * 0.25f), 0.5f * position.width-10, position.height * 0.49f - 30);
                 if (previewCam)
                 {
                     Handles.DrawCamera(cameraRect, previewCam, DrawCameraMode.Normal);
@@ -119,8 +119,8 @@ public class SuggestionsEditor : EditorWindow
                     {
                         int[][][] suggestionInt = mapSuggestionGrid[j].ConvertCellsToInt();
                         int[][][] mapInt = mapGrid.ConvertCellsToInt();
-                        mapSuggestionGrid[j].ConvertIntToCells(mapInt, mapWindow.minVal, mapWindow.maxVal);
-                        mapGrid.ConvertIntToCells(suggestionInt, mapWindow.minVal, mapWindow.maxVal);
+                        mapSuggestionGrid[j].ConvertIntToCells(mapInt);
+                        mapGrid.ConvertIntToCells(suggestionInt);
                     }
                 }
             }
@@ -169,7 +169,7 @@ public class SuggestionsEditor : EditorWindow
         //Create GameObject from the newly created clusters and create editors 
         for (int i = 0; i < numberSuggestions; i++)
         {
-            mapSuggestionGrid[i].ConvertIntToCells(suggestionsInt[i], mapWindow.minVal, mapWindow.maxVal);
+            mapSuggestionGrid[i].ConvertIntToCells(suggestionsInt[i]);
         }
     }
 }

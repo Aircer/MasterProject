@@ -52,11 +52,11 @@ namespace Genetic3
 		{
 			algoCommun = new EvolutionaryAlgoParams();
 
-			experimentID = 15;
-			nbRuns = 5;
+			experimentID = 17;
+			nbRuns = 20;
 			numberCandidates = 2;
 
-			sizeCommun = new Vector3Int(5, 5, 5);
+			sizeCommun = new Vector3Int(10, 10, 10);
 
 			algoCommun.crossoverType = CrossoverType.Copy;
 			algoCommun.mutationType = MutationsType.Normal;

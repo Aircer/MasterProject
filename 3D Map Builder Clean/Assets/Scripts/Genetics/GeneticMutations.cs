@@ -37,14 +37,18 @@ namespace Genetics
 
 			Vector3Int input = new Vector3Int(mutationIndex_x, mutationIndex_y, mutationIndex_z);
 
-			if (typeParams[Genes[input.x][input.y][input.z]].floor && mutationType != MutationsType.NoFloor)
+			if (typeParams[Genes[input.x][input.y][input.z]].floor 
+				&& mutationType != MutationsType.NoFloor && mutationType != MutationsType.OnlyTransformations
+				&& mutationType != MutationsType.NoCreateDeleteFloorAndWalls)
 			{
 				Genes = MutationsFloor.DeleteFloor(Genes, input);
 			}
 
 			if (typeParams[Genes[input.x][input.y][input.z]].ladder && mutationType != MutationsType.NoPathsUp)
 			{
-				int val = mutationType == MutationsType.NoTransformations ? 1: random.Next(2);
+				int val = random.Next(2);
+				if (mutationType == MutationsType.OnlyTransformations) val = 0;
+				if (mutationType == MutationsType.NoTransformations) val = 1;
 
 				if (val == 0)
 					Genes = MutationsLadders.TranslateLadder(Genes, input);
@@ -54,7 +58,9 @@ namespace Genetics
 
 			if (typeParams[Genes[input.x][input.y][input.z]].door && mutationType != MutationsType.NoDoors)
 			{
-				int val = mutationType == MutationsType.NoTransformations ? 1 : random.Next(2);
+				int val = random.Next(2);
+				if (mutationType == MutationsType.OnlyTransformations) val = 0;
+				if (mutationType == MutationsType.NoTransformations) val = 1;
 
 				if (val == 0)
 					Genes = MutationsDoors.TranslateDoor(Genes, input);
@@ -64,7 +70,10 @@ namespace Genetics
 			
 			if (typeParams[Genes[input.x][input.y][input.z]].wall && mutationType != MutationsType.NoWalls)
 			{
-				int val = mutationType == MutationsType.NoTransformations ? random.Next(2, 5) : random.Next(5);
+				int val = random.Next(5);
+				if (mutationType == MutationsType.OnlyTransformations) val = random.Next(0, 2);
+				if (mutationType == MutationsType.NoTransformations) val = random.Next(2, 5);
+				if (mutationType == MutationsType.NoCreateDeleteFloorAndWalls) val = random.Next(0, 4);
 
 				if (val == 0)
 					Genes = MutationsWalls.TranslationWall(Genes, input);
@@ -80,7 +89,9 @@ namespace Genetics
 
 			if (typeParams[Genes[input.x][input.y][input.z]].stair && mutationType != MutationsType.NoPathsUp)
 			{
-				int val = mutationType == MutationsType.NoTransformations ? 1 : random.Next(2);
+				int val = random.Next(2);
+				if (mutationType == MutationsType.OnlyTransformations) val = 0;
+				if (mutationType == MutationsType.NoTransformations) val = 1;
 
 				if (val == 0)
 					Genes = MutationsStairs.MoveStair(Genes, input, 4);
@@ -88,10 +99,11 @@ namespace Genetics
 					Genes = MutationsStairs.DestroyStair(Genes, input);
 			}
 
-			if (Genes[input.x][input.y][input.z] == 0)
+			if (Genes[input.x][input.y][input.z] == 0 
+				&& mutationType != MutationsType.OnlyTransformations)
 			{
 				int val = random.Next(100);
-
+				if(mutationType == MutationsType.NoCreateDeleteFloorAndWalls) val = random.Next(60, 100);
 				if (val < 5 && mutationType != MutationsType.NoWalls)
 					Genes = MutationsWalls.FillWallX(Genes, input, 5);
 				if (val > 5 && val < 10 && mutationType != MutationsType.NoWalls)

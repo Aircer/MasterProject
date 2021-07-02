@@ -128,7 +128,7 @@ namespace MapTileGridCreator.Core
 		/// </summary>
 		/// /// <param name="cells"> Cells to transform</param>
 		/// /// <param name="waypoints"> Waypoints used to get info for transform Cells</param>
-		public void ConvertIntToCells(int[][][] genes, Vector3Int minVal, Vector3Int maxVal)
+		public void ConvertIntToCells(int[][][] genes)
 		{
 			for (int i = 0; i < size.x; i++)
 			{
@@ -170,8 +170,23 @@ namespace MapTileGridCreator.Core
 					}
 				}
 			}
+		}
 
-			FuncMain.SetShowLayersCell(minVal, maxVal, _cells);
+		public void ResetCells()
+		{
+			for (int i = 0; i < size.x; i++)
+			{
+				for (int j = 0; j < size.y; j++)
+				{
+					for (int k = 0; k < size.z; k++)
+					{
+						if (_cells[i, j, k].type != null)
+						{
+							_cells[i, j, k].Inactive();
+						}
+					}
+				}
+			}
 		}
 
 		/// <summary>

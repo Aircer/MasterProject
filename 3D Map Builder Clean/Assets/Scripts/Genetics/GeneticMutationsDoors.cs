@@ -24,6 +24,8 @@ namespace Genetics
             {
                 int maxX = 0;
                 int minX = 0;
+                int maxY = 0;
+                int minY = 0;
                 int maxZ = 0;
                 int minZ = 0;
 
@@ -31,37 +33,42 @@ namespace Genetics
                     maxX = 1;
                 if (input.x - 2 > 0 && typeParams[Genes[input.x - 1][input.y][input.z]].wall && typeParams[Genes[input.x - 2][input.y][input.z]].wall)
                     minX = -1;
+                if (input.y + 2 < size.y && typeParams[Genes[input.x][input.y + 1][input.z]].wall && typeParams[Genes[input.x][input.y + 2][input.z]].wall)
+                    maxY = 1;
+                if (input.y - 2 > 0 && typeParams[Genes[input.x][input.y - 1][input.z]].wall && typeParams[Genes[input.x][input.y - 2][input.z]].wall)
+                    minY = -1;
                 if (input.z + 2 < size.z && typeParams[Genes[input.x][input.y][input.z + 1]].wall && typeParams[Genes[input.x][input.y][input.z] + 2].wall)
                     maxZ = 1;
                 if (input.z - 2 > 0 && typeParams[Genes[input.x][input.y][input.z - 1]].wall && typeParams[Genes[input.x][input.y][input.z - 2]].wall)
                     minZ = -1;
 
-                Vector2Int translation = new Vector2Int(0, 0);
-                if (minX != 0 || maxX != 0 || minZ != 0 || maxZ != 0)
+                Vector3Int translation = new Vector3Int(0, 0, 0);
+                if (minX != 0 || maxX != 0 || minY != 0 || maxY != 0 || minZ != 0 || maxZ != 0)
                 {
-                    while (translation.x == 0 && translation.y == 0)
+                    while (translation.x == 0 && translation.y == 0 && translation.z == 0)
                     {
                         translation.x = random.Next(minX, maxX + 1);
-                        translation.y = random.Next(minZ, maxZ + 1);
+                        translation.y = random.Next(minY, maxY + 1);
+                        translation.z = random.Next(minZ, maxZ + 1);
                     }
 
                     int temp;
                     temp = Genes[input.x][input.y][input.z];
-                    Genes[input.x][input.y][input.z] = Genes[input.x + translation.x][input.y][input.z + translation.y];
-                    Genes[input.x + translation.x][input.y][input.z + translation.y] = temp;
+                    Genes[input.x][input.y][input.z] = Genes[input.x + translation.x][input.y + translation.y][input.z + translation.z];
+                    Genes[input.x + translation.x][input.y + translation.y][input.z + translation.z] = temp;
 
                     if (typeParams[Genes[input.x][input.y - 1][input.z]].door)
                     {
                         temp = Genes[input.x][input.y - 1][input.z];
-                        Genes[input.x][input.y - 1][input.z] = Genes[input.x + translation.x][input.y - 1][input.z + translation.y];
-                        Genes[input.x + translation.x][input.y - 1][input.z + translation.y] = temp;
+                        Genes[input.x][input.y - 1][input.z] = Genes[input.x + translation.x][input.y + translation.y - 1][input.z + translation.z];
+                        Genes[input.x + translation.x][input.y + translation.y - 1][input.z + translation.z] = temp;
                     }
 
                     if (typeParams[Genes[input.x][input.y + 1][input.z]].door)
                     {
                         temp = Genes[input.x][input.y + 1][input.z];
-                        Genes[input.x][input.y + 1][input.z] = Genes[input.x + translation.x][input.y + 1][input.z + translation.y];
-                        Genes[input.x + translation.x][input.y + 1][input.z + translation.y] = temp;
+                        Genes[input.x][input.y + 1][input.z] = Genes[input.x + translation.x][input.y + translation.y + 1][input.z + translation.z];
+                        Genes[input.x + translation.x][input.y + translation.y + 1][input.z + translation.z] = temp;
                     }
                 }
             }
