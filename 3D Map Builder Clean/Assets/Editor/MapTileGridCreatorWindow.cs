@@ -33,7 +33,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	//Debug Grid
 	[SerializeField]
-	private Plane[] _planesGrid = new Plane[3];
+	public Plane[] _planesGrid = new Plane[3];
 
 	//Paint
 	private GUIContent[] _modes_paint;
@@ -142,8 +142,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			_planesGrid = FuncMain.SetGridDebugPlanesNormalAndPosition(_planesGrid, _size_grid, SceneView.lastActiveSceneView.rotation.eulerAngles);
 			UpdateCameraSuggestion(SceneView.lastActiveSceneView.rotation.eulerAngles, SceneView.lastActiveSceneView.cameraDistance);
 			//Draw the drawing plans of the grid 
-			FuncMain.DebugSquareGrid(_grid, DebugsColor.grid_help, _size_grid, _planesGrid);
-
+			FuncMain.DebugSquareGrid(_grid, _size_grid, _planesGrid, maxVal);
 			PaintEdit();
 		}
 
@@ -181,7 +180,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 				{
 					Vector3Int input = Vector3Int.RoundToInt(GetGridPositionInput(0.5f));
 
-					if (input.x >= 0 && input.y >= 0 && input.z >= 0 && input.x < _size_grid.x && input.y < _size_grid.y && input.z < _size_grid.z)
+					if (input.x >= 0 && input.y >= 0 && input.z >= 0 && input.x < maxVal.x && input.y < maxVal.y && input.z < maxVal.z)
 					{
 							_indexToPaint = IndexesToPaint.AddInput(_size_grid, input, _mode_paint, _cellTypes[_cellTypes_index], 
 														ref _grid);
@@ -237,7 +236,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			stopWatch.Start();
 			suggWindow[0].NewSuggestionsIA();
 			stopWatch.Stop();
-			//UnityEngine.Debug.Log("Time To Run IA " + stopWatch.ElapsedMilliseconds + "ms");
+			UnityEngine.Debug.Log("Time To Run IA " + stopWatch.ElapsedMilliseconds + "ms");
 			stopWatch.Reset();
 		}
 	}
@@ -328,7 +327,6 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 			CreateBrushAndVisualization();
 			_mode_paint = PaintMode.Single;
-			_cellTypes_index = 1;
 			ChangeBrushPallet();
 
 			_grid.ResetCells();
@@ -404,7 +402,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 		if (maxVal != oldMaxVal)
 		{
-			FuncMain.SetShowLayersCell(minVal, maxVal, _grid._cells);
+			_grid.SetShowLayersCell(maxVal);
 
 			suggWindow = (SuggestionsEditor[])Resources.FindObjectsOfTypeAll(typeof(SuggestionsEditor));
 
@@ -412,7 +410,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			{
 				for (int i = 0; i < suggWindow[0].numberSuggestions; i++)
 				{
-					FuncMain.SetShowLayersCell(minVal, maxVal, _suggestionsGrid[i]._cells);
+					_suggestionsGrid[i].SetShowLayersCell(maxVal);
 				}
 			}
 		}
@@ -466,7 +464,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			CreateGrids();
 		}
 
-		if (GUILayout.Button("New Grid : 10 x 5 x 5 "))
+		if (GUILayout.Button("New Grid : 10 x 6 x 6 "))
 		{
 			RefreshPallet();
 
@@ -477,7 +475,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 			SuggestionsEditor suggWindow = ScriptableObject.CreateInstance<SuggestionsEditor>();
 			suggWindow.OpenSuggestions();
-			_size_grid = new Vector3Int(10, 5, 5);
+			_size_grid = new Vector3Int(10, 6, 6);
 			CreateGrids();
 		}
 
@@ -496,7 +494,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			CreateGrids();
 		}
 
-		if (GUILayout.Button("New Grid : 10 x 5 x 10 "))
+		if (GUILayout.Button("New Grid : 7 x 7 x 7 "))
 		{
 			RefreshPallet();
 
@@ -507,11 +505,11 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 			SuggestionsEditor suggWindow = ScriptableObject.CreateInstance<SuggestionsEditor>();
 			suggWindow.OpenSuggestions();
-			_size_grid = new Vector3Int(10, 5, 10);
+			_size_grid = new Vector3Int(7, 7, 7);
 			CreateGrids();
 		}
 
-		if (GUILayout.Button("New Grid : 10 x 10 x 10 "))
+		if (GUILayout.Button("New Grid : 6 x 8 x 6 "))
 		{
 			RefreshPallet();
 
@@ -522,7 +520,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 			SuggestionsEditor suggWindow = ScriptableObject.CreateInstance<SuggestionsEditor>();
 			suggWindow.OpenSuggestions();
-			_size_grid = new Vector3Int(5, 10, 5);
+			_size_grid = new Vector3Int(6, 8, 6);
 			CreateGrids();
 		}
 

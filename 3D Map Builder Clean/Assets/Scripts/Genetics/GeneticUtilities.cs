@@ -29,6 +29,7 @@ namespace UtilitiesGenetic
 
 	public struct EvolutionaryAlgoParams
 	{
+		public int nbBestFit;
 		public CrossoverType crossoverType;
 		public MutationsType mutationType;
 		public float mutationRate;

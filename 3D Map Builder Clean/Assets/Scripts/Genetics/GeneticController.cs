@@ -24,29 +24,37 @@ namespace Genetics
 			ga.NewGeneration();
 		}
 
-		public int[][][] GetBestClusters()
+		public List<int[][][]> GetBestClusters(int nbBestFit)
         {
-			ga.ClassifyPopulation();
+			List<int[][][]> bestClusters = new List<int[][][]>();
 
-			int nbNeighbors = 0;
-			
-			foreach (WalkableArea wa in ga.oldPopulation[0].phenotype.walkableArea)
+			ga.ClassifyPopulation();
+			float previousFitness = 2;
+			int j = 0;
+			for (int i = 0; i < nbBestFit; i++)
 			{
-				nbNeighbors += wa.neighborsArea.Count; 
+				while(ga.oldPopulation[j].fitness.total == previousFitness && j < ga.oldPopulation.Length - nbBestFit)
+                {
+					j++;
+                }
+
+				previousFitness = ga.oldPopulation[j].fitness.total;
+				UnityEngine.Debug.Log("Total: " + ga.oldPopulation[j].fitness.total
+					+ "Walls: " + ga.oldPopulation[j].fitness.walls
+					+ "WA: " + ga.oldPopulation[j].fitness.walkingAreas
+					+ "Paths: " + ga.oldPopulation[j].fitness.pathfinding);
+				bestClusters.Add(ga.oldPopulation[j].Genes);
+				j++;
 			}
 
-			UnityEngine.Debug.Log("Number walkable zones: " + ga.oldPopulation[0].phenotype.walkableArea.Count
-				+ "; Number neighbors: " + nbNeighbors + "; Gen: " + ga.generation
-				+ "; Fitness: " + ga.oldPopulation[0].fitness.total);
-
-			return ga.oldPopulation[0].Genes;
+			return bestClusters;
 		}
 
-		public float GetBestTotalFitness()
+		public float GetBestTotalFitness(int nbBestFit)
 		{
 			ga.ClassifyPopulation();
 
-			return ga.oldPopulation[0].fitness.total;
+			return ga.oldPopulation[nbBestFit - 1].fitness.total;
 		}
 
 		public Fitness[][] GetFitness()

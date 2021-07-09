@@ -16,10 +16,12 @@ namespace MapTileGridCreator.Core
 		public int[,,] _cells_values;
 		public Vector3Int size;
 		public List<CellInformation> cellInfos;
+		public Vector3Int maxVal;
 
 		public void Initialize(Vector3Int size, List<CellInformation> cellInfos, Dictionary<CellInformation, GameObject> pallet, GameObject palletObject)
 		{
 			this.size = size;
+			maxVal = size;
 			this.cellInfos = cellInfos;
 			this.transform.gameObject.tag = "Grid";
 			_map = new Dictionary<Vector3Int, Cell>();
@@ -146,16 +148,7 @@ namespace MapTileGridCreator.Core
 							_cells[i, j, k].Inactive();
 							_cells[i, j, k].Painted(cellInfos[genes[i + 1][j + 1][k + 1]]);
 							_cells[i, j, k].Active();
-
-							/*
-							if (!waypoints[i, j, k].show)
-								cells[i, j, k].Sleep();*/
 						}
-						/*
-						if (genes[i][j][k] != 0 && !waypoints[i, j, k].show)
-						{
-							cells[i, j, k].Sleep();
-						}*/
 					}
 				}
 			}
@@ -167,6 +160,30 @@ namespace MapTileGridCreator.Core
 					for (int k = 0; k < size.z; k++)
 					{
 						FuncVisual.UpdateCellsAroundVisual(_cells, new Vector3Int(i, j, k), cellInfos[genes[i + 1][j + 1][k + 1]]);
+					}
+				}
+			}
+
+			this.SetShowLayersCell(maxVal);
+		}
+
+		public void SetShowLayersCell(Vector3Int maxVal)
+		{
+			this.maxVal = maxVal;
+			for (int i = 0; i < size.x; i++)
+			{
+				for (int j = 0; j < size.y; j++)
+				{
+					for (int k = 0; k < size.z; k++)
+					{
+						if (i > maxVal.x - 1 || j > maxVal.y - 1 || k > maxVal.z - 1)
+						{
+							_cells[i, j, k].Sleep();
+						}
+						else
+						{
+							_cells[i, j, k].AWake();
+						}
 					}
 				}
 			}

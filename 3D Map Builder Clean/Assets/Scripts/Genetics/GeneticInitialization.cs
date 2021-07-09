@@ -12,31 +12,30 @@ namespace Genetics
         public Population[][][] populations;
 
         public List<int[][][]> GetSuggestionsClusters(Vector3Int size, TypeParams[] cellsInfos,int[][][] waypointParams, 
-            int nbSuggestions, EvolutionaryAlgoParams algoParams)
+            int nbSuggestions, EvolutionaryAlgoParams[] algoParams)
         {
             List<int[][][]> newWaypointsParams = new List<int[][][]>();
             fitness = new Fitness[nbSuggestions][][];
             populations = new Population[nbSuggestions][][];
             SharpNeatLib.Maths.FastRandom randomFast = new SharpNeatLib.Maths.FastRandom();
 
-            for (int i = 0; i < nbSuggestions; i++)
+            for (int i = 0; i < algoParams.Length; i++)
             {
                 GeneticController newGenetic = new GeneticController();
-                newGenetic.StartGenetics(size, cellsInfos, waypointParams, algoParams, randomFast);
+                newGenetic.StartGenetics(size, cellsInfos, waypointParams, algoParams[i], randomFast);
 
                 int j = 0;
-                while (j < algoParams.generations)
+                while (j < algoParams[i].generations)
                 {
                     newGenetic.UpdateGenetics();
 
-                    if (newGenetic.GetBestTotalFitness() > algoParams.fitnessStop)
+                    if (newGenetic.GetBestTotalFitness(algoParams[i].nbBestFit) > algoParams[i].fitnessStop)
                         break;
 
                     j++;
                 }
                 
-
-                newWaypointsParams.Add(newGenetic.GetBestClusters());
+                newWaypointsParams.AddRange(newGenetic.GetBestClusters(algoParams[i].nbBestFit));
                 fitness[i] = newGenetic.GetFitness();
                 populations[i] = newGenetic.GetPopulations();
             }

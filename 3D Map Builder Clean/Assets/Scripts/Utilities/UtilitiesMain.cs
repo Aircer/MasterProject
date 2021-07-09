@@ -33,15 +33,16 @@ namespace MapTileGridCreator.UtilitiesMain
 		/// <param name="color"> The color of the grid.</param>
 		/// <param name="size_grid">The size of the grid.</param>
 		/// /// <param name="planesGrid">Plans orientation, depends of the camera rotation</param>
-		public static void DebugSquareGrid(Grid3D grid, Color color, Vector3Int size_grid, Plane[] planesGrid)
-		{
-			using (new Handles.DrawingScope(color))
+		public static void DebugSquareGrid(Grid3D grid, Vector3Int size_grid, Plane[] planesGrid, Vector3Int maxValues)
+		{   
+		
+			using (new Handles.DrawingScope(Color.red))
 			{
-				float flipX = planesGrid[0].normal.x == -1 ? size_grid.x : 0;
-				float flipY = planesGrid[1].normal.y == -1 ? size_grid.y : 0;
-				float flipZ = planesGrid[2].normal.z == -1 ? size_grid.z : 0;
-				;
-				Handles.zTest = UnityEngine.Rendering.CompareFunction.LessEqual;
+				float flipX = planesGrid[0].normal.x == -1 ? maxValues.x : 0;
+				float flipY = planesGrid[1].normal.y == -1 ? maxValues.y : 0;
+				float flipZ = planesGrid[2].normal.z == -1 ? maxValues.z : 0;
+
+				Handles.zTest = UnityEngine.Rendering.CompareFunction.Less;
 				Vector3 pos = grid.transform.position;
 				pos.y += -0.5f;
 
@@ -56,10 +57,10 @@ namespace MapTileGridCreator.UtilitiesMain
 
 				for (float y = -1; y < size_grid.y; y++)
 				{
-					Handles.DrawLine(pos + new Vector3(flipX - 0.5f, y + 1f, -0.5f),
+					Handles.DrawLine(pos + new Vector3(flipX - 0.5f, y + 1f, - 0.5f),
 									pos + new Vector3(flipX - 0.5f, y + 1f, size_grid.z - 0.5f));
 
-					Handles.DrawLine(pos + new Vector3(-0.5f, y + 1f, flipZ - 0.5f),
+					Handles.DrawLine(pos + new Vector3(- 0.5f, y + 1f, flipZ - 0.5f),
 									pos + new Vector3(size_grid.x - 0.5f, y + 1f, flipZ - 0.5f));
 				}
 
@@ -70,6 +71,44 @@ namespace MapTileGridCreator.UtilitiesMain
 
 					Handles.DrawLine(pos + new Vector3(flipX - 0.5f, 0, z + 0.5f),
 									pos + new Vector3(flipX - 0.5f, size_grid.y, z + 0.5f));
+				}
+			}
+
+			using (new Handles.DrawingScope(Color.white))
+			{
+				float flipX = planesGrid[0].normal.x == -1 ? maxValues.x : 0;
+				float flipY = planesGrid[1].normal.y == -1 ? maxValues.y : 0;
+				float flipZ = planesGrid[2].normal.z == -1 ? maxValues.z : 0;
+
+				Handles.zTest = UnityEngine.Rendering.CompareFunction.Less;
+				Vector3 pos = grid.transform.position;
+				pos.y += -0.5f;
+
+				for (float x = -1; x < maxValues.x; x++)
+				{
+					Handles.DrawLine(pos + new Vector3(x + 0.5f, flipY, -0.5f),
+									pos + new Vector3(x + 0.5f, flipY, maxValues.z - 0.5f));
+
+					Handles.DrawLine(pos + new Vector3(x + 0.5f, maxValues.y, flipZ - 0.5f),
+									pos + new Vector3(x + 0.5f, 0, flipZ - 0.5f));
+				}
+
+				for (float y = -1; y < maxValues.y; y++)
+				{
+					Handles.DrawLine(pos + new Vector3(flipX - 0.5f, y + 1f, -0.5f),
+									pos + new Vector3(flipX - 0.5f, y + 1f, maxValues.z - 0.5f));
+
+					Handles.DrawLine(pos + new Vector3(-0.5f, y + 1f, flipZ - 0.5f),
+									pos + new Vector3(maxValues.x - 0.5f, y + 1f, flipZ - 0.5f));
+				}
+
+				for (float z = -1; z < maxValues.z; z++)
+				{
+					Handles.DrawLine(pos + new Vector3(-0.5f, flipY, z + 0.5f),
+									pos + new Vector3(maxValues.x - 0.5f, flipY, z + 0.5f));
+
+					Handles.DrawLine(pos + new Vector3(flipX - 0.5f, 0, z + 0.5f),
+									pos + new Vector3(flipX - 0.5f, maxValues.y, z + 0.5f));
 				}
 			}
 		}
@@ -144,33 +183,6 @@ namespace MapTileGridCreator.UtilitiesMain
 			foreach (GameObject obj in allObjects)
 			{
 				UnityEngine.Object.DestroyImmediate(obj);
-			}
-		}
-
-		public static void SetShowLayersCell(Vector3Int minVal, Vector3Int maxVal, Cell[,,] cells)
-		{
-			Vector3Int size_grid = new Vector3Int(cells.GetLength(0), cells.GetLength(1), cells.GetLength(2));
-
-			for (int i = 0; i < size_grid.x; i++)
-			{
-				for (int j = 0; j < size_grid.y; j++)
-				{
-					for (int k = 0; k < size_grid.z; k++)
-					{
-						if (i > maxVal.x - 1 || i < minVal.x - 1 ||
-							j > maxVal.y - 1 || j < minVal.y - 1 ||
-							k > maxVal.z - 1 || k < minVal.z - 1)
-						{
-							cells[i, j, k].Sleep();
-							//cluster.GetWaypoints()[i, j, k].show = false;
-						}
-						else
-						{
-							cells[i, j, k].AWake();
-							//cluster.GetWaypoints()[i, j, k].show = true;
-						}
-					}
-				}
 			}
 		}
 	}

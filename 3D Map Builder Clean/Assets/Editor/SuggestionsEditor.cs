@@ -22,7 +22,7 @@ public class SuggestionsEditor : EditorWindow
     private EditorWindow window;
 
     public int numberSuggestions;
-    public EvolutionaryAlgoParams evolAlgoParams;
+    public EvolutionaryAlgoParams[] evolAlgoParams;
 
     public void OpenSuggestions()
     {
@@ -41,18 +41,32 @@ public class SuggestionsEditor : EditorWindow
 
         window = GetWindow(typeof(SuggestionsEditor));
 
-        evolAlgoParams.crossoverType = CrossoverType.Copy;
-        evolAlgoParams.mutationType = MutationsType.Normal;
-        evolAlgoParams.population = 50;
-        evolAlgoParams.elitism = 4;
-        evolAlgoParams.generations = 20;
-        evolAlgoParams.mutationRate = 0.005f;
-        evolAlgoParams.fitnessStop = 0.9f;
+        int nbAlgos = 2;
+        evolAlgoParams = new EvolutionaryAlgoParams[nbAlgos];
 
-        evolAlgoParams.wDifference = 0f;
-        evolAlgoParams.wWalkingAreas = 0.2f;
-        evolAlgoParams.wWallsCuboids = 0.2f;
-        evolAlgoParams.wPathfinding = 1f;
+        for(int i = 0; i < nbAlgos; i++)
+        {
+            evolAlgoParams[i].crossoverType = CrossoverType.Copy;
+            evolAlgoParams[i].population = 50;
+            evolAlgoParams[i].elitism = 1;
+            evolAlgoParams[i].generations = 10;
+            evolAlgoParams[i].mutationRate = 0.005f;
+            evolAlgoParams[i].fitnessStop = 0.99f;
+
+            evolAlgoParams[i].wDifference = 0f;
+            evolAlgoParams[i].wWalkingAreas = 1f;
+            evolAlgoParams[i].wWallsCuboids = 1f;
+            evolAlgoParams[i].wPathfinding = 1f;
+
+            evolAlgoParams[i].nbBestFit = 1;
+            evolAlgoParams[i].mutationType = MutationsType.Normal;
+        }
+
+        evolAlgoParams[0].nbBestFit = 1;
+        evolAlgoParams[0].mutationType = MutationsType.NoCreateDeleteFloorAndWalls;
+
+        evolAlgoParams[1].nbBestFit = 3;
+        evolAlgoParams[1].mutationType = MutationsType.Normal;
     }
     
     private void OnGUI()
@@ -109,7 +123,7 @@ public class SuggestionsEditor : EditorWindow
                 }
             }
             GUILayout.EndHorizontal();
-            
+          
             GUILayout.BeginHorizontal();
             if (mapSuggestionGrid.Count == numberSuggestions)
             {

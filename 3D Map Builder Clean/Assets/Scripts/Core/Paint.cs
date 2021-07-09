@@ -297,18 +297,19 @@ namespace MapTileGridCreator.Paint
 			HashSet<Vector3Int> indexesToPaint = new HashSet<Vector3Int>();
 			int direction = 1;
 
-			if (_startingPaintIndex.y + 1 >= size_grid.y)
+			if (_startingPaintIndex.y >= size_grid.y)
 				return indexesToPaint;
 
 			Vector3Int start = _startingPaintIndex;
 			Vector3Int end = input;
 
-			if (input.y > _startingPaintIndex.y)
+			if (input.y < _startingPaintIndex.y)
 			{
-				end.y = input.y;
-				start.y = _startingPaintIndex.y;
+				end = _startingPaintIndex;
+				start = input;
 			}
 
+			Debug.Log("START_Y : " + start.y + " || END_Y : " + end.y);
 
 			if (Math.Abs(input.x - _startingPaintIndex.x) > Math.Abs(input.z - _startingPaintIndex.z))
 			{

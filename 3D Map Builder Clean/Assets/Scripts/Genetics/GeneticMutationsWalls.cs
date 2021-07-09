@@ -146,14 +146,16 @@ namespace Genetics
                 bool spanRight = false;
                 int Xmin = 1;
                 int Xmax = size.x - 1;
-
-                while (y1 < size.y && typeParams[Genes[temp.x][y1][z]].wall && !typeParams[Genes[temp.x][y1][z - 1]].wall && !typeParams[Genes[temp.x][y1][z + 1]].wall)
+                
+                while (y1 < size.y && typeParams[Genes[temp.x][y1][z]].wall && (!typeParams[Genes[temp.x][y1][z - 1]].wall || !typeParams[Genes[temp.x][y1][z + 1]].wall))
                 {
                     Genes[temp.x][y1][z] = 0;
 
                     if (!spanLeft && temp.x > Xmin && typeParams[Genes[temp.x - 1][y1][z]].wall)
                     {
-                        if (!typeParams[Genes[temp.x - 1][y1][z - 1]].wall && !typeParams[Genes[temp.x - 1][y1][z + 1]].wall)
+                        wall.Push(new Vector3Int(temp.x - 1, y1, z));
+
+                        if (!typeParams[Genes[temp.x - 1][y1][z - 1]].wall || !typeParams[Genes[temp.x - 1][y1][z + 1]].wall)
                             wall.Push(new Vector3Int(temp.x - 1, y1, z));
                         else
                             Xmin = temp.x;
@@ -166,7 +168,7 @@ namespace Genetics
                     }
                     if (!spanRight && temp.x < Xmax && typeParams[Genes[temp.x + 1][y1][z]].wall)
                     {
-                        if (!typeParams[Genes[temp.x + 1][y1][z - 1]].wall && !typeParams[Genes[temp.x + 1][y1][z + 1]].wall)
+                        if (!typeParams[Genes[temp.x + 1][y1][z - 1]].wall || !typeParams[Genes[temp.x + 1][y1][z + 1]].wall)
                             wall.Push(new Vector3Int(temp.x + 1, y1, z));
                         else
                             Xmax = temp.z + 1;
@@ -210,13 +212,14 @@ namespace Genetics
                 int minZ = 1;
                 int maxZ = size.z - 1;
 
-                while (y1 < size.y && typeParams[Genes[x][y1][temp.z]].wall && !typeParams[Genes[x - 1][y1][temp.z]].wall && !typeParams[Genes[x + 1][y1][temp.z]].wall)
+                while (y1 < size.y && typeParams[Genes[x][y1][temp.z]].wall && (!typeParams[Genes[x - 1][y1][temp.z]].wall || !typeParams[Genes[x + 1][y1][temp.z]].wall))
                 {
                     Genes[x][y1][temp.z] = 0;
 
                     if (!spanLeft && temp.z > minZ && typeParams[Genes[x][y1][temp.z - 1]].wall)
                     {
-                        if (!typeParams[Genes[x - 1][y1][temp.z - 1]].wall && !typeParams[Genes[x + 1][y1][temp.z - 1]].wall)
+                        wall.Push(new Vector3Int(x, y1, temp.z - 1));
+                        if (!typeParams[Genes[x - 1][y1][temp.z - 1]].wall || !typeParams[Genes[x + 1][y1][temp.z - 1]].wall)
                             wall.Push(new Vector3Int(x, y1, temp.z - 1));
                         else
                             minZ = temp.z;
@@ -229,7 +232,7 @@ namespace Genetics
                     }
                     if (!spanRight && temp.z < maxZ && typeParams[Genes[x][y1][temp.z + 1]].wall)
                     {
-                        if (!typeParams[Genes[x - 1][y1][temp.z + 1]].wall && !typeParams[Genes[x + 1][y1][temp.z + 1]].wall)
+                        if (!typeParams[Genes[x - 1][y1][temp.z + 1]].wall || !typeParams[Genes[x + 1][y1][temp.z + 1]].wall)
                             wall.Push(new Vector3Int(x, y1, temp.z + 1));
                         else
                             maxZ = temp.z + 1;
@@ -353,7 +356,7 @@ namespace Genetics
                 while (y1 < size.y && typeParams[Genes[temp.x][y1][z]].wall)
                 {
                     cellsChecked.Add(new Vector3Int(temp.x, y1, z));
-
+                    
                     if (typeParams[Genes[temp.x][y1][z - 1]].wall && typeParams[Genes[temp.x][y1][z + 1]].wall)
                     {
                         if (temp.x >= input.x && temp.x < maxX)
@@ -420,7 +423,7 @@ namespace Genetics
                 while (y1 < size.y && typeParams[Genes[x][y1][temp.z]].wall)
                 {
                     cellsChecked.Add(new Vector3Int(x, y1, temp.z));
-
+                    
                     if (typeParams[Genes[x - 1][y1][temp.z]].wall && typeParams[Genes[x + 1][y1][temp.z]].wall)
                     {
                         if (temp.z >= input.z && temp.z < maxZ)

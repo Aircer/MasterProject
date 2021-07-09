@@ -57,6 +57,12 @@ namespace Genetics
 			}
 
 			fitnessPopulation[0] = ClassifyPopulation();
+
+			/*
+			foreach (Cuboid wall in oldPopulation[0].phenotype.walls)
+			{
+				UnityEngine.Debug.Log(wall.length + " x " + wall.height + " x " + wall.width);
+			}*/
 		}
 
 		public void NewGeneration()

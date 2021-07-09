@@ -13,13 +13,14 @@ namespace MapTileGridCreator.UtilitiesVisual
 		{
 			if (type != null && type.typeParams.wall)
 			{
+				FloorTransform(cells, new Vector3Int(newIndex.x, newIndex.y - 1, newIndex.z));
+				FloorTransform(cells, new Vector3Int(newIndex.x, newIndex.y + 1, newIndex.z));
 				WallTransform(cells, new Vector3Int(newIndex.x, newIndex.y, newIndex.z));
 
 				for (int i = -1; i < 2; i++)
 				{
 					for (int k = -1; k < 2; k++)
 					{
-						//FloorTransform(cells, waypoints, new Vector3Int(newIndex.x + i, newIndex.y - 1, newIndex.z + k));
 						LadderTransform(cells, new Vector3Int(newIndex.x + i, newIndex.y, newIndex.z + k));
 					}
 				}
@@ -63,7 +64,7 @@ namespace MapTileGridCreator.UtilitiesVisual
 			
 			if (type != null && type.typeParams.floor)
 			{
-				//FloorTransform(cells, waypoints, new Vector3Int(newIndex.x, newIndex.y, newIndex.z));
+				FloorTransform(cells, new Vector3Int(newIndex.x, newIndex.y, newIndex.z));
 
 				if (CellIsWall(newIndex.x, newIndex.y - 1, newIndex.z, cells))
 					WallTransform(cells, new Vector3Int(newIndex.x, newIndex.y - 1, newIndex.z));
@@ -101,18 +102,14 @@ namespace MapTileGridCreator.UtilitiesVisual
 				&& index.x < cells.GetLength(0) && index.y < cells.GetLength(1) && index.z < cells.GetLength(2)
 				&& cells[index.x, index.y, index.z].type && cells[index.x, index.y, index.z].type.typeParams.floor)
 			{
-				List<string> activeElements = new List<string>();
+				string subType = "Floor";
 
-				if (CellIsWall(index.x - 1, index.y + 1, index.z, cells) || CellIsWall(index.x - 1, index.y, index.z, cells))
-					activeElements.Add("x_minus");
-				if(CellIsWall(index.x + 1, index.y + 1, index.z, cells) || CellIsWall(index.x + 1, index.y, index.z, cells))
-					activeElements.Add("x_plus");
-				if(CellIsWall(index.x, index.y + 1, index.z - 1, cells) || CellIsWall(index.x, index.y, index.z - 1, cells))
-					activeElements.Add("z_minus");
-				if(CellIsWall(index.x, index.y + 1, index.z + 1, cells) || CellIsWall(index.x, index.y, index.z + 1, cells))
-					activeElements.Add("z_plus");
+				if (CellIsDoor(index.x, index.y - 1, index.z, cells))
+				{
+					subType += "Under";
+				}
 
-				cells[index.x, index.y, index.z].TransformVisualFloor(activeElements);
+				cells[index.x, index.y, index.z].TransformVisual(subType, new Vector3Int(0,0,0));
 			}
 		}
 
@@ -435,6 +432,16 @@ namespace MapTileGridCreator.UtilitiesVisual
 			if (x >= 0 && y >= 0 && z >= 0
 				&& x < cells.GetLength(0) && y < cells.GetLength(1) && z < cells.GetLength(2)
 				&& cells[x, y, z].type != null && cells[x, y, z].type.typeParams.wall)
+				return true;
+			else
+				return false;
+		}
+
+		public static bool CellIsDoor(int x, int y, int z, Cell[,,] cells)
+		{
+			if (x >= 0 && y >= 0 && z >= 0
+				&& x < cells.GetLength(0) && y < cells.GetLength(1) && z < cells.GetLength(2)
+				&& cells[x, y, z].type != null && cells[x, y, z].type.typeParams.door)
 				return true;
 			else
 				return false;
