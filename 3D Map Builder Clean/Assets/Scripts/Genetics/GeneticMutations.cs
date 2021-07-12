@@ -5,14 +5,20 @@ using UtilitiesGenetic;
 
 namespace Genetics
 {
-    public static class Mutations
+    public class Mutations
     {
-		public static Vector3Int size;
-		public static SharpNeatLib.Maths.FastRandom random;
-		public static TypeParams[] typeParams;
-		public static MutationsType mutationType;
+		public Vector3Int size;
+		public SharpNeatLib.Maths.FastRandom random;
+		public TypeParams[] typeParams;
+		public MutationsType mutationType;
 
-		public static void InitMutations(Vector3Int sizeDNA, SharpNeatLib.Maths.FastRandom rand, TypeParams[] tp, MutationsType mutType)
+		private MutationsStairs mutationsStairs;
+		private MutationsDoors mutationsDoors;
+		private MutationsLadders mutationsLadders;
+		private MutationsWalls mutationsWalls;
+		private MutationsFloor mutationsFloor;
+
+		public void InitMutations(Vector3Int sizeDNA, SharpNeatLib.Maths.FastRandom rand, TypeParams[] tp, MutationsType mutType)
 		{
 			//sizeDNA is the size of the grid + 2, so we don't have to check the boundaries, then for the mutations the limit is grid + 1
 			size = new Vector3Int(sizeDNA.x - 1, sizeDNA.y - 1, sizeDNA.z - 1);
@@ -20,16 +26,20 @@ namespace Genetics
 			typeParams = tp;
 			mutationType = mutType;
 
-			MutationsStairs.InitMutations(size, random, typeParams);
-			MutationsWalls.InitMutations(size, random, typeParams);
-			MutationsFloor.InitMutations(size, random, typeParams);
-			MutationsLadders.InitMutations(size, random, typeParams);
-			MutationsDoors.InitMutations(size, random, typeParams);
 
-			PhenotypeCompute.InitMutations(size, random, typeParams);
+			mutationsStairs = new MutationsStairs();
+			mutationsStairs.InitMutations(size, random, typeParams);
+			mutationsWalls = new MutationsWalls();
+			mutationsWalls.InitMutations(size, random, typeParams);
+			mutationsFloor = new MutationsFloor();
+			mutationsFloor.InitMutations(size, random, typeParams);
+			mutationsLadders = new MutationsLadders();
+			mutationsLadders.InitMutations(size, random, typeParams);
+			mutationsDoors = new MutationsDoors();
+			mutationsDoors.InitMutations(size, random, typeParams);
 		}
 
-		public static int[][][] Mutate(int[][][] Genes)
+		public int[][][] Mutate(int[][][] Genes)
         {
 			int mutationIndex_x = random.Next(1, size.x);
 			int mutationIndex_y = random.Next(1, size.y - 1);
@@ -41,7 +51,7 @@ namespace Genetics
 				&& mutationType != MutationsType.NoFloor && mutationType != MutationsType.OnlyTransformations
 				&& mutationType != MutationsType.NoCreateDeleteFloorAndWalls)
 			{
-				Genes = MutationsFloor.DeleteFloor(Genes, input);
+				Genes = mutationsFloor.DeleteFloor(Genes, input);
 			}
 
 			if (typeParams[Genes[input.x][input.y][input.z]].ladder && mutationType != MutationsType.NoPathsUp)
@@ -51,9 +61,9 @@ namespace Genetics
 				if (mutationType == MutationsType.NoTransformations) val = 1;
 
 				if (val == 0)
-					Genes = MutationsLadders.TranslateLadder(Genes, input);
+					Genes = mutationsLadders.TranslateLadder(Genes, input);
 				if (val == 1)
-					Genes = MutationsLadders.DeleteLadder(Genes, input);
+					Genes = mutationsLadders.DeleteLadder(Genes, input);
 			}
 
 			if (typeParams[Genes[input.x][input.y][input.z]].door && mutationType != MutationsType.NoDoors)
@@ -63,9 +73,9 @@ namespace Genetics
 				if (mutationType == MutationsType.NoTransformations) val = 1;
 
 				if (val == 0)
-					Genes = MutationsDoors.TranslateDoor(Genes, input);
+					Genes = mutationsDoors.TranslateDoor(Genes, input);
 				if (val == 1)
-					Genes = MutationsDoors.CollapseDoor(Genes, input);
+					Genes = mutationsDoors.CollapseDoor(Genes, input);
 			}
 			
 			if (typeParams[Genes[input.x][input.y][input.z]].wall && mutationType != MutationsType.NoWalls)
@@ -76,15 +86,15 @@ namespace Genetics
 				if (mutationType == MutationsType.NoCreateDeleteFloorAndWalls) val = random.Next(0, 4);
 
 				if (val == 0)
-					Genes = MutationsWalls.TranslationWall(Genes, input);
+					Genes = mutationsWalls.TranslationWall(Genes, input);
 				if (val == 1)
-					Genes = MutationsWalls.RotationWall(Genes, input);
+					Genes = mutationsWalls.RotationWall(Genes, input);
 				if (val == 2 && mutationType != MutationsType.NoDoors)
-					Genes = MutationsDoors.CreateDoor(Genes, input, 1);
+					Genes = mutationsDoors.CreateDoor(Genes, input, 1);
 				if (val == 3)
-					Genes = MutationsWalls.DeleteWallZ(Genes, input);
+					Genes = mutationsWalls.DeleteWallZ(Genes, input);
 				if (val == 4)
-					Genes = MutationsWalls.DeleteWallX(Genes, input);
+					Genes = mutationsWalls.DeleteWallX(Genes, input);
 			}
 
 			if (typeParams[Genes[input.x][input.y][input.z]].stair && mutationType != MutationsType.NoPathsUp)
@@ -94,9 +104,9 @@ namespace Genetics
 				if (mutationType == MutationsType.NoTransformations) val = 1;
 
 				if (val == 0)
-					Genes = MutationsStairs.MoveStair(Genes, input, 4);
+					Genes = mutationsStairs.MoveStair(Genes, input, 4);
 				if (val == 1)
-					Genes = MutationsStairs.DestroyStair(Genes, input);
+					Genes = mutationsStairs.DestroyStair(Genes, input);
 			}
 
 			if (Genes[input.x][input.y][input.z] == 0 
@@ -105,21 +115,21 @@ namespace Genetics
 				int val = random.Next(100);
 				if(mutationType == MutationsType.NoCreateDeleteFloorAndWalls) val = random.Next(60, 100);
 				if (val < 5 && mutationType != MutationsType.NoWalls)
-					Genes = MutationsWalls.FillWallX(Genes, input, 5);
+					Genes = mutationsWalls.FillWallX(Genes, input, 5);
 				if (val > 5 && val < 10 && mutationType != MutationsType.NoWalls)
-					Genes = MutationsWalls.FillWallZ(Genes, input, 5);
+					Genes = mutationsWalls.FillWallZ(Genes, input, 5);
 				if (val > 10 && val < 60 && mutationType != MutationsType.NoFloor)
-					Genes = MutationsFloor.FillFloor(Genes, input, 2);
+					Genes = mutationsFloor.FillFloor(Genes, input, 2);
 				if (val > 60 && val < 65 && mutationType != MutationsType.NoPathsUp)
-					Genes = MutationsLadders.CreateLadder(Genes, input, 3);
+					Genes = mutationsLadders.CreateLadder(Genes, input, 3);
 				if (val > 65 && val < 70 && mutationType != MutationsType.NoPathsUp)
-					Genes = MutationsStairs.CreateStair(Genes, new Vector3Int(input.x, input.y, input.z), 4);
+					Genes = mutationsStairs.CreateStair(Genes, new Vector3Int(input.x, input.y, input.z), 4);
 			}
 
 			return Genes;
 		}
 
-		public static bool CellIsStruct(int x, int y, int z, int[][][] Genes)
+		public bool CellIsStruct(int x, int y, int z, int[][][] Genes)
         {
             if (typeParams[Genes[x][y][z]].floor || typeParams[Genes[x][y][z]].wall)
                 return true;

@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Threading;
 using System.Diagnostics;
 using MapTileGridCreator.SerializeSystem;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Main window class.
@@ -29,7 +30,9 @@ public class MapTileGridCreatorWindow : EditorWindow
 	public Vector3Int maxVal = new Vector3Int(5, 5, 5);
 	private SuggestionsEditor[] suggWindow;
 	private Thread newSuggestionsClustersThread;
+	private Task[] newSuggestionsThreads;
 	private bool newSuggestionsDone;
+	private Stopwatch stopWatch;
 
 	//Debug Grid
 	[SerializeField]
@@ -58,8 +61,9 @@ public class MapTileGridCreatorWindow : EditorWindow
 	private List<bool> _oldCellTypesShow = new List<bool>();
 	private GameObject emptyCellObj;
 	private bool autoRefreshSuggestions;
+    private object parallelIA;
 
-	public Grid3D GetGrid()
+    public Grid3D GetGrid()
 	{
 		return _grid;
 	}
@@ -87,6 +91,8 @@ public class MapTileGridCreatorWindow : EditorWindow
 		_modes_paint = new GUIContent[] {
 			new GUIContent(EditorGUIUtility.IconContent("Grid.PaintTool", "Paint one by one the prefab selected")),
 			new GUIContent(EditorGUIUtility.IconContent("Grid.EraserTool", "Erase the cell in scene view"))};
+
+		newSuggestionsThreads = new Task[4];
 
 		RefreshPallet();
 	}
@@ -146,8 +152,13 @@ public class MapTileGridCreatorWindow : EditorWindow
 			PaintEdit();
 		}
 
-		if (newSuggestionsClustersThread != null && !newSuggestionsClustersThread.IsAlive && !newSuggestionsDone)
+		if (newSuggestionsThreads[0] != null && newSuggestionsThreads[0].IsCompleted && newSuggestionsThreads[1].IsCompleted
+			&& newSuggestionsThreads[2].IsCompleted && newSuggestionsThreads[3].IsCompleted && !newSuggestionsDone)
 		{
+			stopWatch.Stop();
+			UnityEngine.Debug.Log("Time To Run IA " + stopWatch.ElapsedMilliseconds + "ms");
+			stopWatch.Reset();
+
 			newSuggestionsDone = true;
 			suggWindow = (SuggestionsEditor[])Resources.FindObjectsOfTypeAll(typeof(SuggestionsEditor));
 			if (suggWindow.Length != 0)
@@ -213,6 +224,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 
 	public void StartThreadNewSuggestionsIA()
 	{
+		/*
 		if (newSuggestionsClustersThread != null)
 			newSuggestionsClustersThread.Abort();
 
@@ -224,21 +236,20 @@ public class MapTileGridCreatorWindow : EditorWindow
 			newSuggestionsClustersThread.Priority = System.Threading.ThreadPriority.Highest;
 			newSuggestionsClustersThread.Start();
 			newSuggestionsDone = false;
-		}
-	}
+		}*/
 
-	public void NewSuggestionsIA()
-    {
-		if (suggWindow.Length != 0)
-		{
-			Stopwatch stopWatch;
-			stopWatch = new Stopwatch();
-			stopWatch.Start();
-			suggWindow[0].NewSuggestionsIA();
-			stopWatch.Stop();
-			UnityEngine.Debug.Log("Time To Run IA " + stopWatch.ElapsedMilliseconds + "ms");
-			stopWatch.Reset();
-		}
+		suggWindow = (SuggestionsEditor[])Resources.FindObjectsOfTypeAll(typeof(SuggestionsEditor));
+		suggWindow[0].InitGenetic();
+
+		stopWatch = new Stopwatch();
+		stopWatch.Start();
+
+		newSuggestionsThreads[0] = Task.Run(() => suggWindow[0].NewSuggestionsIA(0));
+		newSuggestionsThreads[1] = Task.Run(() => suggWindow[0].NewSuggestionsIA(1));
+		newSuggestionsThreads[2] = Task.Run(() => suggWindow[0].NewSuggestionsIA(2));
+		newSuggestionsThreads[3] = Task.Run(() => suggWindow[0].NewSuggestionsIA(3));
+
+		newSuggestionsDone = false;
 	}
 	
 	#endregion
@@ -363,7 +374,7 @@ public class MapTileGridCreatorWindow : EditorWindow
 			var type = assembly.GetType("UnityEditor.LogEntries");
 			var method = type.GetMethod("Clear");
 			method.Invoke(new object(), null);
-
+			/*
 			if (newSuggestionsClustersThread != null)
 				newSuggestionsClustersThread.Abort();
 
@@ -375,7 +386,9 @@ public class MapTileGridCreatorWindow : EditorWindow
 				newSuggestionsClustersThread.Priority = System.Threading.ThreadPriority.Highest;
 				newSuggestionsClustersThread.Start();
 				newSuggestionsDone = false;
-			}
+			}*/
+
+			StartThreadNewSuggestionsIA();
 		}
 
 		GUILayout.BeginHorizontal();

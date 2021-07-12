@@ -2,6 +2,8 @@
 using System.Linq;
 using System;
 using UtilitiesGenetic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Genetics
 {
@@ -11,36 +13,58 @@ namespace Genetics
         public Fitness[][][] fitness;
         public Population[][][] populations;
 
-        public List<int[][][]> GetSuggestionsClusters(Vector3Int size, TypeParams[] cellsInfos,int[][][] waypointParams, 
-            int nbSuggestions, EvolutionaryAlgoParams[] algoParams)
+        private Vector3Int size;
+        private TypeParams[] cellsInfos;
+        private int[][][] waypointParams;
+        private EvolutionaryAlgoParams[] algoParams;
+        private List<int[][][]> newWaypointsParams;
+        private int nbSuggestions;
+        private GeneticController[] newGenetics;
+
+        public Init(Vector3Int size, TypeParams[] cellsInfos, int[][][] waypointParams, 
+            EvolutionaryAlgoParams[] algoParams, int numberSuggestions)
         {
-            List<int[][][]> newWaypointsParams = new List<int[][][]>();
+            this.size = size;
+            this.cellsInfos = cellsInfos;
+            this.waypointParams = waypointParams;
+            this.algoParams = algoParams;
+            nbSuggestions = 4;
+
             fitness = new Fitness[nbSuggestions][][];
             populations = new Population[nbSuggestions][][];
+
+            newGenetics = new GeneticController[numberSuggestions];
+
             SharpNeatLib.Maths.FastRandom randomFast = new SharpNeatLib.Maths.FastRandom();
 
-            for (int i = 0; i < algoParams.Length; i++)
+            for (int i = 0; i < numberSuggestions; i++)
             {
-                GeneticController newGenetic = new GeneticController();
-                newGenetic.StartGenetics(size, cellsInfos, waypointParams, algoParams[i], randomFast);
+                newGenetics[i] = new GeneticController();
+                newGenetics[i].StartGenetics(size, cellsInfos, waypointParams, algoParams[i], randomFast);
+            }
+        }
 
-                int j = 0;
-                while (j < algoParams[i].generations)
-                {
-                    newGenetic.UpdateGenetics();
+        public int[][][] GetSuggestionsClusters(int i)
+        {
+            newWaypointsParams = new List<int[][][]>();
 
-                    if (newGenetic.GetBestTotalFitness(algoParams[i].nbBestFit) > algoParams[i].fitnessStop)
-                        break;
+            int j = 0;
+            while (j < algoParams[i].generations)
+            {
+                newGenetics[i].UpdateGenetics();
 
-                    j++;
-                }
-                
-                newWaypointsParams.AddRange(newGenetic.GetBestClusters(algoParams[i].nbBestFit));
-                fitness[i] = newGenetic.GetFitness();
-                populations[i] = newGenetic.GetPopulations();
+                if (newGenetics[i].GetBestTotalFitness(algoParams[i].nbBestFit) > algoParams[i].fitnessStop)
+                    break;
+
+                j++;
             }
 
-            return newWaypointsParams;
+
+            fitness[i] = newGenetics[i].GetFitness();
+            populations[i] = newGenetics[i].GetPopulations();
+
+            return newGenetics[i].GetBestClusters(algoParams[i].nbBestFit)[0];
         }
+
     }
 }

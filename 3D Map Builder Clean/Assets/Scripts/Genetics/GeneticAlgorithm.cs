@@ -20,9 +20,17 @@ namespace Genetics
 		private SharpNeatLib.Maths.FastRandom randomFast;
 		private List<int> existingTypes;
 		private CrossoverType crossoverType;
+
+		private Mutations mutations;
+		private FitnessComputation fitness;
+		private PhenotypeCompute phenotype;
+
 		public GeneticAlgorithm(EvolutionaryAlgoParams algoParams, Vector3Int dnaSize, 
 			int[][][] waypointParams, TypeParams[] typeParams, SharpNeatLib.Maths.FastRandom randomFast)
 		{
+			mutations = new Mutations();
+			mutations.InitMutations(dnaSize, randomFast, typeParams, algoParams.mutationType);
+
 			sizeDNA = dnaSize;
 			generation = 1;
 			elitism = algoParams.elitism;
@@ -46,7 +54,10 @@ namespace Genetics
 				newPopulation[i] = newPop2;
 			}
 
-			FitnessComputation.InitFitness(PhenotypeCompute.GetPhenotype(oldPopulation[0].Genes), dnaSize, algoParams, typeParams);
+			phenotype = new PhenotypeCompute();
+			phenotype.InitPheno(sizeDNA, randomFast, typeParams);
+			fitness = new FitnessComputation(); 
+			fitness.InitFitness(phenotype.GetPhenotype(oldPopulation[0].Genes), dnaSize, algoParams, typeParams);
 			existingTypes = oldPopulation[0].ExistingTypes();
 
 			populations[0] = new Population[populationSize];
@@ -56,7 +67,7 @@ namespace Genetics
 				populations[0][i].Copy(newPopulation[0].Genes, sizeDNA);
 			}
 
-			fitnessPopulation[0] = ClassifyPopulation();
+			fitnessPopulation[0] = ClassifyPopulation(fitness, phenotype);
 
 			/*
 			foreach (Cuboid wall in oldPopulation[0].phenotype.walls)
@@ -88,7 +99,7 @@ namespace Genetics
 						newPopulation[i].Crossover(parent1, parent2);
 					}
 
-					newPopulation[i].Mutate(mutationNumber);
+					newPopulation[i].Mutate(mutationNumber, mutations);
 				}
 			}
 
@@ -96,7 +107,7 @@ namespace Genetics
 			oldPopulation = newPopulation;
 			newPopulation = tmpArray;
 
-			fitnessPopulation[generation] = ClassifyPopulation();
+			fitnessPopulation[generation] = ClassifyPopulation(fitness, phenotype);
 
 			populations[generation] = new Population[populationSize];
 			for (int i = 0; i < populationSize; i++)
@@ -108,11 +119,11 @@ namespace Genetics
 			generation++;
 		}
 
-		public Fitness[] ClassifyPopulation()
+		public Fitness[] ClassifyPopulation(FitnessComputation fitness, PhenotypeCompute phenotype)
 		{
 			if (populationSize > 0)
 			{
-				Fitness[] fitnessPop = CalculateFitness();
+				Fitness[] fitnessPop = CalculateFitness(fitness, phenotype);
 
 				DNA temp;
 
@@ -135,14 +146,14 @@ namespace Genetics
 			return null;
 		}
 
-		private Fitness[] CalculateFitness()
+		private Fitness[] CalculateFitness(FitnessComputation fitness, PhenotypeCompute phenotype)
 		{
 			Fitness[] fitnessPop = new Fitness[populationSize];
 
 			fitnessSum = 0;
 			for (int i = 0; i < populationSize; i++)
 			{
-				fitnessPop[i] = oldPopulation[i].CalculateFitness();
+				fitnessPop[i] = oldPopulation[i].CalculateFitness(fitness, phenotype);
 				fitnessSum += fitnessPop[i].total;
 			}
 

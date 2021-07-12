@@ -5,19 +5,19 @@ using UtilitiesGenetic;
 
 namespace Genetics
 {
-    public static class FitnessComputation
+    public class FitnessComputation
     {
-		private static Vector3Int size;
-		private static float volumeMax;
-		private static float weightFitnessDifference;
-		private static float weightFitnessWalkingAreas;
-		private static float weightFitnessWallsCuboids;
-		private static float weightFitnessPathfinding;
-		private static Phenotype initialPhenotype;
-		private static int initialHighestWidth;
-		private static TypeParams[] typeParams;
+		private Vector3Int size;
+		private float volumeMax;
+		private float weightFitnessDifference;
+		private float weightFitnessWalkingAreas;
+		private float weightFitnessWallsCuboids;
+		private float weightFitnessPathfinding;
+		private Phenotype initialPhenotype;
+		private int initialHighestWidth;
+		private TypeParams[] typeParams;
 
-		public static void InitFitness(Phenotype initPhen, Vector3Int sizeDNA, EvolutionaryAlgoParams algoParams, TypeParams[] tP)
+		public void InitFitness(Phenotype initPhen, Vector3Int sizeDNA, EvolutionaryAlgoParams algoParams, TypeParams[] tP)
 		{
 			initialPhenotype = initPhen;
 			initialHighestWidth = GetHighestWidth(initialPhenotype);
@@ -30,7 +30,7 @@ namespace Genetics
 			weightFitnessPathfinding  = algoParams.wPathfinding;
 		}
 
-		public static int GetHighestWidth(Phenotype initPhen)
+		public int GetHighestWidth(Phenotype initPhen)
 		{
 			int highestWidth = 0;
 
@@ -43,7 +43,7 @@ namespace Genetics
 			return highestWidth;
 		}
 
-		public static Fitness FitnessFunction(Phenotype phenotype)
+		public Fitness FitnessFunction(Phenotype phenotype)
 		{
 			Fitness fitness = new Fitness();
 			float fitnessTotal = 0;
@@ -65,45 +65,7 @@ namespace Genetics
 			return fitness;
 		}
 
-		public static float GetFitnessEmptyCuboids(Phenotype phenotype)
-		{
-			float fitnessEmptyCuboids = 0;
-			int nbEmptyCuboids = phenotype.emptyCuboids.Count;
-			int badEmptyCuboid = 0;
-			float sizeMin = 5;
-			float ratioGoodEmptyCuboids = 0;
-
-			int currentVolume;
-			float totalVolume = 0;
-			float totalGoodVolume = 0;
-			float ratioGoodVolume = 0;
-
-			foreach (Cuboid cuboid in phenotype.emptyCuboids)
-			{
-				currentVolume = cuboid.length * cuboid.width * cuboid.height;
-
-				if (currentVolume < sizeMin 
-					&& (cuboid.outCuboids.Count + cuboid.inCuboids.Count < 2))
-				{
-					badEmptyCuboid++;
-					totalGoodVolume += currentVolume;
-				}
-
-				totalVolume += currentVolume;
-			}
-
-			if (nbEmptyCuboids > 0)
-				ratioGoodEmptyCuboids = (nbEmptyCuboids - badEmptyCuboid) / nbEmptyCuboids;
-
-			if (totalVolume > 0)
-				ratioGoodVolume = (totalVolume - totalGoodVolume) / totalVolume;
-
-			fitnessEmptyCuboids = ratioGoodVolume;
-
-			return fitnessEmptyCuboids;
-		}
-
-		public static float GetFitnessDifference(Phenotype phenotype)
+		public float GetFitnessDifference(Phenotype phenotype)
 		{
 			float fitnessDifference = 0;
 			float diff = 0;
@@ -126,7 +88,7 @@ namespace Genetics
 			return fitnessDifference;
 		}
 
-		public static float GetFitnessWallsCuboids(Phenotype phenotype)
+		public float GetFitnessWallsCuboids(Phenotype phenotype)
 		{
 			float fitnessWallsCuboids = 0;
 			float totalVolume = 0;
@@ -161,12 +123,12 @@ namespace Genetics
 			if (totalVolume > 0)
 				fitnessWallsCuboids = volumeWRating / totalVolume;
 
-			fitnessWallsCuboids = (float)(Math.Pow(2, fitnessWallsCuboids) - 1f);
+			//fitnessWallsCuboids = (float)(Math.Pow(2, fitnessWallsCuboids) - 1f);
 
 			return fitnessWallsCuboids;
 		}
 
-		public static float GetFitnessWalkingAreas(Phenotype phenotype)
+		public float GetFitnessWalkingAreas(Phenotype phenotype)
 		{
 			float fitnessWalkingAreas = 0;
 			float totalArea = 0;
@@ -177,13 +139,13 @@ namespace Genetics
 			{
 				rating = 1f;
 				if (wa.cells.Count < FitnessConstants.WA_SIZE_MIN)
-					rating -= 0.33f;
-
+					rating -= 0.5f;
+				/*
 				if (wa.bordersNotGood.Count > 0)
-					rating -= 0.33f;
+					rating -= 0.33f;*/
 
 				if (wa.neighborsArea.Count == 0)
-					rating -= 0.33f;
+					rating -= 0.5f;
 
 				areaWRating += wa.cells.Count* rating;
 				totalArea += wa.cells.Count;
@@ -192,12 +154,12 @@ namespace Genetics
 			if (totalArea > 0)
 				fitnessWalkingAreas = areaWRating / totalArea;
 
-			fitnessWalkingAreas = (float)(Math.Pow(2, fitnessWalkingAreas) - 1f);
+			//fitnessWalkingAreas = (float)(Math.Pow(2, fitnessWalkingAreas) - 1f);
 
 			return fitnessWalkingAreas;
 		}
 
-		public static float GetFitnessPathfinding(Phenotype phenotype)
+		public float GetFitnessPathfinding(Phenotype phenotype)
 		{
 			float fitnessPathfinding = 0.01f;
 			float totalVolume = 0;
@@ -221,12 +183,12 @@ namespace Genetics
 			if (totalVolume > 0)
 				fitnessPathfinding = volumeRating / totalVolume;
 
-			fitnessPathfinding = (float)(Math.Pow(2, fitnessPathfinding) - 1f);
+			//fitnessPathfinding = (float)(Math.Pow(2, fitnessPathfinding) - 1f);
 
 			return fitnessPathfinding;
 		}
 
-		private static bool PathsHaveCommunWA(Phenotype phenotype, Path path)
+		private bool PathsHaveCommunWA(Phenotype phenotype, Path path)
 		{
 			int numberCommunWA;
 			foreach (Path otherPath in phenotype.paths)

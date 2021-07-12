@@ -20,6 +20,7 @@ public class SuggestionsEditor : EditorWindow
     private List<Grid3D> mapSuggestionGrid;
     private Vector2 scrollPos;
     private EditorWindow window;
+    private Genetics.Init geneticInit;
 
     public int numberSuggestions;
     public EvolutionaryAlgoParams[] evolAlgoParams;
@@ -41,7 +42,7 @@ public class SuggestionsEditor : EditorWindow
 
         window = GetWindow(typeof(SuggestionsEditor));
 
-        int nbAlgos = 2;
+        int nbAlgos = 4;
         evolAlgoParams = new EvolutionaryAlgoParams[nbAlgos];
 
         for(int i = 0; i < nbAlgos; i++)
@@ -49,9 +50,9 @@ public class SuggestionsEditor : EditorWindow
             evolAlgoParams[i].crossoverType = CrossoverType.Copy;
             evolAlgoParams[i].population = 50;
             evolAlgoParams[i].elitism = 1;
-            evolAlgoParams[i].generations = 10;
+            evolAlgoParams[i].generations = 50;
             evolAlgoParams[i].mutationRate = 0.005f;
-            evolAlgoParams[i].fitnessStop = 0.99f;
+            evolAlgoParams[i].fitnessStop = 1.2f;
 
             evolAlgoParams[i].wDifference = 0f;
             evolAlgoParams[i].wWalkingAreas = 1f;
@@ -63,10 +64,7 @@ public class SuggestionsEditor : EditorWindow
         }
 
         evolAlgoParams[0].nbBestFit = 1;
-        evolAlgoParams[0].mutationType = MutationsType.NoCreateDeleteFloorAndWalls;
-
-        evolAlgoParams[1].nbBestFit = 3;
-        evolAlgoParams[1].mutationType = MutationsType.Normal;
+        evolAlgoParams[0].mutationType = MutationsType.Normal;
     }
     
     private void OnGUI()
@@ -160,8 +158,10 @@ public class SuggestionsEditor : EditorWindow
         mapSuggestionGrid = mapWindow.GetSuggestionGrid();
     }
 
-    public void NewSuggestionsIA()
+    public void InitGenetic()
     {
+        suggestionsInt.Clear();
+
         //Create new clusters from the current sketch 
         int[][][] genesInitialPopulation = mapWindow.GetGrid().ConvertCellsToInt();
 
@@ -173,17 +173,22 @@ public class SuggestionsEditor : EditorWindow
             typeParams[i] = mapWindow.GetCellInfos()[i].typeParams;
         }
 
-        Genetics.Init geneticInit = new Genetics.Init();
+        geneticInit = new Genetics.Init(new UtilitiesGenetic.Vector3Int(sizeDNDA_X, sizeDNDA_Y, sizeDNDA_Z), typeParams, genesInitialPopulation, evolAlgoParams, numberSuggestions);
+    }
 
-        suggestionsInt = geneticInit.GetSuggestionsClusters(new UtilitiesGenetic.Vector3Int(sizeDNDA_X, sizeDNDA_Y, sizeDNDA_Z), typeParams, genesInitialPopulation, numberSuggestions, evolAlgoParams);
+    public void NewSuggestionsIA(int j)
+    {
+        suggestionsInt.Add(geneticInit.GetSuggestionsClusters(j));
     }
 
     public void NewSuggestionsCells()
     {
         //Create GameObject from the newly created clusters and create editors 
-        for (int i = 0; i < numberSuggestions; i++)
+        for (int i = 0; i < suggestionsInt.Count; i++)
         {
             mapSuggestionGrid[i].ConvertIntToCells(suggestionsInt[i]);
         }
+
+        suggestionsInt.Clear();
     }
 }

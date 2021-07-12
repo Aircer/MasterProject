@@ -5,20 +5,20 @@ using UtilitiesGenetic;
 
 namespace Genetics
 {
-    public static class MutationsLadders
+    public class MutationsLadders
     {
-        public static Vector3Int size;
-        public static SharpNeatLib.Maths.FastRandom random;
-        public static TypeParams[] typeParams;
+        public Vector3Int size;
+        public SharpNeatLib.Maths.FastRandom random;
+        public TypeParams[] typeParams;
 
-        public static void InitMutations(Vector3Int sizeDNA, SharpNeatLib.Maths.FastRandom rand, TypeParams[] tp)
+        public void InitMutations(Vector3Int sizeDNA, SharpNeatLib.Maths.FastRandom rand, TypeParams[] tp)
         {
             size = sizeDNA;
             random = rand;
             typeParams = tp;
         }
 
-        public static int[][][] CreateLadder(int[][][] Genes, Vector3Int input, int newType)
+        public int[][][] CreateLadder(int[][][] Genes, Vector3Int input, int newType)
         {
             if (Genes[input.x][input.y][input.z] > 0)
                 return Genes;
@@ -42,7 +42,7 @@ namespace Genetics
             return Genes;
         }
 
-        public static int[][][] DeleteLadder(int[][][] Genes, Vector3Int input)
+        public int[][][] DeleteLadder(int[][][] Genes, Vector3Int input)
         {
             if (!typeParams[Genes[input.x][input.y][input.z]].ladder)
                 return Genes;
@@ -63,7 +63,7 @@ namespace Genetics
             return Genes;
         }
 
-        public static int[][][] TranslateLadder(int[][][] Genes, Vector3Int input)
+        public int[][][] TranslateLadder(int[][][] Genes, Vector3Int input)
         {
 
             if (!typeParams[Genes[input.x][input.y][input.z]].ladder)
@@ -114,9 +114,12 @@ namespace Genetics
             return Genes;
         }
 
-        private static bool CellIsStruct(int x, int y, int z, int[][][] Genes)
+        private bool CellIsStruct(int x, int y, int z, int[][][] Genes)
         {
-            return Mutations.CellIsStruct(x, y, z, Genes);
+            if (typeParams[Genes[x][y][z]].floor || typeParams[Genes[x][y][z]].wall)
+                return true;
+            else
+                return false;
         }
     }
 }

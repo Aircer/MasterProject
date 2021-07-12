@@ -64,12 +64,12 @@ namespace Genetics
 			return differentTypes;
 		}
 
-		public Fitness CalculateFitness()
+		public Fitness CalculateFitness(FitnessComputation fitness, PhenotypeCompute phenoCompute)
 		{
-			phenotype = PhenotypeCompute.GetPhenotype(Genes);
+			phenotype = phenoCompute.GetPhenotype(Genes);
 
-			fitness = FitnessComputation.FitnessFunction(phenotype);
-			return fitness;
+			this.fitness = fitness.FitnessFunction(phenotype);
+			return this.fitness;
 		}
 
 		public void Crossover(DNA parent1, DNA parent2)
@@ -126,11 +126,11 @@ namespace Genetics
 			}
 		}
 
-		public void Mutate(float mutationNumber)
+		public void Mutate(float mutationNumber, Mutations mutation)
 		{
 			for (int x = 0; x < mutationNumber; x++)
 			{
-				Genes = Mutations.Mutate(Genes);
+				Genes = mutation.Mutate(Genes);
 			}
 		}
 	}

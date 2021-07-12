@@ -5,20 +5,20 @@ using UtilitiesGenetic;
 
 namespace Genetics
 {
-    public static class MutationsFloor
+    public class MutationsFloor
     {
-        public static Vector3Int size;
-        public static SharpNeatLib.Maths.FastRandom random;
-        public static TypeParams[] typeParams;
+        public Vector3Int size;
+        public SharpNeatLib.Maths.FastRandom random;
+        public TypeParams[] typeParams;
 
-        public static void InitMutations(Vector3Int sizeDNA, SharpNeatLib.Maths.FastRandom rand, TypeParams[] tp)
+        public void InitMutations(Vector3Int sizeDNA, SharpNeatLib.Maths.FastRandom rand, TypeParams[] tp)
         {
             size = sizeDNA;
             random = rand;
             typeParams = tp;
         }
 
-        public static int[][][] FillFloor(int[][][] Genes, Vector3Int input, int newType)
+        public int[][][] FillFloor(int[][][] Genes, Vector3Int input, int newType)
         {
             if (Genes[input.x][input.y][input.z] > 0 && !typeParams[Genes[input.x][input.y][input.z]].floor
                 && !typeParams[Genes[input.x][input.y - 1][input.z]].floor && !typeParams[Genes[input.x][input.y + 1][input.z]].floor)
@@ -75,7 +75,7 @@ namespace Genetics
             return Genes;
         }
 
-        public static int[][][] DeleteFloor(int[][][] Genes, Vector3Int input)
+        public int[][][] DeleteFloor(int[][][] Genes, Vector3Int input)
         {
             if (!typeParams[Genes[input.x][input.y][input.z]].floor)
                 return Genes;
@@ -130,12 +130,7 @@ namespace Genetics
             return Genes;
         }
 
-        private static bool CellIsStruct(int x, int y, int z, int[][][] Genes)
-        {
-            return Mutations.CellIsStruct(x, y, z, Genes);
-        }
-
-        private static bool CanFillFloor(int x, int y, int z, int[][][] Genes)
+        private bool CanFillFloor(int x, int y, int z, int[][][] Genes)
         {
             if ((Genes[x][y][z] == 0 || typeParams[Genes[x][y][z]].floor) && !typeParams[Genes[x][y - 1][z]].stair
                                 && !typeParams[Genes[x][y - 1][z]].floor && !typeParams[Genes[x][y + 1][z]].floor)

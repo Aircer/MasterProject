@@ -5,15 +5,15 @@ using UtilitiesGenetic;
 
 namespace Genetics
 {
-    public static class PhenotypeCompute
+    public class PhenotypeCompute
     {
-        public static Vector3Int size;
-        public static SharpNeatLib.Maths.FastRandom random;
-        public static TypeParams[] typeParams;
-        public static int[][][] Genes;
-        public static int nbCells;
+        public Vector3Int size;
+        public SharpNeatLib.Maths.FastRandom random;
+        public TypeParams[] typeParams;
+        public int[][][] Genes;
+        public int nbCells;
 
-        public static void InitMutations(Vector3Int sizeDNA, SharpNeatLib.Maths.FastRandom rand, TypeParams[] tp)
+        public void InitPheno(Vector3Int sizeDNA, SharpNeatLib.Maths.FastRandom rand, TypeParams[] tp)
         {
             size = sizeDNA;
             random = rand;
@@ -21,7 +21,7 @@ namespace Genetics
             nbCells = sizeDNA.x * sizeDNA.y * sizeDNA.z;
         }
 
-        public static Phenotype GetPhenotype(int[][][] newGenes)
+        public Phenotype GetPhenotype(int[][][] newGenes)
         { 
             Phenotype newPhenotype = new Phenotype();
             newPhenotype.Init(typeParams.Length, nbCells);
@@ -128,7 +128,7 @@ namespace Genetics
             return newPhenotype;
         }
 
-        private static Cuboid GetCuboid(Vector3Int input, HashSet<Vector3Int> cellsAlreadyPicked, string type)
+        private Cuboid GetCuboid(Vector3Int input, HashSet<Vector3Int> cellsAlreadyPicked, string type)
         {
             Cuboid newCuboid = new Cuboid();
             Vector3Int max = GeneticGetCuboid.Grow_ones(input, cellsAlreadyPicked);
@@ -165,7 +165,7 @@ namespace Genetics
             return newCuboid;
         }
 
-        private static bool CellInCuboid(int x, int y, int z, string type)
+        private bool CellInCuboid(int x, int y, int z, string type)
         {
             if ((typeParams[Genes[x][y][z]].wall && type == "wall") || (!CellIsStruct(x, y, z) && type == "empty"))
                 return true;
@@ -173,7 +173,7 @@ namespace Genetics
                 return false;
         }
 
-        private static HashSet<Vector3Int> BottomEmpty(Cuboid cuboid)
+        private HashSet<Vector3Int> BottomEmpty(Cuboid cuboid)
         {
             HashSet<Vector3Int> newBorderCells = new HashSet<Vector3Int>();
 
@@ -194,7 +194,7 @@ namespace Genetics
             return new HashSet<Vector3Int>();
         }
 
-        private static HashSet<Vector3Int> ConnectCuboid(Cuboid cuboid, string type)
+        private HashSet<Vector3Int> ConnectCuboid(Cuboid cuboid, string type)
         {
 
             HashSet<Vector3Int> borderCells  = new HashSet<Vector3Int>();
@@ -208,7 +208,7 @@ namespace Genetics
             return borderCells;
         }
 
-        private static HashSet<Vector3Int> NewBorderCellsXPos(Cuboid cuboid, string type)
+        private HashSet<Vector3Int> NewBorderCellsXPos(Cuboid cuboid, string type)
         {
             HashSet<Vector3Int> newBorderCells = new HashSet<Vector3Int>();
 
@@ -231,7 +231,7 @@ namespace Genetics
             return new HashSet<Vector3Int>();
         }
 
-        private static HashSet<Vector3Int> NewBorderCellsXNeg(Cuboid cuboid, string type)
+        private HashSet<Vector3Int> NewBorderCellsXNeg(Cuboid cuboid, string type)
         {
             HashSet<Vector3Int> newBorderCells = new HashSet<Vector3Int>();
 
@@ -254,7 +254,7 @@ namespace Genetics
             return new HashSet<Vector3Int>();
         }
 
-        private static HashSet<Vector3Int> NewBorderCellsZPos(Cuboid cuboid, string type)
+        private HashSet<Vector3Int> NewBorderCellsZPos(Cuboid cuboid, string type)
         {
             HashSet<Vector3Int> newBorderCells = new HashSet<Vector3Int>();
 
@@ -277,7 +277,7 @@ namespace Genetics
             return new HashSet<Vector3Int>();
         }
 
-        private static HashSet<Vector3Int> NewBorderCellsZNeg(Cuboid cuboid, string type)
+        private HashSet<Vector3Int> NewBorderCellsZNeg(Cuboid cuboid, string type)
         {
             HashSet<Vector3Int> newBorderCells = new HashSet<Vector3Int>();
 
@@ -300,7 +300,7 @@ namespace Genetics
             return new HashSet<Vector3Int>();
         }
 
-        private static WalkableArea GetWalkableArea(Vector3Int input)
+        private WalkableArea GetWalkableArea(Vector3Int input)
         {
             WalkableArea newWalkableArea = new WalkableArea();
             newWalkableArea.neighborsArea = new HashSet<WalkableArea>();
@@ -371,7 +371,7 @@ namespace Genetics
             return newWalkableArea;
         }
 
-        private static Path GetPath(Vector3Int input)
+        private Path GetPath(Vector3Int input)
         {
             Path newPath = new Path();
             newPath.type = Genes[input.x][input.y][input.z];
@@ -392,10 +392,12 @@ namespace Genetics
             return newPath;
         }
 
-        private static Path GetStairPath(Vector3Int input, Path newPath)
+        private Path GetStairPath(Vector3Int input, Path newPath)
         {
-            HashSet<Vector3Int> stairX = MutationsStairs.GetStairX(Genes, input);
-            HashSet<Vector3Int> stairZ = MutationsStairs.GetStairZ(Genes, input);
+            MutationsStairs mutationsStairs = new MutationsStairs();
+            mutationsStairs.InitMutations(size, random, typeParams);
+            HashSet<Vector3Int> stairX = mutationsStairs.GetStairX(Genes, input);
+            HashSet<Vector3Int> stairZ = mutationsStairs.GetStairZ(Genes, input);
             HashSet<Vector3Int> stair = new HashSet<Vector3Int>();
 
             if (stairX.Count > stairZ.Count)
@@ -415,7 +417,7 @@ namespace Genetics
             return newPath;
         }
 
-        private static Path GetLadderPath(Vector3Int input, Path newPath)
+        private Path GetLadderPath(Vector3Int input, Path newPath)
         {
             Stack<Vector3Int> openSet = new Stack<Vector3Int>();
             HashSet<Vector3Int> cells = new HashSet<Vector3Int>();
@@ -447,7 +449,7 @@ namespace Genetics
             return newPath;
         }
 
-        private static Path GetDoorPath(Vector3Int input, Path newPath)
+        private Path GetDoorPath(Vector3Int input, Path newPath)
         {
             Stack<Vector3Int> openSet = new Stack<Vector3Int>();
             HashSet<Vector3Int> cells = new HashSet<Vector3Int>();
@@ -479,7 +481,7 @@ namespace Genetics
             return newPath;
         }
 
-        private static bool CellIsStruct(int x, int y, int z)
+        private bool CellIsStruct(int x, int y, int z)
         {
             if (typeParams[Genes[x][y][z]].wall || typeParams[Genes[x][y][z]].floor)
                 return true;
@@ -487,7 +489,7 @@ namespace Genetics
                 return false;
         }
 
-        private static bool CellIsWalkable(int x, int y, int z)
+        private bool CellIsWalkable(int x, int y, int z)
         {
             if (!CellIsStruct(x, y, z) && typeParams[Genes[x][y - 1][z]].floor)
                 return true;
@@ -495,7 +497,7 @@ namespace Genetics
                 return false;
         }
 
-        private static bool CellIsPathWalkable(int x, int y, int z)
+        private bool CellIsPathWalkable(int x, int y, int z)
         {
             if ((Genes[x][y][z] == 0 && typeParams[Genes[x][y - 1][z]].stair)
               || (Genes[x][y + 1][z] == 0 && typeParams[Genes[x][y][z]].stair)
@@ -506,7 +508,7 @@ namespace Genetics
                 return false;
         }
 
-        private static bool CellIsPath(int x, int y, int z)
+        private bool CellIsPath(int x, int y, int z)
         {
             if (CellIsLadderPath(x, y, z) || CellIsStairPath(x, y, z)
              || typeParams[Genes[x][y][z]].door)
@@ -515,7 +517,7 @@ namespace Genetics
                 return false;
         }
 
-        private static bool CellIsLadderPath(int x, int y, int z)
+        private bool CellIsLadderPath(int x, int y, int z)
         {
             if ((typeParams[Genes[x][y][z]].ladder && (Genes[x][y + 1][z] == 0 || typeParams[Genes[x][y + 1][z]].ladder))
              || (typeParams[Genes[x][y - 1][z]].ladder && Genes[x][y][z] == 0))
@@ -524,7 +526,7 @@ namespace Genetics
                 return false;
         }
 
-        private static bool CellIsStairPath(int x, int y, int z)
+        private bool CellIsStairPath(int x, int y, int z)
         {
             if ((typeParams[Genes[x][y][z]].stair && Genes[x][y + 1][z] == 0)
              || (typeParams[Genes[x][y - 1][z]].stair && Genes[x][y][z] == 0))

@@ -5,20 +5,20 @@ using UtilitiesGenetic;
 
 namespace Genetics
 {
-    public static class MutationsDoors
+    public class MutationsDoors
     {
         public static Vector3Int size;
         public static SharpNeatLib.Maths.FastRandom random;
         public static TypeParams[] typeParams;
 
-        public static void InitMutations(Vector3Int sizeDNA, SharpNeatLib.Maths.FastRandom rand, TypeParams[] tp)
+        public void InitMutations(Vector3Int sizeDNA, SharpNeatLib.Maths.FastRandom rand, TypeParams[] tp)
         {
             size = sizeDNA;
             random = rand;
             typeParams = tp;
         }
 
-        public static int[][][] TranslateDoor(int[][][] Genes, Vector3Int input)
+        public int[][][] TranslateDoor(int[][][] Genes, Vector3Int input)
         {
             if (typeParams[Genes[input.x][input.y][input.z]].door)
             {
@@ -76,7 +76,7 @@ namespace Genetics
             return Genes;
         }
 
-        public static int[][][] CreateDoor(int[][][] Genes, Vector3Int input, int newType)
+        public int[][][] CreateDoor(int[][][] Genes, Vector3Int input, int newType)
         {
             if (typeParams[Genes[input.x][input.y][input.z]].wall && typeParams[Genes[input.x][input.y + 1][input.z]].wall
                 &&(!typeParams[Genes[input.x][input.y][input.z]].door && !typeParams[Genes[input.x][input.y + 1][input.z]].door))
@@ -88,7 +88,7 @@ namespace Genetics
             return Genes;
         }
 
-        public static int[][][] CollapseDoor(int[][][] Genes, Vector3Int input)
+        public int[][][] CollapseDoor(int[][][] Genes, Vector3Int input)
         {
             if (typeParams[Genes[input.x][input.y][input.z]].door && typeParams[Genes[input.x][input.y + 1][input.z]].door)
             {
@@ -129,11 +129,6 @@ namespace Genetics
             }
 
             return Genes;
-        }
-        
-        private static bool CellIsStruct(int x, int y, int z, int[][][] Genes)
-        {
-            return Mutations.CellIsStruct(x, y, z, Genes);
         }
     }
 }

@@ -5,20 +5,20 @@ using UtilitiesGenetic;
 
 namespace Genetics
 {
-    public static class MutationsStairs
+    public class MutationsStairs
     {
-        public static Vector3Int size;
-        public static SharpNeatLib.Maths.FastRandom random;
-        public static TypeParams[] typeParams;
+        public Vector3Int size;
+        public SharpNeatLib.Maths.FastRandom random;
+        public TypeParams[] typeParams;
 
-        public static void InitMutations(Vector3Int sizeDNA, SharpNeatLib.Maths.FastRandom rand, TypeParams[] tp)
+        public void InitMutations(Vector3Int sizeDNA, SharpNeatLib.Maths.FastRandom rand, TypeParams[] tp)
         {
             size = sizeDNA;
             random = rand;
             typeParams = tp;
         }
 
-        public static int[][][] CreateStair(int[][][] Genes, Vector3Int input, int newType)
+        public int[][][] CreateStair(int[][][] Genes, Vector3Int input, int newType)
         {
             int mutationType = random.Next(2);
             int direction = random.Next(2) > 0 ? 1 : -1;
@@ -35,7 +35,7 @@ namespace Genetics
             return Genes;
         }
 
-        public static int[][][] DestroyStair(int[][][] Genes, Vector3Int input)
+        public int[][][] DestroyStair(int[][][] Genes, Vector3Int input)
         {
             HashSet<Vector3Int> stairX = GetStairX(Genes, input);
             HashSet<Vector3Int> stairZ = GetStairZ(Genes, input);
@@ -50,7 +50,7 @@ namespace Genetics
             return Genes;
         }
 
-        public static int[][][] MoveStair(int[][][] Genes, Vector3Int input, int newType)
+        public int[][][] MoveStair(int[][][] Genes, Vector3Int input, int newType)
         {
             HashSet<Vector3Int> stairX = GetStairX(Genes, input);
             HashSet<Vector3Int> stairZ = GetStairZ(Genes, input);
@@ -89,7 +89,7 @@ namespace Genetics
             return Genes;
         }
 
-        public static int[][][] RemoveStair(int[][][] Genes, HashSet<Vector3Int> stair)
+        public int[][][] RemoveStair(int[][][] Genes, HashSet<Vector3Int> stair)
         {
             if (stair != null)
             {
@@ -110,7 +110,7 @@ namespace Genetics
             return Genes;
         }
 
-        public static int NeighborsMostCommunType(int[][][] Genes, Vector3Int input)
+        public int NeighborsMostCommunType(int[][][] Genes, Vector3Int input)
         {
             List<int> typesAround = new List<int>();
 
@@ -134,7 +134,7 @@ namespace Genetics
                 return 0;
         }
 
-        public static bool FloorAround(int[][][] Genes, int x, int y, int z)
+        public bool FloorAround(int[][][] Genes, int x, int y, int z)
         {
             if (x - 1 > 0 && typeParams[Genes[x - 1][y][z]].floor)
                 return true;
@@ -148,7 +148,7 @@ namespace Genetics
             return false;
         }
 
-        public static HashSet<Vector3Int> GetStairX(int[][][] Genes, Vector3Int input)
+        public HashSet<Vector3Int> GetStairX(int[][][] Genes, Vector3Int input)
         {
             int direction = 0;
             HashSet<Vector3Int> stair = new HashSet<Vector3Int>();
@@ -194,7 +194,7 @@ namespace Genetics
             return stair;
         }
 
-        public static HashSet<Vector3Int> GetStairZ(int[][][] Genes, Vector3Int input)
+        public HashSet<Vector3Int> GetStairZ(int[][][] Genes, Vector3Int input)
         {
             int direction = 0;
             HashSet<Vector3Int> stair = new HashSet<Vector3Int>();
@@ -240,7 +240,7 @@ namespace Genetics
             return stair;
         }
 
-        public static void FillStairX(ref int[][][] Genes, Vector3Int input, int newType, int direction)
+        public void FillStairX(ref int[][][] Genes, Vector3Int input, int newType, int direction)
         {
             if (Genes[input.x][input.y][input.z] > 0 && !typeParams[Genes[input.x][input.y][input.z]].floor
                 && !typeParams[Genes[input.x][input.y - 1][input.z]].stair && !typeParams[Genes[input.x][input.y + 1][input.z]].stair)
@@ -276,7 +276,7 @@ namespace Genetics
             }
         }
 
-        public static void FillStairZ(ref int[][][] Genes, Vector3Int input, int newType, int direction)
+        public void FillStairZ(ref int[][][] Genes, Vector3Int input, int newType, int direction)
         {
             if (Genes[input.x][input.y][input.z] > 0 && !typeParams[Genes[input.x][input.y][input.z]].floor
                 && !typeParams[Genes[input.x][input.y - 1][input.z]].stair && !typeParams[Genes[input.x][input.y + 1][input.z]].stair)
@@ -312,9 +312,12 @@ namespace Genetics
             }
         }
 
-        private static bool CellIsStruct(int x, int y, int z, int[][][] Genes)
+        private bool CellIsStruct(int x, int y, int z, int[][][] Genes)
         {
-            return Mutations.CellIsStruct(x, y, z, Genes);
+            if (typeParams[Genes[x][y][z]].floor || typeParams[Genes[x][y][z]].wall)
+                return true;
+            else
+                return false;
         }
     }
 }

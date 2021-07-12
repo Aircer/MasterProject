@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System;
 using UtilitiesGenetic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Genetics
 {
@@ -14,8 +16,6 @@ namespace Genetics
 		{
 			typeParams = cellsInfos;
 
-			Mutations.InitMutations(size, randomFast, typeParams, algoParams.mutationType);
-
 			ga = new GeneticAlgorithm(algoParams, size, waypointParams, typeParams, randomFast);
 		}
 
@@ -28,7 +28,6 @@ namespace Genetics
         {
 			List<int[][][]> bestClusters = new List<int[][][]>();
 
-			ga.ClassifyPopulation();
 			float previousFitness = 2;
 			int j = 0;
 			for (int i = 0; i < nbBestFit; i++)
@@ -42,7 +41,7 @@ namespace Genetics
 				UnityEngine.Debug.Log("Total: " + ga.oldPopulation[j].fitness.total
 					+ "Walls: " + ga.oldPopulation[j].fitness.walls
 					+ "WA: " + ga.oldPopulation[j].fitness.walkingAreas
-					+ "Paths: " + ga.oldPopulation[j].fitness.pathfinding);
+					+ "Paths: " + ga.oldPopulation[j].fitness.pathfinding + "Thread: " + Thread.CurrentThread.ManagedThreadId);
 				bestClusters.Add(ga.oldPopulation[j].Genes);
 				j++;
 			}
@@ -52,8 +51,6 @@ namespace Genetics
 
 		public float GetBestTotalFitness(int nbBestFit)
 		{
-			ga.ClassifyPopulation();
-
 			return ga.oldPopulation[nbBestFit - 1].fitness.total;
 		}
 

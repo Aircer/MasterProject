@@ -5,20 +5,20 @@ using UtilitiesGenetic;
 
 namespace Genetics
 {
-    public static class MutationsWalls
+    public class MutationsWalls
     {
-        public static Vector3Int size;
-        public static SharpNeatLib.Maths.FastRandom random;
-        public static TypeParams[] typeParams;
+        public Vector3Int size;
+        public SharpNeatLib.Maths.FastRandom random;
+        public TypeParams[] typeParams;
 
-        public static void InitMutations(Vector3Int sizeDNA, SharpNeatLib.Maths.FastRandom rand, TypeParams[] tp)
+        public void InitMutations(Vector3Int sizeDNA, SharpNeatLib.Maths.FastRandom rand, TypeParams[] tp)
         {
             size = sizeDNA;
             random = rand;
             typeParams = tp;
         }
 
-        public static int[][][] FillWallX(int[][][] Genes, Vector3Int input, int newType)
+        public int[][][] FillWallX(int[][][] Genes, Vector3Int input, int newType)
         {
             if (Genes[input.x][input.y][input.z] > 0 && !typeParams[Genes[input.x][input.y][input.z]].floor)
                 return Genes;
@@ -69,7 +69,7 @@ namespace Genetics
             return Genes;
         }
 
-        public static int[][][] FillWallZ(int[][][] Genes, Vector3Int input, int newType)
+        public int[][][] FillWallZ(int[][][] Genes, Vector3Int input, int newType)
         {
             if (Genes[input.x][input.y][input.z] > 0 && !typeParams[Genes[input.x][input.y][input.z]].floor)
                 return Genes;
@@ -121,7 +121,7 @@ namespace Genetics
             return Genes;
         }
 
-        public static int[][][] DeleteWallX(int[][][] Genes, Vector3Int input)
+        public int[][][] DeleteWallX(int[][][] Genes, Vector3Int input)
         {
             if (!typeParams[Genes[input.x][input.y][input.z]].wall || (!typeParams[Genes[input.x - 1][input.y][input.z]].wall
                 && !typeParams[Genes[input.x + 1][input.y][input.z]].wall))
@@ -186,7 +186,7 @@ namespace Genetics
             return Genes;
         }
 
-        public static int[][][] DeleteWallZ(int[][][] Genes, Vector3Int input)
+        public int[][][] DeleteWallZ(int[][][] Genes, Vector3Int input)
         {
             if (!typeParams[Genes[input.x][input.y][input.z]].wall || (!typeParams[Genes[input.x][input.y][input.z - 1]].wall
                 && !typeParams[Genes[input.x][input.y][input.z + 1]].wall))
@@ -250,7 +250,7 @@ namespace Genetics
             return Genes;
         }
 
-        public static int[][][] TranslationWall(int[][][] Genes, Vector3Int input)
+        public int[][][] TranslationWall(int[][][] Genes, Vector3Int input)
         {
             int x = input.x; int y = input.y; int z = input.z;
 
@@ -289,7 +289,7 @@ namespace Genetics
             return Genes;
         }
 
-        public static int[][][] RotationWall(int[][][] Genes, Vector3Int input)
+        public int[][][] RotationWall(int[][][] Genes, Vector3Int input)
         {
             int x = input.x; int y = input.y; int z = input.z;
 
@@ -328,7 +328,7 @@ namespace Genetics
             return Genes;
         }
 
-        public static HashSet<Vector3Int> TakeWallX(int[][][] Genes, Vector3Int input)
+        public HashSet<Vector3Int> TakeWallX(int[][][] Genes, Vector3Int input)
         {
             HashSet<Vector3Int> wall = new HashSet<Vector3Int>();
             HashSet<Vector3Int> cellsChecked = new HashSet<Vector3Int>();
@@ -396,7 +396,7 @@ namespace Genetics
             return wall;
         }
 
-        public static HashSet<Vector3Int> TakeWallZ(int[][][] Genes, Vector3Int input)
+        public HashSet<Vector3Int> TakeWallZ(int[][][] Genes, Vector3Int input)
         {
             HashSet<Vector3Int> wall = new HashSet<Vector3Int>();
             HashSet<Vector3Int> cellsChecked = new HashSet<Vector3Int>();
@@ -463,7 +463,7 @@ namespace Genetics
             return wall;
         }
 
-        public static int[][][] TranslateWallX(Vector3Int input, HashSet<Vector3Int> wall, int[][][] Genes)
+        public int[][][] TranslateWallX(Vector3Int input, HashSet<Vector3Int> wall, int[][][] Genes)
         {
             /*int upperTranslationLimit = size.z - input.z;
             int lowerTranslationLimit = input.z - 1;
@@ -503,7 +503,7 @@ namespace Genetics
             return Genes;
         }
 
-        public static int[][][] TranslateWallZ(Vector3Int input, HashSet<Vector3Int> wall, int[][][] Genes)
+        public int[][][] TranslateWallZ(Vector3Int input, HashSet<Vector3Int> wall, int[][][] Genes)
         {
             /*int upperTranslationLimit = size.x - input.x;
             int lowerTranslationLimit = input.x - 1;
@@ -555,7 +555,7 @@ namespace Genetics
             return Genes;
         }
 
-        public static int[][][] RotateWallX(Vector3Int input, HashSet<Vector3Int> wall, int[][][] Genes)
+        public int[][][] RotateWallX(Vector3Int input, HashSet<Vector3Int> wall, int[][][] Genes)
         {
             int pivot = 0;
             int Xmin = size.x; int Xmax = 0;
@@ -607,7 +607,7 @@ namespace Genetics
             return Genes;
         }
 
-        public static int[][][] RotateWallZ(Vector3Int input, HashSet<Vector3Int> wall, int[][][] Genes)
+        public int[][][] RotateWallZ(Vector3Int input, HashSet<Vector3Int> wall, int[][][] Genes)
         {
             int pivot = 0;
             int Zmin = size.z; int Zmax = 0;
@@ -659,7 +659,7 @@ namespace Genetics
             return Genes;
         }
 
-        private static bool WallLimit(int x, int y, int z, int[][][] Genes)
+        private bool WallLimit(int x, int y, int z, int[][][] Genes)
         {
             if ((Genes[x][y][z] == 0 || (typeParams[Genes[x][y][z]].floor && (y - 2 < 0 || typeParams[Genes[x][y - 2][z]].wall))
                                     || typeParams[Genes[x][y][z]].stair)
@@ -669,7 +669,7 @@ namespace Genetics
                 return true;
         }
 
-        public static int NeighborsMostCommunType(int[][][] Genes, Vector3Int input)
+        public int NeighborsMostCommunType(int[][][] Genes, Vector3Int input)
         {
             List<int> typesAround = new List<int>();
 
@@ -691,11 +691,6 @@ namespace Genetics
             }
             else
                 return 0;
-        }
-
-        private static bool CellIsStruct(int x, int y, int z, int[][][] Genes)
-        {
-            return Mutations.CellIsStruct(x, y, z, Genes);
         }
     }
 }
